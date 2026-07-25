@@ -203,6 +203,7 @@
                                 <th>বিভাগ</th>
                                 <th>Price</th>
                                 <th>Stock</th>
+                                <th>অ্যাকশন</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -228,11 +229,49 @@
                                     <td>@product.Category</td>
                                     <td data-order="@product.UnitPrice">৳ @product.UnitPrice.ToString("N2")</td>
                                     <td data-order="@product.StockQuantity">
-                                        <span class="@(product.StockQuantity < 25 ? "stock-low" : "")">
+                                        <span class="@(product.StockQuantity <= 5 ? "stock-low" : "")">
                                             @product.StockQuantity
+                                            @if (product.StockQuantity <= 5)
+                                            {
+                                                <small style="background: #fee2e2; color: #dc2626; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-left: 4px;">⚠️ Low</small>
+                                            }
                                         </span>
                                     </td>
+                                    <td>
+                                        <button class="product-submit" style="min-width: auto; padding: 6px 12px; font-size: 13px; background: #10b981;" onclick="openRestockModal(@product.Id, '@Html.Raw(product.Name)', @product.StockQuantity, @product.UnitPrice)">+ Restock</button>
+                                    </td>
                                 </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+<div id="restockModal" class="shop-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: #fff; border-radius: 16px; width: 100%; max-width: 420px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);">
+        <h3 style="margin-top: 0; font-size: 20px; color: #0f172a;">পণ্য স্টক বৃদ্ধি (Restock)</h3>
+        <p style="color: #64748b; font-size: 14px; margin-bottom: 16px;" id="restockProductName"></p>
+        <form id="restockForm" onsubmit="submitRestock(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="restockProductId" name="productId" />
+            <div style="margin-bottom: 14px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155;">অতিরিক্ত নতুন পরিমাণ (সংখ্যা) *</label>
+                <input type="number" id="restockAddQuantity" name="addQuantity" min="1" value="10" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;" />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155;">নতুন ইউনিট বিক্রয়মূল্য (ঐচ্ছিক)</label>
+                <input type="number" id="restockUnitPrice" name="newUnitPrice" step="0.01" min="0" placeholder="পরিবর্তন না চাইলে ফাঁকা রাখুন" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;" />
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeRestockModal()" style="padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-weight: 700; cursor: pointer;">বাতিল</button>
+                <button type="submit" style="padding: 10px 18px; border: 0; border-radius: 8px; background: #10b981; color: #fff; font-weight: 700; cursor: pointer;">সেভ করুন</button>
+            </div>
+        </form>
+    </div>
+</div>                           </tr>
                             }
                         </tbody>
                     </table>
@@ -346,5 +385,42 @@
                 });
             });
         });
+
+        function openRestockModal(productId, productName, currentStock, currentPrice) {
+            document.getElementById('restockProductId').value = productId;
+            document.getElementById('restockProductName').innerText = `পণ্য: ${productName} (বর্তমান স্টক: ${currentStock} টি)`;
+            document.getElementById('restockUnitPrice').value = currentPrice;
+            document.getElementById('restockModal').style.display = 'flex';
+        }
+
+        function closeRestockModal() {
+            document.getElementById('restockModal').style.display = 'none';
+        }
+
+        async function submitRestock(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData();
+            formData.append('productId', form.productId.value);
+            formData.append('addQuantity', form.addQuantity.value);
+            if (form.newUnitPrice.value) formData.append('newUnitPrice', form.newUnitPrice.value);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            try {
+                const response = await fetch('@Url.Action("RestockProduct")', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.message || "স্টক আপডেট ব্যর্থ হয়েছে।");
+                }
+            } catch (err) {
+                alert("স্টক আপডেট ব্যর্থ হয়েছে। " + err.message);
+            }
+        }
     </script>
 }

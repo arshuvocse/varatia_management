@@ -166,6 +166,36 @@ public sealed class ChatStore(IConfiguration configuration)
         return MapMessage(reader);
     }
 
+    public ChatMessageViewModel SendAudio(int conversationId, int senderUserId, string mediaUrl)
+    {
+        using var connection = CreateConnection();
+        connection.Open();
+        EnsureMember(connection, conversationId, senderUserId);
+
+        using var command = new SqlCommand("""
+            INSERT INTO dbo.tbl_ChatMessages (ConversationId, SenderUserId, MessageType, MediaUrl)
+            VALUES (@ConversationId, @SenderUserId, N'Audio', @MediaUrl);
+
+            DECLARE @MessageId BIGINT = CONVERT(BIGINT, SCOPE_IDENTITY());
+
+            UPDATE dbo.tbl_ChatConversations
+            SET LastMessageAt = SYSUTCDATETIME()
+            WHERE Id = @ConversationId;
+
+            SELECT m.Id, m.ConversationId, m.SenderUserId, u.Name AS SenderName,
+                   u.Role AS SenderRole, m.MessageType, m.MessageText, m.MediaUrl, m.SentAt
+            FROM dbo.tbl_ChatMessages AS m
+            INNER JOIN dbo.tbl_Users AS u ON u.Id = m.SenderUserId
+            WHERE m.Id = @MessageId;
+            """, connection);
+        command.Parameters.Add("@MediaUrl", SqlDbType.NVarChar, 500).Value = mediaUrl;
+        command.Parameters.AddWithValue("@ConversationId", conversationId);
+        command.Parameters.AddWithValue("@SenderUserId", senderUserId);
+        using var reader = command.ExecuteReader();
+        reader.Read();
+        return MapMessage(reader);
+    }
+
     public void MarkRead(int conversationId, int userId)
     {
         using var connection = CreateConnection();
@@ -237,7 +267,7 @@ public sealed class ChatStore(IConfiguration configuration)
         SELECT c.Id, c.CustomerUserId, s.UserId AS ShopkeeperUserId, c.ShopkeeperId,
                customer.Name AS CustomerName, customer.Phone AS CustomerPhone,
                s.ShopName, s.Phone AS ShopkeeperPhone, c.LastMessageAt,
-               COALESCE(lastMessage.MessageText, CASE WHEN lastMessage.MessageType = N'Image' THEN N'Image' ELSE N'' END) AS LastMessage,
+               COALESCE(lastMessage.MessageText, CASE WHEN lastMessage.MessageType = N'Image' THEN N'📷 Image' WHEN lastMessage.MessageType = N'Audio' THEN N'🎤 Voice Message' ELSE N'' END) AS LastMessage,
                (
                    SELECT COUNT(1)
                    FROM dbo.tbl_ChatMessages AS unread

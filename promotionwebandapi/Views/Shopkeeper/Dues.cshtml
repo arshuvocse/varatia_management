@@ -42,6 +42,7 @@ else
                         <td style="color: #e11d48; font-weight: bold;">৳@due.DueAmount.ToString("N2")</td>
                         <td>
                             <button class="shop-btn shop-btn-primary shop-btn-sm" onclick="openPaymentModal(@due.SaleId, @due.DueAmount)">আদায় করুন</button>
+                            <button class="shop-btn shop-btn-secondary shop-btn-sm" style="margin-left: 4px; background: #3b82f6; color: #fff;" onclick="sendDueReminder(@due.SaleId, '@due.CustomerPhone', @due.DueAmount)">💬 SMS রিমাইন্ডার</button>
                         </td>
                     </tr>
                 }
@@ -95,6 +96,27 @@ else
 
         function closePaymentModal() {
             document.getElementById('paymentModal').style.display = 'none';
+        }
+
+        async function sendDueReminder(saleId, customerPhone, dueAmount) {
+            if (!confirm(`গ্রাহক ${customerPhone}-এ ৳${dueAmount.toFixed(2)} বকেয়া আদায়ের SMS রিমাইন্ডার পাঠাতে চান?`)) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('saleId', saleId);
+                formData.append('customerPhone', customerPhone);
+                formData.append('dueAmount', dueAmount);
+                formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+                const response = await fetch('@Url.Action("SendDueReminderSms")', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                alert(result.message || result.error || "SMS পাঠানো হয়েছে।");
+            } catch (err) {
+                alert("SMS পাঠানো ব্যর্থ হয়েছে। " + err.message);
+            }
         }
 
         async function submitPayment(e) {

@@ -85,6 +85,24 @@ public sealed class ShopkeeperSaleStore(
         }
     }
 
+    public void RestockProduct(int shopkeeperId, int productId, int addQuantity, decimal? newPrice)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        using var command = new SqlCommand("""
+            UPDATE dbo.tbl_Products
+            SET StockQuantity = StockQuantity + @AddQuantity,
+                UnitPrice = COALESCE(@NewPrice, UnitPrice)
+            WHERE Id = @ProductId AND ShopkeeperId = @ShopkeeperId;
+            """, connection);
+        command.Parameters.AddWithValue("@AddQuantity", addQuantity);
+        command.Parameters.AddWithValue("@NewPrice", (object?)newPrice ?? DBNull.Value);
+        command.Parameters.AddWithValue("@ProductId", productId);
+        command.Parameters.AddWithValue("@ShopkeeperId", shopkeeperId);
+
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
     public IReadOnlyList<ShopkeeperProductViewModel> GetProducts(int shopkeeperId)
     {
         distributionStore.SyncCatalogForShop(shopkeeperId);

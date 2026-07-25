@@ -78,6 +78,19 @@
             return;
         }
 
+        if ((message.messageType === "Audio" || message.messageType === "Voice") && message.mediaUrl) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "chat-audio-wrapper";
+            const audio = document.createElement("audio");
+            audio.controls = true;
+            audio.preload = "metadata";
+            audio.className = "chat-message-audio";
+            audio.src = message.mediaUrl;
+            wrapper.appendChild(audio);
+            container.appendChild(wrapper);
+            return;
+        }
+
         const text = document.createElement("p");
         text.textContent = message.messageText;
         container.appendChild(text);
@@ -98,5 +111,132 @@
             const error = await response.json().catch(() => ({ message: "ছবি আপলোড করা যায়নি।" }));
             throw new Error(error.message || "ছবি আপলোড করা যায়নি।");
         }
+    };
+
+    window.uploadChatAudio = async (conversationId, audioBlob) => {
+        const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        if (!verificationToken) {
+            throw new Error("Your session could not be verified. Please sign in again.");
+        }
+
+        const mimeType = audioBlob.type || "audio/webm";
+        const extension = mimeType.includes("ogg") ? "voice.ogg" : mimeType.includes("wav") ? "voice.wav" : "voice.webm";
+        const file = new File([audioBlob], extension, { type: mimeType });
+
+        const formData = new FormData();
+        formData.append("conversationId", conversationId);
+        formData.append("audio", file);
+        formData.append("__RequestVerificationToken", verificationToken);
+        const response = await fetch("/Chat/UploadAudio", { method: "POST", body: formData });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ message: "ভয়েস এসএমএস পাঠানো যায়নি।" }));
+            throw new Error(error.message || "ভয়েস এসএমএস পাঠানো যায়নি।");
+        }
+    };
+
+    window.setupVoiceRecorder = ({ recordButton, getConversationId }) => {
+        if (!recordButton) return;
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let timerInterval = null;
+        let secondsElapsed = 0;
+
+        const updateButtonState = state => {
+            if (state === "recording") {
+                recordButton.classList.add("recording");
+                recordButton.innerHTML = `🔴 Send (${secondsElapsed}s)`;
+            } else if (state === "uploading") {
+                recordButton.classList.remove("recording");
+                recordButton.disabled = true;
+                recordButton.innerHTML = `Sending...`;
+            } else {
+                recordButton.classList.remove("recording");
+                recordButton.disabled = !getConversationId();
+                recordButton.innerHTML = `🎤 Voice`;
+            }
+        };
+
+        const stopTimer = () => {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            secondsElapsed = 0;
+        };
+
+        const startRecording = async () => {
+            const conversationId = getConversationId();
+            if (!conversationId) return;
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioChunks = [];
+                const options = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+                    ? { mimeType: "audio/webm;codecs=opus" }
+                    : MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")
+                        ? { mimeType: "audio/ogg;codecs=opus" }
+                        : {};
+                mediaRecorder = new MediaRecorder(stream, options);
+
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    if (audioChunks.length === 0) {
+                        updateButtonState("idle");
+                        return;
+                    }
+
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+                    updateButtonState("uploading");
+                    try {
+                        await window.uploadChatAudio(conversationId, audioBlob);
+                    } catch (err) {
+                        alert(err.message || "ভয়েস এসএমএস পাঠাতে ব্যর্থ হয়েছে।");
+                    } finally {
+                        isRecording = false;
+                        updateButtonState("idle");
+                    }
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                secondsElapsed = 0;
+                updateButtonState("recording");
+
+                timerInterval = setInterval(() => {
+                    secondsElapsed++;
+                    updateButtonState("recording");
+                    if (secondsElapsed >= 120) { // Auto stop after 2 mins
+                        stopRecording();
+                    }
+                }, 1000);
+            } catch (err) {
+                alert("মাইক্রোফোন অ্যাক্সেস পাওয়া যায়নি: " + (err.message || "অ্যাক্সেস অস্বীকার করা হয়েছে।"));
+                isRecording = false;
+                updateButtonState("idle");
+            }
+        };
+
+        const stopRecording = () => {
+            stopTimer();
+            if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+            }
+        };
+
+        recordButton.addEventListener("click", () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
     };
 })();

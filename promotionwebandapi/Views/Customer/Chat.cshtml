@@ -66,6 +66,7 @@
                     <form class="chat-compose" id="customer-chat-form">
                         <input id="customer-chat-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
                         <button class="chat-image-button" id="customer-chat-image-button" type="button" disabled>Image</button>
+                        <button class="chat-voice-button" id="customer-chat-voice-button" type="button" title="Send Voice SMS" disabled>🎤 Voice</button>
                         <input id="customer-chat-input" maxlength="1000" autocomplete="off" placeholder="Write a message..." disabled />
                         <button class="btn-primary" type="submit" disabled>Send</button>
                     </form>
@@ -87,11 +88,14 @@
             const send = form.querySelector(".btn-primary");
             const image = document.getElementById("customer-chat-image");
             const imageButton = document.getElementById("customer-chat-image-button");
+            const voiceButton = document.getElementById("customer-chat-voice-button");
             const callButton = workspace.querySelector("[data-audio-call-button]");
             const videoCallButton = workspace.querySelector("[data-video-call-button]");
             const shopList = document.getElementById("customer-chat-shops");
             const currentUserId = Number(workspace.dataset.currentUserId);
             let activeConversationId = 0;
+
+            window.setupVoiceRecorder?.({ recordButton: voiceButton, getConversationId: () => activeConversationId });
 
             const addMessage = message => {
                 const item = document.createElement("article");

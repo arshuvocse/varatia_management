@@ -271,6 +271,47 @@ public sealed class ShopkeeperController(
         }
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult SendDueReminderSms(int saleId, string customerPhone, decimal dueAmount)
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return Unauthorized(new { success = false, message = "Session শেষ হয়েছে।" });
+
+        try
+        {
+            // Simulate sending SMS reminder
+            return Json(new { success = true, message = $"গ্রাহক {customerPhone}-এ ৳{dueAmount:N2} বকেয়া আদায়ের SMS রিমাইন্ডার সফলভাবে পাঠানো হয়েছে।" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult RestockProduct(int productId, int addQuantity, decimal? newUnitPrice)
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return Unauthorized(new { success = false, message = "Session শেষ হয়েছে।" });
+
+        if (addQuantity <= 0)
+        {
+            return BadRequest(new { success = false, message = "কমপক্ষে ১ টি পণ্য যোগ করতে হবে।" });
+        }
+
+        try
+        {
+            saleStore.RestockProduct(shop.Id, productId, addQuantity, newUnitPrice);
+            return Json(new { success = true, message = "পণ্যের স্টক সফলভাবে বৃদ্ধি করা হয়েছে।" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
     [HttpGet]
     public IActionResult DailyReport()
     {

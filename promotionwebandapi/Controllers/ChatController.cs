@@ -76,6 +76,72 @@ public sealed class ChatController(
         return Json(message);
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(12 * 1024 * 1024)]
+    public async Task<IActionResult> UploadAudio(int conversationId, IFormFile? audio)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId is null)
+        {
+            return Unauthorized(new { message = "Session expired." });
+        }
+
+        if (audio is null || audio.Length == 0 || audio.Length > 10 * 1024 * 1024)
+        {
+            return BadRequest(new { message = "Recording must be up to 10 MB." });
+        }
+
+        var extension = audio.ContentType?.ToLowerInvariant() switch
+        {
+            "audio/webm" => ".webm",
+            "audio/ogg" => ".ogg",
+            "audio/wav" or "audio/x-wav" => ".wav",
+            "audio/mp3" or "audio/mpeg" => ".mp3",
+            "audio/mp4" or "audio/m4a" or "audio/x-m4a" => ".m4a",
+            "audio/aac" => ".aac",
+            _ => ".webm"
+        };
+
+        ChatConversationViewModel conversation;
+        try
+        {
+            conversation = chatStore.OpenForUser(conversationId, userId.Value);
+        }
+        catch (InvalidOperationException)
+        {
+            return Forbid();
+        }
+
+        var folder = Path.Combine(environment.ContentRootPath, "uploads", "chat");
+        Directory.CreateDirectory(folder);
+        var fileName = $"voice_{Guid.NewGuid():N}{extension}";
+        await using (var stream = System.IO.File.Create(Path.Combine(folder, fileName)))
+        {
+            await audio.CopyToAsync(stream);
+        }
+
+        var message = chatStore.SendAudio(conversationId, userId.Value, $"/uploads/chat/{fileName}");
+        var recipientUserId = userId.Value == conversation.CustomerUserId
+            ? conversation.ShopkeeperUserId
+            : conversation.CustomerUserId;
+
+        await hubContext.Clients.Group($"conversation:{conversationId}").SendAsync("ReceiveMessage", message);
+        await hubContext.Clients.Group($"user:{recipientUserId}").SendAsync("ReceiveNotification", new
+        {
+            conversationId,
+            message.SenderName,
+            MessageText = "🎤 Sent a voice message",
+            message.SentAt,
+            conversation.CustomerName,
+            conversation.CustomerPhone,
+            conversation.ShopName,
+            conversation.ShopkeeperPhone
+        });
+
+        return Json(message);
+    }
+
     private static async Task<bool> HasValidImageSignature(IFormFile image, string extension)
     {
         var header = new byte[12];
