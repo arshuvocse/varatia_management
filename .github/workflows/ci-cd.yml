@@ -1,0 +1,76 @@
+name: Varatia Management CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  backend-build-and-deploy:
+    name: Build ASP.NET Core API & Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore promotionwebandapi/promotionweb.csproj
+
+    - name: Build Project
+      run: dotnet build promotionwebandapi/promotionweb.csproj --configuration Release --no-restore
+
+    - name: Log in to GitHub Container Registry (GHCR)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and Push Docker Image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: docker/build-push-action@v5
+      with:
+        context: ./promotionwebandapi
+        file: ./promotionwebandapi/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository_owner }}/varatia_management_api:latest
+          ghcr.io/${{ github.repository_owner }}/varatia_management_api:${{ github.sha }}
+
+  flutter-app-ci:
+    name: Build & Test Flutter App
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./varatia_management_apps
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.x'
+        channel: 'stable'
+        cache: true
+
+    - name: Get Dependencies
+      run: flutter pub get
+
+    - name: Run Flutter Analyze
+      run: flutter analyze --no-fatal-infos
