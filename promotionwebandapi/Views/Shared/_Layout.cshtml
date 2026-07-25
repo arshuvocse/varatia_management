@@ -1,0 +1,39 @@
+@using PromotionWeb.Models
+@{
+    var sessionUserId = Context.Session.GetInt32("UserId");
+    var sessionRole = Context.Session.GetString("UserRole");
+    var enableLiveChat = sessionUserId is not null
+        && (sessionRole == Roles.Customer || sessionRole == Roles.Shopkeeper);
+}
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - আমার ঠিকানা</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="~/images/amar_thikanaa_icon.png" />
+    @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body data-live-chat-enabled="@enableLiveChat.ToString().ToLowerInvariant()">
+    @RenderBody()
+    <div class="live-notification-stack" id="live-notification-stack" aria-live="polite"></div>
+    @if (enableLiveChat)
+    {
+        @Html.AntiForgeryToken()
+    }
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/bn-ui.js" asp-append-version="true"></script>
+    @if (enableLiveChat)
+    {
+        <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@10.0.0/dist/browser/signalr.min.js"></script>
+        <script src="~/js/chat.js" asp-append-version="true"></script>
+        <script src="~/js/audio-chat.js" asp-append-version="true"></script>
+        <script src="~/js/video-chat.js" asp-append-version="true"></script>
+    }
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,15 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Reports";
+    ViewData["PageTitle"] = "Reports";
+    ViewData["ActivePage"] = "Reports";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>রিপোর্ট</span><h2>কোম্পানির রিপোর্ট</h2></div></div>
+    <div class="company-report-card">
+        <div><strong>কোম্পানির কাজের রিপোর্ট</strong><p>Sale, orders, network and district performance in a spreadsheet-ready CSV file.</p></div>
+        <a asp-action="ExportReport">CSV ডাউনলোড</a>
+    </div>
+</section>

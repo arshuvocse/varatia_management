@@ -1,0 +1,529 @@
+@model FieldOfficerDashboardViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Field Force Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var totalShops = Model.Shops.Count;
+    var activeShops = Model.Shops.Count;
+    var totalProducts = Model.Products.Count;
+    var monthSale = Model.Shops.Count * 125000;
+    var commission = Model.Shops.Count * 650;
+    var locationJson = JsonSerializer.Serialize(new
+    {
+        districts = Model.Locations.Districts.Select(x => new { x.Id, x.Name, x.ParentId }),
+        thanas = Model.Locations.Thanas.Select(x => new { x.Id, x.Name, x.ParentId })
+    });
+    var productCatalogJson = JsonSerializer.Serialize(Model.Products.Select(product => new
+    {
+        product.Id,
+        product.Name,
+        product.Category,
+        product.ProductCode,
+        product.UnitPrice,
+        product.ImageUrl
+    }));
+    var selectedProductIdsJson = JsonSerializer.Serialize(Model.Registration.SelectedProductIds);
+}
+
+<main class="app-page shop-theme shop-portal-page officer-portal-page">
+    <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="true"></div>
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>FIELD FORCE APP</span>
+                    <h1>স্বাগতম, @Model.OfficerName</h1>
+                    <p>দোকান রেজিস্ট্রেশন, পারফরম্যান্স এবং কমিশন এক জায়গায় দেখুন।</p>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+            {
+                <div class="alert-success">@Model.SuccessMessage</div>
+            }
+
+            <section class="fieldforce-hero">
+                <div class="performance-card fieldforce-summary">
+                    <span>আমার পারফরম্যান্স</span>
+                    <div><strong>@totalShops</strong><small>মোট দোকান</small></div>
+                    <div><strong>@activeShops</strong><small>সক্রিয় দোকান</small></div>
+                    <div><strong>@totalProducts</strong><small>মোট প্রোডাক্ট</small></div>
+                    <div><strong>৳ @monthSale.ToString("N0")</strong><small>মোট Sale</small></div>
+                    <div><strong>৳ @commission.ToString("N0")</strong><small>আমার কমিশন</small></div>
+                </div>
+
+                <div class="fieldforce-actions">
+                    <a href="#register-shop"><span>＋</span><strong>নতুন দোকান</strong></a>
+                    <a href="/FieldForce/Shops"><span>▤</span><strong>দোকানসমূহ</strong></a>
+                    <a href="/FieldForce/Prices"><span>৳</span><strong>দাম সেটিং</strong></a>
+                    <a href="/FieldForce/Products"><span>◧</span><strong>প্রোডাক্ট</strong></a>
+                    <a href="/FieldForce/ProductDistribution"><span>%</span><strong>বণ্টন</strong></a>
+                    <a href="#performance"><span>▥</span><strong>পারফরম্যান্স</strong></a>
+                    <a href="#support"><span>☻</span><strong>সাপোর্ট</strong></a>
+                </div>
+            </section>
+
+        <div class="dashboard-grid fieldforce-grid">
+            <section class="panel" id="register-shop">
+                <h2>দোকানদার রেজিস্ট্রেশন</h2>
+                <form asp-action="RegisterShopkeeper" method="post" enctype="multipart/form-data" class="form-stack" id="shop-registration-form">
+                    <div class="ajax-message" id="registration-message" aria-live="polite"></div>
+
+                    <label asp-for="Registration.ShopName"></label>
+                    <input asp-for="Registration.ShopName" />
+                    <span asp-validation-for="Registration.ShopName" class="validation"></span>
+
+                    <label asp-for="Registration.OwnerName"></label>
+                    <input asp-for="Registration.OwnerName" />
+                    <span asp-validation-for="Registration.OwnerName" class="validation"></span>
+
+                    <label asp-for="Registration.Phone"></label>
+                    <input asp-for="Registration.Phone" placeholder="01XXXXXXXXX" />
+                    <span asp-validation-for="Registration.Phone" class="validation"></span>
+
+                    <label asp-for="Registration.NidNumber"></label>
+                    <input asp-for="Registration.NidNumber" placeholder="Optional" />
+                    <span asp-validation-for="Registration.NidNumber" class="validation"></span>
+
+                    <label asp-for="Registration.ProfilePhoto"></label>
+                    <input asp-for="Registration.ProfilePhoto" type="file" accept="image/jpeg,image/png,image/webp" />
+                    <span asp-validation-for="Registration.ProfilePhoto" class="validation"></span>
+
+                    <label asp-for="Registration.BillboardPhoto"></label>
+                    <input asp-for="Registration.BillboardPhoto" type="file" accept="image/jpeg,image/png,image/webp" />
+                    <span asp-validation-for="Registration.BillboardPhoto" class="validation"></span>
+
+                    <label asp-for="Registration.DivisionId"></label>
+                    <select asp-for="Registration.DivisionId" id="division-select">
+                        <option value="">ডিভিশন নির্বাচন করুন</option>
+                        @foreach (var division in Model.Locations.Divisions)
+                        {
+                            <option value="@division.Id">@division.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Registration.DivisionId" class="validation"></span>
+
+                    <label asp-for="Registration.DistrictId"></label>
+                    <select asp-for="Registration.DistrictId" id="district-select" data-selected="@Model.Registration.DistrictId">
+                        <option value="">ডিস্ট্রিক্ট নির্বাচন করুন</option>
+                    </select>
+                    <span asp-validation-for="Registration.DistrictId" class="validation"></span>
+
+                    <label asp-for="Registration.ThanaId"></label>
+                    <select asp-for="Registration.ThanaId" id="thana-select" data-selected="@Model.Registration.ThanaId">
+                        <option value="">থানা নির্বাচন করুন</option>
+                    </select>
+                    <span asp-validation-for="Registration.ThanaId" class="validation"></span>
+
+                    <label asp-for="Registration.Address"></label>
+                    <input asp-for="Registration.Address" placeholder="দোকানের পূর্ণ ঠিকানা" />
+                    <span asp-validation-for="Registration.Address" class="validation"></span>
+
+                    <label asp-for="Registration.Latitude"></label>
+                    <input asp-for="Registration.Latitude" placeholder="23.8103" />
+                    <span asp-validation-for="Registration.Latitude" class="validation"></span>
+
+                    <label asp-for="Registration.Longitude"></label>
+                    <input asp-for="Registration.Longitude" placeholder="90.4125" />
+                    <span asp-validation-for="Registration.Longitude" class="validation"></span>
+
+                    <button class="btn-light location-btn" type="button" id="use-current-location">
+                        <span class="location-spinner" aria-hidden="true"></span>
+                        <span class="location-btn-text">বর্তমান লোকেশন নিন</span>
+                    </button>
+                    <span class="location-status" id="location-status"></span>
+
+                    <label asp-for="Registration.Area"></label>
+                    <input asp-for="Registration.Area" />
+                    <span asp-validation-for="Registration.Area" class="validation"></span>
+
+                    <label asp-for="Registration.ShopType"></label>
+                    <select asp-for="Registration.ShopType" id="shop-category-select">
+                        <option value="">ধরন নির্বাচন করুন</option>
+                        <option>মুদির দোকান</option>
+                        <option>ফার্মেসি</option>
+                        <option>কসমেটিকস</option>
+                        <option>ইলেকট্রনিক্স</option>
+                    </select>
+                    <span asp-validation-for="Registration.ShopType" class="validation"></span>
+
+                    <div id="registration-products" class="registration-products" hidden>
+                        <div class="registration-products-heading">
+                            <div>
+                                <strong>Products</strong>
+                                <small id="selected-product-count">0 product selected</small>
+                            </div>
+                            <label class="select-all-products">
+                                <input type="checkbox" id="select-all-products" />
+                                Select all
+                            </label>
+                        </div>
+                        <input type="search" id="product-search" placeholder="Search product..." autocomplete="off" />
+                        <div id="registration-product-list" class="registration-product-list"></div>
+                        <span asp-validation-for="Registration.SelectedProductIds" class="validation"></span>
+                        <p id="empty-category-products" class="empty" hidden>No product is available in this category.</p>
+                    </div>
+
+                    <label asp-for="Registration.Password"></label>
+                    <input asp-for="Registration.Password" />
+                    <span asp-validation-for="Registration.Password" class="validation"></span>
+
+                    <button class="btn-primary" type="submit" id="register-submit">রেজিস্ট্রেশন করুন</button>
+                </form>
+            </section>
+
+            <section class="panel" id="performance">
+                <h2>দোকান পারফরম্যান্স</h2>
+                <div class="performance-list">
+                    @if (Model.Shops.Count == 0)
+                    {
+                        <p class="empty">এখনও কোনো দোকান রেজিস্ট্রেশন করা হয়নি।</p>
+                    }
+                    @foreach (var shop in Model.Shops.Take(5))
+                    {
+                        var percent = Math.Min(100, 45 + shop.Id * 10);
+                        <article>
+                            <div>
+                                <strong>@shop.ShopName (@shop.ShopCode)</strong>
+                                <span>@shop.Area · কমিশন: ৳ @(shop.Id * 325)</span>
+                            </div>
+                            <div class="progress-row compact"><b style="width:@percent%"></b></div>
+                        </article>
+                    }
+                </div>
+
+                <div class="support-box fieldforce-support" id="support">
+                    <strong>ফিল্ড সাপোর্ট</strong>
+                    <span>09678-123456</span>
+                    <small>সকাল ৯টা - রাত ৯টা</small>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel shop-panel" id="shop-list">
+            <div class="panel-title-row">
+                <h2>রেজিস্টার্ড দোকান</h2>
+                <a href="/FieldForce/Shops">সব দেখুন</a>
+            </div>
+            <div class="shop-list">
+                @if (Model.Shops.Count == 0)
+                {
+                    <p class="empty">এখনও কোনো দোকান রেজিস্ট্রেশন করা হয়নি।</p>
+                }
+                @foreach (var shop in Model.Shops.Take(5))
+                {
+                    <article>
+                        <div>
+                            <strong>@shop.ShopName</strong>
+                            <span>@shop.OwnerName · @shop.Phone</span>
+                            <small>@shop.ShopCode · @shop.Area</small>
+                        </div>
+                        <b>@shop.ShopType</b>
+                    </article>
+                }
+            </div>
+        </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const catalog = @Html.Raw(locationJson);
+            const productCatalog = @Html.Raw(productCatalogJson);
+            const selectedProductIds = @Html.Raw(selectedProductIdsJson);
+            const initiallySelectedProductIds = new Set(selectedProductIds.map(String));
+            const divisionSelect = document.getElementById("division-select");
+            const districtSelect = document.getElementById("district-select");
+            const thanaSelect = document.getElementById("thana-select");
+            const locationButton = document.getElementById("use-current-location");
+            const locationStatus = document.getElementById("location-status");
+            const latitudeInput = document.getElementById("Registration_Latitude");
+            const longitudeInput = document.getElementById("Registration_Longitude");
+            const registrationForm = $("#shop-registration-form");
+            const registerSubmit = $("#register-submit");
+            const registrationMessage = $("#registration-message");
+            const toastStack = $("#toast-stack");
+            const categorySelect = document.getElementById("shop-category-select");
+            const productPanel = document.getElementById("registration-products");
+            const productList = document.getElementById("registration-product-list");
+            const productSearch = document.getElementById("product-search");
+            const selectAllProducts = document.getElementById("select-all-products");
+            const selectedProductCount = document.getElementById("selected-product-count");
+            const emptyCategoryProducts = document.getElementById("empty-category-products");
+
+            const addOption = (select, value, text) => {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = text;
+                select.appendChild(option);
+            };
+
+            const productCategories = [...new Set(productCatalog.map(product => product.Category).filter(Boolean))]
+                .sort((left, right) => left.localeCompare(right));
+
+            if (categorySelect) {
+                const selectedCategory = categorySelect.value;
+                categorySelect.innerHTML = '<option value="">Select category</option>';
+                productCategories.forEach(category => addOption(categorySelect, category, category));
+                categorySelect.value = selectedCategory;
+            }
+
+            const updateProductSelectionSummary = () => {
+                const visibleCheckboxes = [...productList.querySelectorAll('input[type="checkbox"]')];
+                const selectedCount = visibleCheckboxes.filter(input => input.checked).length;
+                selectedProductCount.textContent = `${selectedCount} product${selectedCount === 1 ? "" : "s"} selected`;
+                selectAllProducts.checked = visibleCheckboxes.length > 0 && selectedCount === visibleCheckboxes.length;
+                selectAllProducts.indeterminate = selectedCount > 0 && selectedCount < visibleCheckboxes.length;
+            };
+
+            const escapeHtml = value => String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+
+            const renderProducts = () => {
+                const category = categorySelect?.value || "";
+                const query = (productSearch?.value || "").trim().toLowerCase();
+                const categoryImages = {
+                    'মুদির দোকান': 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80',
+                    'ফার্মেসি': 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
+                    'কসমেটিকস': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80',
+                    'ইলেকট্রনিক্স': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80'
+                };
+                productPanel.hidden = !category;
+                productList.innerHTML = "";
+                if (!category) return;
+
+                const products = productCatalog.filter(product =>
+                    product.Category === category
+                    && (!query || `${product.Name} ${product.ProductCode}`.toLowerCase().includes(query)));
+
+                emptyCategoryProducts.hidden = products.length > 0;
+                products.forEach(product => {
+                    const label = document.createElement("label");
+                    label.className = "registration-product-option";
+                    const checked = initiallySelectedProductIds.has(String(product.Id));
+                    const imageUrl = product.ImageUrl || categoryImages[product.Category];
+                    label.innerHTML = `
+                        <input type="checkbox" name="Registration.SelectedProductIds" value="${product.Id}" ${checked ? "checked" : ""} />
+                        ${imageUrl
+                            ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.Name)}" loading="lazy" />`
+                            : '<span class="product-option-placeholder">P</span>'}
+                        <span><strong>${escapeHtml(product.Name)}</strong><small>${escapeHtml(product.ProductCode)} · ৳ ${Number(product.UnitPrice).toFixed(2)}</small></span>`;
+                    label.querySelector("input").addEventListener("change", event => {
+                        if (event.target.checked) initiallySelectedProductIds.add(String(product.Id));
+                        else initiallySelectedProductIds.delete(String(product.Id));
+                        updateProductSelectionSummary();
+                    });
+                    productList.appendChild(label);
+                });
+                updateProductSelectionSummary();
+            };
+
+            categorySelect?.addEventListener("change", () => {
+                initiallySelectedProductIds.clear();
+                if (productSearch) productSearch.value = "";
+                renderProducts();
+            });
+            productSearch?.addEventListener("input", renderProducts);
+            selectAllProducts?.addEventListener("change", () => {
+                productList.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                    input.checked = selectAllProducts.checked;
+                    if (input.checked) initiallySelectedProductIds.add(input.value);
+                    else initiallySelectedProductIds.delete(input.value);
+                });
+                updateProductSelectionSummary();
+            });
+            renderProducts();
+
+            if (!divisionSelect || !districtSelect || !thanaSelect) {
+                return;
+            }
+
+            const fillThanas = () => {
+                const selectedThana = thanaSelect.dataset.selected;
+                thanaSelect.innerHTML = "";
+                addOption(thanaSelect, "", "থানা নির্বাচন করুন");
+
+                catalog.thanas
+                    .filter(item => String(item.ParentId) === districtSelect.value)
+                    .forEach(item => addOption(thanaSelect, item.Id, item.Name));
+
+                if (selectedThana) {
+                    thanaSelect.value = selectedThana;
+                    thanaSelect.dataset.selected = "";
+                }
+            };
+
+            const fillDistricts = () => {
+                const selectedDistrict = districtSelect.dataset.selected;
+                districtSelect.innerHTML = "";
+                addOption(districtSelect, "", "ডিস্ট্রিক্ট নির্বাচন করুন");
+
+                catalog.districts
+                    .filter(item => String(item.ParentId) === divisionSelect.value)
+                    .forEach(item => addOption(districtSelect, item.Id, item.Name));
+
+                if (selectedDistrict) {
+                    districtSelect.value = selectedDistrict;
+                    districtSelect.dataset.selected = "";
+                }
+
+                fillThanas();
+            };
+
+            divisionSelect.addEventListener("change", fillDistricts);
+            districtSelect.addEventListener("change", fillThanas);
+            fillDistricts();
+
+            if (!locationButton || !latitudeInput || !longitudeInput) {
+                return;
+            }
+
+            const locationButtonText = locationButton.querySelector(".location-btn-text");
+            const setLocationLoading = isLoading => {
+                locationButton.disabled = isLoading;
+                locationButton.classList.toggle("is-loading", isLoading);
+                if (locationButtonText) {
+                    locationButtonText.textContent = isLoading ? "লোকেশন নেওয়া হচ্ছে..." : "বর্তমান লোকেশন নিন";
+                }
+            };
+
+            locationButton.addEventListener("click", () => {
+                if (!navigator.geolocation) {
+                    if (locationStatus) {
+                        locationStatus.textContent = "এই ব্রাউজারে লোকেশন সাপোর্ট নেই।";
+                        locationStatus.className = "location-status error";
+                    }
+                    return;
+                }
+
+                setLocationLoading(true);
+                if (locationStatus) {
+                    locationStatus.textContent = "লোকেশন নেওয়া হচ্ছে...";
+                    locationStatus.className = "location-status loading";
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        latitudeInput.value = position.coords.latitude.toFixed(6);
+                        longitudeInput.value = position.coords.longitude.toFixed(6);
+                        setLocationLoading(false);
+                        if (locationStatus) {
+                            locationStatus.textContent = "লোকেশন অটো ফিল হয়েছে।";
+                            locationStatus.className = "location-status success";
+                        }
+                    },
+                    error => {
+                        setLocationLoading(false);
+                        if (locationStatus) {
+                            locationStatus.textContent = error.code === error.PERMISSION_DENIED
+                                ? "লোকেশন permission দেওয়া হয়নি।"
+                                : "লোকেশন নেওয়া যায়নি। আবার চেষ্টা করুন।";
+                            locationStatus.className = "location-status error";
+                        }
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
+
+            const clearAjaxErrors = () => {
+                registrationMessage.removeClass("success error").text("");
+                registrationForm.find("[data-valmsg-for]").text("");
+                registrationForm.find(".input-validation-error").removeClass("input-validation-error");
+            };
+
+            const showAjaxErrors = errors => {
+                Object.entries(errors || {}).forEach(([key, messages]) => {
+                    const fieldKey = key.startsWith("Registration.") ? key : `Registration.${key}`;
+                    const input = registrationForm.find(`[name="${fieldKey}"]`);
+                    const message = registrationForm.find(`[data-valmsg-for="${fieldKey}"]`);
+                    input.addClass("input-validation-error");
+                    message.text((messages || []).join(" "));
+                });
+            };
+
+            const appendShop = shop => {
+                const shopList = $("#shop-list .shop-list");
+                shopList.find(".empty").remove();
+                shopList.prepend(`
+                    <article>
+                        <div>
+                            <strong>${shop.shopName}</strong>
+                            <span>${shop.ownerName} · ${shop.phone}</span>
+                            <small>${shop.shopCode} · ${shop.address} · ${shop.thanaName}, ${shop.districtName}</small>
+                        </div>
+                        <b>${shop.shopType}</b>
+                    </article>
+                `);
+            };
+
+            const showToast = (message, type = "success") => {
+                const toast = $(`<div class="toast ${type}" role="status">${message}</div>`);
+                toastStack.append(toast);
+                window.setTimeout(() => toast.addClass("is-visible"), 20);
+                window.setTimeout(() => {
+                    toast.removeClass("is-visible");
+                    window.setTimeout(() => toast.remove(), 240);
+                }, 3600);
+            };
+
+            registrationForm.on("submit", event => {
+                event.preventDefault();
+                clearAjaxErrors();
+
+                if (registrationForm.data("validator") && !registrationForm.valid()) {
+                    return;
+                }
+
+                registerSubmit.prop("disabled", true).text("সেভ হচ্ছে...");
+
+                const formData = new FormData(registrationForm[0]);
+                formData.delete("Registration.SelectedProductIds");
+                initiallySelectedProductIds.forEach(id => formData.append("Registration.SelectedProductIds", id));
+
+                $.ajax({
+                    url: registrationForm.attr("action"),
+                    method: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                })
+                    .done(response => {
+                        registrationMessage.addClass("success").text(response.message || "রেজিস্ট্রেশন Delivered।");
+                        showToast(response.message || "রেজিস্ট্রেশন Delivered।", "success");
+                        appendShop(response.shop);
+                        registrationForm[0].reset();
+                        districtSelect.dataset.selected = "";
+                        thanaSelect.dataset.selected = "";
+                        fillDistricts();
+                        initiallySelectedProductIds.clear();
+                        renderProducts();
+                    })
+                    .fail(xhr => {
+                        const response = xhr.responseJSON || {};
+                        registrationMessage.addClass("error").text(response.message || "রেজিস্ট্রেশন করা যায়নি।");
+                        showToast(response.message || "রেজিস্ট্রেশন করা যায়নি।", "error");
+                        showAjaxErrors(response.errors);
+                    })
+                    .always(() => {
+                        registerSubmit.prop("disabled", false).text("রেজিস্ট্রেশন করুন");
+                    });
+            });
+        })();
+    </script>
+}
+

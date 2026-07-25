@@ -1,0 +1,20 @@
+@model DeliveryDashboardViewModel
+@{
+    var active = ViewData["ActivePage"]?.ToString() ?? "Dashboard";
+}
+<aside class="shop-sidebar delivery-sidebar">
+    <a class="shop-sidebar-brand" asp-action="Dashboard">
+        <img src="@(Model.DeliveryMan.ProfilePhotoUrl ?? "/images/amar_thikanaa_icon.png")" alt="" />
+        <span><strong>@Model.DeliveryMan.Name</strong><small>@UiText.Status(Model.DeliveryMan.Availability)</small></span>
+    </a>
+    <nav aria-label="ডেলিভারি কর্মীর মেনু">
+        <a class="@(active == "Dashboard" ? "active" : "")" asp-action="Dashboard"><span class="shop-nav-icon">D</span><span>ড্যাশবোর্ড</span></a>
+        <a class="@(active == "Orders" ? "active" : "")" asp-action="Orders"><span class="shop-nav-icon">O</span><span>দায়িত্ব পাওয়া অর্ডার</span>
+            @if (Model.NewAssignmentCount > 0) { <b class="chat-unread-badge">@Model.NewAssignmentCount</b> }
+        </a>
+        <a class="@(active == "History" ? "active" : "")" asp-action="History"><span class="shop-nav-icon">H</span><span>ডেলিভারি ইতিহাস</span></a>
+        <a class="@(active == "Profile" ? "active" : "")" asp-action="Profile"><span class="shop-nav-icon">P</span><span>প্রোফাইল</span></a>
+        <a class="@(active == "ChangePassword" ? "active" : "")" asp-action="ChangePassword"><span class="shop-nav-icon">K</span><span>পাসওয়ার্ড পরিবর্তন</span></a>
+    </nav>
+    <form asp-controller="Account" asp-action="Logout" method="post"><button class="shop-sidebar-logout" type="submit">লগআউট</button></form>
+</aside>

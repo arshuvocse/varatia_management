@@ -1,0 +1,11 @@
+@model AgentDashboardViewModel
+@{ ViewData["Title"] = "Shopkeepers"; ViewData["ActivePage"] = "Shopkeepers"; }
+<main class="app-page shop-theme shop-portal-page agent-portal-page"><div class="shop-portal-shell">
+<partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>জেলা নেটওয়ার্ক</span><h1>দোকানদার</h1><p>আপনার ফিল্ড কর্মীদের নিবন্ধিত সব দোকান।</p></div><span class="table-chip">@Model.Shops.Count shops</span></header>
+<partial name="_Messages" />
+<section class="agent-stat-grid compact"><article><span>Total shops</span><strong>@Model.Shops.Count</strong></article><article><span>অন্তর্ভুক্ত থানা</span><strong>@Model.Shops.Select(x => x.ThanaId).Distinct().Count()</strong></article><article><span>এই মাসে যোগ হয়েছে</span><strong>@Model.Shops.Count(x => x.RegisteredAt.Year == DateTime.Now.Year && x.RegisteredAt.Month == DateTime.Now.Month)</strong></article></section>
+<section class="panel"><div class="table-scroll"><table class="registered-shops-table"><thead><tr><th>দোকান</th><th>মালিক</th><th>অবস্থান</th><th>ধরন</th><th>ফিল্ড কর্মী</th><th>Registered</th></tr></thead><tbody>
+@foreach (var shop in Model.Shops) { <tr><td><strong>@shop.ShopName</strong><br /><small>@shop.ShopCode</small></td><td>@shop.OwnerName<br /><a href="tel:@shop.Phone">@shop.Phone</a></td><td>@shop.Area<br /><small>@shop.ThanaName, @shop.DistrictName</small></td><td>@shop.ShopType</td><td>@shop.FieldOfficerName<br /><small>@shop.FieldOfficerPhone</small></td><td>@shop.RegisteredAt.ToString("dd MMM yyyy")</td></tr> }
+</tbody></table></div>@if (Model.Shops.Count == 0) { <p class="empty-state">No shops registered by this team yet.</p> }</section>
+</section></div></main>

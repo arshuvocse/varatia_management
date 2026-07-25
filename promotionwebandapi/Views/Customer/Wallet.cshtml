@@ -1,0 +1,49 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "Wallet";
+    ViewData["ActivePage"] = "Wallet";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>CUSTOMER WALLET</span>
+                    <h1>ওয়ালেট</h1>
+                    <p>আপনার reward points, purchase summary এবং active benefits দেখুন।</p>
+                </div>
+                <span class="table-chip">@Model.RewardPoints points</span>
+            </header>
+
+            <section class="wallet-page-card">
+                <span>Available wallet balance</span>
+                <strong>&#2547; @Model.WalletBalance.ToString("N2")</strong>
+                <small>প্রতি ৳100 purchase-এ আনুমানিক 1 point</small>
+            </section>
+
+            <section class="wallet-page-grid">
+                <article>
+                    <span>Total purchased</span>
+                    <strong>৳ @Model.TotalPurchaseAmount.ToString("N2")</strong>
+                    <small>সকল order মিলিয়ে</small>
+                </article>
+                <article>
+                    <span>Delivered orders</span>
+                    <strong>@Model.CompletedOrders</strong>
+                    <small>সফলভাবে Delivered</small>
+                </article>
+            </section>
+
+            <section class="panel wallet-action-panel">
+                <div>
+                    <h2>Active benefit</h2>
+                    <p>৳1,000 বা তার বেশি order-এ 3% discount প্রযোজ্য।</p>
+                </div>
+                <a class="btn-primary" asp-action="PlaceOrder">অর্ডার করুন</a>
+            </section>
+        </section>
+    </div>
+</main>

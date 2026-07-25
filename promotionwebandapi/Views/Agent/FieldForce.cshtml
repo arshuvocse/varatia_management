@@ -1,0 +1,25 @@
+@model AgentDashboardViewModel
+@{
+    ViewData["Title"] = "Field Force";
+    ViewData["ActivePage"] = "FieldForce";
+    var districtId = Model.District?.DistrictId ?? 0;
+}
+<main class="app-page shop-theme shop-portal-page agent-portal-page"><div class="shop-portal-shell">
+<partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>দল পরিচালনা</span><h1>ফিল্ড কর্মী</h1><p>ফিল্ড কর্মীর অ্যাকাউন্ট তৈরি করুন এবং দোকান নিবন্ধন দেখুন।</p></div><span class="table-chip">@Model.FieldOfficers.Count জন সদস্য</span></header>
+<partial name="_Messages" />
+<section class="panel"><h2>ফিল্ড কর্মী নিবন্ধন</h2>
+<form asp-action="RegisterFieldOfficer" method="post" class="delivery-form-grid">
+<label>নাম *<input asp-for="FieldOfficerRegistration.Name" required maxlength="150" /></label>
+<label>মোবাইল *<input asp-for="FieldOfficerRegistration.Phone" required pattern="\d{11}" /></label>
+<label>পাসওয়ার্ড *<input asp-for="FieldOfficerRegistration.Password" type="password" required minlength="4" /></label>
+<label>জেলা *<select asp-for="FieldOfficerRegistration.DistrictId" required><option value="">জেলা নির্বাচন করুন</option>@foreach (var item in Model.Locations.Districts) { <option value="@item.Id" selected="@(item.Id == districtId)">@item.Name</option> }</select></label>
+<div class="wide"><button class="btn-primary" type="submit">ফিল্ড কর্মীর অ্যাকাউন্ট তৈরি করুন</button></div>
+</form></section>
+<section class="panel"><div class="panel-title-row"><h2>ফিল্ড কর্মী users</h2><strong>@Model.FieldOfficers.Count</strong></div>
+<div class="table-scroll"><table class="registered-shops-table"><thead><tr><th>নাম</th><th>মোবাইল</th><th>দোকান</th><th>তৈরির তারিখ</th><th>অবস্থা</th><th>কাজ</th></tr></thead><tbody>
+@foreach (var officer in Model.FieldOfficers) {
+var shopCount = Model.Shops.Count(x => x.FieldOfficerUserId == officer.Id);
+<tr><td><strong>@officer.Name</strong></td><td><a href="tel:@officer.Phone">@officer.Phone</a></td><td>@shopCount</td><td>@officer.CreatedAt.ToString("dd MMM yyyy")</td><td><span class="status-chip @(officer.IsActive ? "paid" : "pending")">@(officer.IsActive ? "Active" : "Inactive")</span></td><td><form asp-action="SetFieldOfficerActive" method="post"><input type="hidden" name="fieldOfficerUserId" value="@officer.Id" /><input type="hidden" name="isActive" value="@(!officer.IsActive)" /><button class="btn-light" type="submit">@(officer.IsActive ? "Deactivate" : "Activate")</button></form></td></tr>
+}</tbody></table></div>@if (Model.FieldOfficers.Count == 0) { <p class="empty-state">এখনও কোনো ফিল্ড কর্মী নিবন্ধিত হয়নি।</p> }</section>
+</section></div></main>

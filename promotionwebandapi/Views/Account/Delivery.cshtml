@@ -1,0 +1,20 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Delivery";
+    ViewData["PageTitle"] = "ডেলিভারি পরিচালনা";
+    ViewData["ActivePage"] = "Delivery";
+    var deliverySuccessRate = Model.TotalCustomerOrders == 0
+        ? 0
+        : Math.Round(Model.DeliveredCustomerOrders * 100m / Model.TotalCustomerOrders, 1);
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>ডেলিভারি</span><h2>ডেলিভারি পরিচালনা</h2></div></div>
+    <div class="company-metric-row">
+        <article><span>মোট ডেলিভারি কর্মী</span><strong>@Model.TotalDeliveryMen</strong></article>
+        <article><span>সক্রিয় ডেলিভারি কর্মী</span><strong>@Model.ActiveDeliveryMen</strong></article>
+        <article><span>অপেক্ষমাণ ডেলিভারি</span><strong>@(Model.PendingCustomerOrders + Model.ConfirmedCustomerOrders)</strong></article>
+        <article><span>সফলতার হার</span><strong>@deliverySuccessRate%</strong></article>
+    </div>
+</section>

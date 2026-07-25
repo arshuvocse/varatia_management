@@ -1,0 +1,11 @@
+-- SUPERSEDED — do not run this file.
+--
+-- This migration's UNION-based approach (merging dbo.tbl_Products into the result set with an
+-- Id + 1000000 offset) made shopkeeper-added products visible in the customer catalog, but broke
+-- placing an order for them: dbo.sp_CustomerOrder_Create resolves ProductId only against
+-- dbo.tbl_CustomerOrderProducts, so the offset Id never matches and the order is rejected.
+--
+-- The real fix instead syncs shopkeeper-added products INTO dbo.tbl_CustomerOrderProducts (same
+-- pattern already used for company-distributed products), so ordering works end-to-end. It lives in
+-- Services/ProductDistributionStore.cs (SyncCustomerCatalog + EnsureSchema) and applies itself
+-- automatically at runtime — no manual script needs to be run against the database.

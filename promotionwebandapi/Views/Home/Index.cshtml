@@ -1,0 +1,273 @@
+@model PromotionWeb.Models.LandingPageViewModel
+
+@{
+    ViewData["Title"] = "Landing";
+    var featuredShops = Model.FeaturedShopkeepers.Take(50).ToList();
+}
+
+<header class="site-header landing-header">
+    <nav class="navbar landing-navbar">
+        <a class="brand" asp-controller="Home" asp-action="Index">
+            <img src="~/images/amar_thikanaa_icon.png" alt="" />
+            <span>
+                <strong>SmartBazar</strong>
+                <small>District wise smart shopping network</small>
+            </span>
+        </a>
+        <button class="nav-toggle" type="button" aria-label="মেনু খুলুন">☰</button>
+        <div class="nav-links">
+            <a href="#districts">Districts</a>
+            <a href="#shops">দোকানদার</a>
+            <a href="#apps">Apps</a>
+            <a class="nav-cta" asp-controller="Account" asp-action="Login">লগইন</a>
+        </div>
+    </nav>
+</header>
+
+<!-- Floating Contact / Support Widget -->
+<div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px;">
+    <a href="https://wa.me/8801234567890" target="_blank" style="background: #25D366; color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.2s;" title="WhatsApp Support">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    </a>
+    <a href="tel:+8801234567890" style="background: var(--primary); color: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.2s;" title="Call Center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+    </a>
+    <button onclick="alert('Live Chat Feature is starting...')" style="background: var(--accent); color: white; border: none; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.2s;" title="Live Chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    </button>
+</div>
+
+<main class="landing-page">
+    <section class="landing-hero">
+        <div class="hero-copy">
+            <span class="hero-kicker">SmartBazar live market map</span>
+            <h1>District wise 50 shopkeeper and customer overview</h1>
+            <p>
+                Shopkeeper, customer and field force activity dekhun ek page e. Area wise
+                quick status, glossy dashboard cards and simple login flow.
+            </p>
+            <div class="hero-actions">
+                <a class="btn-primary glossy-btn" asp-controller="Account" asp-action="Login">Get started</a>
+                <a class="btn-light glossy-light" href="#districts">View districts</a>
+            </div>
+        </div>
+
+        <div class="hero-market-panel">
+            <div class="hero-stat-card green-glow">
+                <span>Total shopkeeper</span>
+                <strong>@Model.TotalShopkeepers</strong>
+                <small>Top 50 list ready</small>
+            </div>
+            <div class="hero-stat-card blue-glow">
+                <span>Customer reach</span>
+                <strong>@Model.TotalCustomers</strong>
+                <small>District wise display</small>
+            </div>
+            <div class="hero-stat-card orange-glow">
+                <span>Active districts</span>
+                <strong>@Model.Districts.Count</strong>
+                <small>Area performance cards</small>
+            </div>
+            <div class="hero-phone-নমুনা" id="apps">
+                <div class="phone-notch"></div>
+                <div class="app-top">
+                    <div>
+                        <strong>Market Dashboard</strong>
+                        <span>Today overview</span>
+                    </div>
+                    <span>●</span>
+                </div>
+                <div class="sales-card shopkeeper-sales landing-sales">
+                    <span>District sale summary</span>
+                    <strong>৳ 8,560</strong>
+                    <small>3% commission model active</small>
+                </div>
+                <div class="quick-grid landing-quick-grid">
+                    <span>দোকান</span>
+                    <span>ক্রেতা</span>
+                    <span>Offer</span>
+                    <span>Report</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="district-section" id="districts">
+        <div class="section-title-row">
+            <div>
+                <span>District wise</span>
+                <h2>Shopkeeper and customer display</h2>
+            </div>
+            <strong>Maximum 50 per district</strong>
+        </div>
+
+        <div class="district-grid">
+            @foreach (var district in Model.Districts)
+            {
+                var shopPercent = Math.Clamp(district.ShopkeeperCount * 2, 4, 100);
+                var customerPercent = Math.Clamp(district.CustomerCount * 2, 4, 100);
+                <article class="district-card" style="cursor: pointer;" onclick="openDistrictLeaderboard(@district.DistrictId, '@district.DistrictName')">
+                    <div class="district-card-top">
+                        <span>@district.DistrictName</span>
+                        <b>@district.ShopkeeperCount / 50</b>
+                    </div>
+                    <div class="district-metrics">
+                        <div>
+                            <small>Shopkeeper</small>
+                            <strong>@district.ShopkeeperCount</strong>
+                            <i style="width:@shopPercent%"></i>
+                        </div>
+                        <div>
+                            <small>ক্রেতা</small>
+                            <strong>@district.CustomerCount</strong>
+                            <i style="width:@customerPercent%"></i>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    </section>
+
+    <section class="shopkeeper-নমুনা-section" id="shops">
+        <div class="section-title-row">
+            <div>
+                <span>Top 50</span>
+                <h2>Registered shopkeeper নমুনা</h2>
+            </div>
+            <a class="btn-light glossy-light" asp-controller="Account" asp-action="Login">Login to manage</a>
+        </div>
+
+        @if (featuredShops.Count > 0)
+        {
+            <div class="landing-shop-list">
+                @foreach (var shop in featuredShops)
+                {
+                    <article>
+                        <div>
+                            <strong>@shop.ShopName</strong>
+                            <span>@shop.DistrictName, @shop.ThanaName</span>
+                        </div>
+                        <b>@shop.ShopCode</b>
+                    </article>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-shop-নমুনা">
+                <strong>No live shopkeeper data yet</strong>
+                <span>Database connect hole ekhane district wise top 50 shopkeeper dekhabe.</span>
+            </div>
+        }
+    </section>
+
+    <section class="feature-band glossy-feature-band">
+        <div><strong>Instant cashback</strong><span>Customer wallet balance sathe sathe update hoy.</span></div>
+        <div><strong>Sale growth</strong><span>Shopkeeper daily sale and commission track korte pare.</span></div>
+        <div><strong>District control</strong><span>ফিল্ড কর্মী area wise shop registration manage kore.</span></div>
+        <div><strong>Secure login</strong><span>Role wise dashboard access and simple workflow.</span></div>
+    </section>
+
+    <!-- Contact Info Section -->
+    <section class="contact-section" style="padding: 60px 20px; text-align: center; background: #fff;">
+        <div class="section-title-row" style="justify-content: center; margin-bottom: 40px;">
+            <div style="text-align: center;">
+                <span>যোগাযোগ করুন</span>
+                <h2>Contact Information</h2>
+            </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 40px;">
+            <div>
+                <strong style="display: block; font-size: 18px; color: var(--primary);">Helpline (Call Center)</strong>
+                <span style="font-size: 24px; font-weight: 700; color: var(--dark);">+880 1234 567890</span>
+            </div>
+            <div>
+                <strong style="display: block; font-size: 18px; color: #25D366;">WhatsApp</strong>
+                <span style="font-size: 24px; font-weight: 700; color: var(--dark);">+880 1234 567890</span>
+            </div>
+            <div>
+                <strong style="display: block; font-size: 18px; color: var(--accent);">Email</strong>
+                <span style="font-size: 24px; font-weight: 700; color: var(--dark);">support@smartbazar.com</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div id="leaderboard-modal" class="modal-overlay" hidden style="position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.5); display: grid; place-items: center;">
+    <div class="modal-card" style="background: white; border-radius: 16px; padding: 24px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; color: #333; position: relative;">
+        <button onclick="closeLeaderboard()" style="position: absolute; right: 20px; top: 20px; border: none; background: #eee; border-radius: 50%; width: 32px; height: 32px; cursor: pointer;">X</button>
+        <h2 id="leaderboard-title" style="margin-top: 0;">District Leaderboard</h2>
+        
+        <div style="display: flex; gap: 20px; margin-top: 20px;">
+            <div style="flex: 1;">
+                <h3 style="color: var(--primary);">Top 50 Buyers</h3>
+                <div id="top-buyers-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    Loading...
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <h3 style="color: var(--secondary);">Top 50 Shopkeepers</h3>
+                <div id="top-shops-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function closeLeaderboard() {
+        document.getElementById('leaderboard-modal').hidden = true;
+    }
+    
+    async function openDistrictLeaderboard(districtId, districtName) {
+        document.getElementById('leaderboard-title').textContent = districtName + ' - Top 50 Leaderboard';
+        document.getElementById('leaderboard-modal').hidden = false;
+        
+        document.getElementById('top-buyers-list').innerHTML = 'Loading...';
+        document.getElementById('top-shops-list').innerHTML = 'Loading...';
+        
+        try {
+            const [buyersRes, shopsRes] = await Promise.all([
+                fetch('/Home/TopBuyers?districtId=' + districtId),
+                fetch('/Home/TopShopkeepers?districtId=' + districtId)
+            ]);
+            
+            const buyers = await buyersRes.json();
+            const shops = await shopsRes.json();
+            
+            renderList('top-buyers-list', buyers, 'Spent');
+            renderList('top-shops-list', shops, 'Sold');
+        } catch (e) {
+            console.error(e);
+            document.getElementById('top-buyers-list').innerHTML = 'Error loading data.';
+            document.getElementById('top-shops-list').innerHTML = 'Error loading data.';
+        }
+    }
+    
+    function renderList(elementId, items, amountLabel) {
+        const el = document.getElementById(elementId);
+        if (!items || items.length === 0) {
+            el.innerHTML = '<span style="color: #666;">No data found.</span>';
+            return;
+        }
+        
+        el.innerHTML = items.map(item => `
+            <div style="padding: 12px; border: 1px solid #eee; border-radius: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 28px; height: 28px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: #555;">
+                        #${item.rank}
+                    </div>
+                    <div>
+                        <strong style="display: block; font-size: 14px;">${item.name}</strong>
+                        <span style="font-size: 12px; color: #888;">${item.orderCount} orders</span>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <strong style="display: block; font-size: 14px; color: var(--text);">৳ ${item.totalAmount.toLocaleString()}</strong>
+                    <span style="font-size: 11px; color: #888;">${amountLabel}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+</script>

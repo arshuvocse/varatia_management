@@ -1,0 +1,42 @@
+@model CustomerRegistrationViewModel
+@{
+    ViewData["Title"] = "ক্রেতা নিবন্ধন";
+}
+
+<main class="auth-page">
+    <section class="auth-card">
+        <a class="brand compact" asp-controller="Home" asp-action="Index">
+            <img src="~/images/amar_thikanaa_icon.png" alt="" />
+            <span><strong>আমার ঠিকানা</strong><small>ক্রেতা অ্যাকাউন্ট</small></span>
+        </a>
+        <h1>ক্রেতা হিসেবে নিবন্ধন করুন</h1>
+        <p>সহজে কেনাকাটা ও অর্ডার করতে একটি ক্রেতা অ্যাকাউন্ট খুলুন।</p>
+
+        <form asp-action="Register" method="post" class="form-stack">
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+            <label asp-for="Name">আপনার নাম</label>
+            <input asp-for="Name" placeholder="পূর্ণ নাম" />
+            <span asp-validation-for="Name" class="validation"></span>
+
+            <label asp-for="Phone">মোবাইল নম্বর</label>
+            <input asp-for="Phone" placeholder="01XXXXXXXXX" />
+            <span asp-validation-for="Phone" class="validation"></span>
+
+            <label asp-for="Password">পাসওয়ার্ড</label>
+            <input asp-for="Password" placeholder="কমপক্ষে ৪ অক্ষর" />
+            <span asp-validation-for="Password" class="validation"></span>
+
+            <label asp-for="Address">ঠিকানা</label>
+            <input asp-for="Address" placeholder="ঠিকানা (ঐচ্ছিক)" />
+            <span asp-validation-for="Address" class="validation"></span>
+
+            <button class="btn-primary" type="submit">নিবন্ধন করুন</button>
+            <a class="btn-light" asp-action="Login">আগে থেকেই অ্যাকাউন্ট আছে? লগইন করুন</a>
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

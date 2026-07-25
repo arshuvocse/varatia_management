@@ -1,0 +1,19 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Settings";
+    ViewData["PageTitle"] = "কোম্পানি সেটিংস";
+    ViewData["ActivePage"] = "Settings";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>কনফিগারেশন</span><h2>কোম্পানি সেটিংস</h2></div></div>
+    <form class="company-card company-settings-form" asp-action="SaveSettings" method="post">
+        <label>কমিশন হার (%)<input name="CommissionRate" type="number" min="0" step="0.01" value="@Model.Settings.CommissionRate" /></label>
+        <label>ক্যাশব্যাক হার (%)<input name="CashbackRate" type="number" min="0" step="0.01" value="@Model.Settings.CashbackRate" /></label>
+        <label>ডেলিভারি চার্জ (টাকা)<input name="DeliveryCharge" type="number" min="0" step="0.01" value="@Model.Settings.DeliveryCharge" /></label>
+        <label>সহায়তার ফোন<input name="SupportPhone" value="@Model.Settings.SupportPhone" /></label>
+        <label>পেমেন্ট মাধ্যম<input name="PaymentGateway" value="@Model.Settings.PaymentGateway" /></label>
+        <button type="submit">সেটিংস সংরক্ষণ</button>
+    </form>
+</section>

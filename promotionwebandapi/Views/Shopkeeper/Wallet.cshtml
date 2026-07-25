@@ -1,0 +1,111 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Wallet";
+    ViewData["ActivePage"] = "Wallet";
+}
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header"><div><span>WALLET</span><h1>Shopkeeper Wallet</h1><p>Available balance এবং withdrawal status দেখুন।</p></div></header>
+            <section class="wallet-page-card">
+                <span>Current balance</span><strong>৳ @Model.WalletBalance.ToString("N2")</strong><small>@Model.Shop.ShopName · @Model.Shop.ShopCode</small>
+            </section>
+            <section class="wallet-page-grid">
+                <article><span>Withdrawable</span><strong>৳ @Model.WalletWithdrawable.ToString("N2")</strong><small>এখন withdraw করা যাবে</small></article>
+                <article><span>অপেক্ষমাণ</span><strong>৳ @Model.WalletPending.ToString("N2")</strong><small>Settlement-এর অপেক্ষায়</small></article>
+            </section>
+            <section class="panel wallet-action-panel">
+                @if (TempData["WalletError"] != null)
+                {
+                    <div class="alert alert-danger" style="margin-bottom:1rem;color:red;">@TempData["WalletError"]</div>
+                }
+                @if (TempData["WalletSuccess"] != null)
+                {
+                    <div class="alert alert-success" style="margin-bottom:1rem;color:green;">@TempData["WalletSuccess"]</div>
+                }
+
+                <div style="display: flex; gap: 2rem;">
+                    <div style="flex: 1;">
+                        <h2>Withdraw Request</h2><p>Withdrawable balance থেকে একটি request পাঠান।</p>
+                        <form asp-action="RequestWithdrawal" method="post" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
+                            <input type="number" name="Amount" placeholder="Amount (৳)" min="10" step="0.01" required class="input-text" />
+                            <select name="PaymentMethod" required class="input-text">
+                                <option value="bKash">bKash</option>
+                                <option value="Nagad">Nagad</option>
+                                <option value="Rocket">Rocket</option>
+                            </select>
+                            <input type="tel" name="AccountNumber" placeholder="01XXXXXXXXX" pattern="01[0-9]{9}" required class="input-text" />
+                            <button class="btn-primary" type="submit">Request Withdrawal</button>
+                        </form>
+                    </div>
+                    <div style="flex: 1; border-left: 1px solid #eee; padding-left: 2rem;">
+                        <h2>Add Balance (SSL Commerz)</h2><p>আপনার Wallet-এ ব্যালেন্স যোগ করুন।</p>
+                        <form asp-controller="Shopkeeper" asp-action="AddWalletBalance" method="post" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
+                            <input type="number" name="Amount" placeholder="Amount (৳)" min="10" step="0.01" required class="input-text" />
+                            <button class="btn-primary" type="submit" style="background-color: #28a745; border-color: #28a745;">Add Funds (SSLCommerz)</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Withdrawal Requests</h2>
+                <div class="table-container">
+                    <table class="shop-table">
+                        <thead><tr><th>তারিখ</th><th>মাধ্যম</th><th>অ্যাকাউন্ট</th><th>পরিমাণ</th><th>অবস্থা</th></tr></thead>
+                        <tbody>
+                        @if (Model.WithdrawalRequests.Count == 0)
+                        {
+                            <tr><td colspan="5" style="text-align:center; padding:2rem;">কোনো withdrawal request নেই।</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var request in Model.WithdrawalRequests)
+                            {
+                                <tr><td>@request.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</td><td>@request.PaymentMethod</td><td>@request.AccountNumber</td><td>৳ @request.Amount.ToString("N2")</td><td><span class="status-chip pending">@request.Status</span></td></tr>
+                            }
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>Commission Deductions</h2>
+                <div class="table-container">
+                    <table class="shop-table">
+                        <thead>
+                            <tr>
+                                <th>তারিখ</th>
+                                <th>Invoice</th>
+                                <th>Product</th>
+                                <th style="text-align:right">Deducted Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.WalletDeductionLogs.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="4" style="text-align:center; padding: 2rem;">কোনো deduction log পাওয়া যায়নি।</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                foreach (var log in Model.WalletDeductionLogs)
+                                {
+                                    <tr>
+                                        <td>@log.CreatedAt.ToString("MMM dd, yyyy h:mm tt")</td>
+                                        <td>@log.InvoiceNo</td>
+                                        <td>@log.ProductName</td>
+                                        <td style="text-align:right; color: #dc3545;">-৳ @log.AmountDeducted.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>

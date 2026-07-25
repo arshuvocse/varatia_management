@@ -1,0 +1,227 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "Live Chat";
+    ViewData["ActivePage"] = "Chat";
+    var initialShopkeeperId = Context.Request.Query["shopkeeperId"].FirstOrDefault() ?? "";
+    var initialConversationId = Context.Request.Query["conversationId"].FirstOrDefault() ?? "";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page shop-chat-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>LIVE SUPPORT</span>
+                    <h1>Shopkeeper Chat</h1>
+                    <p>Select a shopkeeper to send messages, images or start an audio call.</p>
+                </div>
+                <span class="table-chip">@Model.Shopkeepers.Count shops</span>
+            </header>
+
+            <section class="chat-workspace customer-chat-workspace"
+                     data-current-user-id="@Context.Session.GetInt32("UserId")"
+                     data-initial-shopkeeper-id="@initialShopkeeperId"
+                     data-initial-conversation-id="@initialConversationId">
+                <aside class="chat-inbox">
+                    <div class="chat-inbox-title">
+                        <div><span>AVAILABLE</span><h2>দোকানদার</h2></div>
+                        <b class="chat-unread-badge" data-chat-notification-badge hidden="@(Model.UnreadChatCount == 0)">@Model.UnreadChatCount</b>
+                    </div>
+                    <label class="chat-inbox-search">
+                        <span aria-hidden="true">⌕</span>
+                        <input id="customer-chat-search" type="search" placeholder="খুঁজুন shopkeeper..." autocomplete="off" />
+                    </label>
+                    <div class="chat-inbox-list" id="customer-chat-shops">
+                        @foreach (var shop in Model.Shopkeepers)
+                        {
+                            <button type="button" class="chat-inbox-item customer-chat-shop" data-shop-id="@shop.Id">
+                                <span class="chat-customer-avatar">@(string.IsNullOrWhiteSpace(shop.ShopName) ? "S" : shop.ShopName.Trim()[..1].ToUpperInvariant())</span>
+                                <span class="chat-inbox-copy">
+                                    <strong>@shop.ShopName</strong>
+                                    <small>@shop.Phone</small>
+                                    <em>@shop.Area, @shop.ThanaName</em>
+                                </span>
+                            </button>
+                        }
+                    </div>
+                </aside>
+
+                <section class="chat-room">
+                    <header class="chat-room-header">
+                        <div>
+                            <strong id="customer-chat-title">Select a shopkeeper</strong>
+                            <span id="customer-chat-subtitle">Open a conversation to start live chat.</span>
+                        </div>
+                        <div class="chat-header-actions">
+                            <span class="chat-online-state">Live</span>
+                            <button class="chat-call-button" type="button" data-audio-call-button disabled>Audio call</button>
+                            <button class="chat-call-button" type="button" data-video-call-button disabled>Video call</button>
+                        </div>
+                    </header>
+                    <div class="chat-message-list" id="customer-chat-messages">
+                        <p class="empty">Select a shopkeeper from the list.</p>
+                    </div>
+                    <form class="chat-compose" id="customer-chat-form">
+                        <input id="customer-chat-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+                        <button class="chat-image-button" id="customer-chat-image-button" type="button" disabled>Image</button>
+                        <input id="customer-chat-input" maxlength="1000" autocomplete="off" placeholder="Write a message..." disabled />
+                        <button class="btn-primary" type="submit" disabled>Send</button>
+                    </form>
+                </section>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const workspace = document.querySelector(".customer-chat-workspace");
+            const title = document.getElementById("customer-chat-title");
+            const subtitle = document.getElementById("customer-chat-subtitle");
+            const messages = document.getElementById("customer-chat-messages");
+            const form = document.getElementById("customer-chat-form");
+            const input = document.getElementById("customer-chat-input");
+            const send = form.querySelector(".btn-primary");
+            const image = document.getElementById("customer-chat-image");
+            const imageButton = document.getElementById("customer-chat-image-button");
+            const callButton = workspace.querySelector("[data-audio-call-button]");
+            const videoCallButton = workspace.querySelector("[data-video-call-button]");
+            const shopList = document.getElementById("customer-chat-shops");
+            const currentUserId = Number(workspace.dataset.currentUserId);
+            let activeConversationId = 0;
+
+            const addMessage = message => {
+                const item = document.createElement("article");
+                item.className = `chat-message ${message.senderUserId === currentUserId ? "mine" : "theirs"}`;
+                window.renderChatMessageBody(item, message);
+                const meta = document.createElement("small");
+                meta.textContent = `${message.senderName} · ${new Date(message.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+                item.appendChild(meta);
+                messages.appendChild(item);
+                messages.scrollTop = messages.scrollHeight;
+            };
+
+            const renderChat = conversation => {
+                activeConversationId = conversation.id;
+                window.activeChatConversationId = conversation.id;
+                document.body.dataset.activeConversationId = String(conversation.id);
+                title.textContent = conversation.shopName;
+                subtitle.textContent = conversation.shopkeeperPhone;
+                messages.innerHTML = "";
+                conversation.messages.forEach(addMessage);
+                if (!conversation.messages.length) messages.innerHTML = '<p class="empty">Start the conversation.</p>';
+                input.disabled = false;
+                send.disabled = false;
+                imageButton.disabled = false;
+                callButton.disabled = false;
+                callButton.dataset.callName = conversation.shopName;
+                videoCallButton.disabled = false;
+                videoCallButton.dataset.callName = conversation.shopName;
+                shopList.querySelectorAll(".customer-chat-shop").forEach(item =>
+                    item.classList.toggle("active", Number(item.dataset.shopId) === conversation.shopkeeperId));
+                input.focus();
+            };
+
+            async function openCustomerChat(shopkeeperId) {
+                messages.innerHTML = '<p class="empty">Connecting...</p>';
+                await window.chatConnectionReady;
+                renderChat(await window.chatConnection.invoke("OpenCustomerChat", shopkeeperId));
+            }
+
+            shopList.addEventListener("click", event => {
+                const item = event.target.closest(".customer-chat-shop");
+                if (item) openCustomerChat(Number(item.dataset.shopId));
+            });
+            document.getElementById("customer-chat-search").addEventListener("input", event => {
+                const query = event.target.value.trim().toLowerCase();
+                shopList.querySelectorAll(".customer-chat-shop").forEach(item => {
+                    item.hidden = query && !item.textContent.toLowerCase().includes(query);
+                });
+            });
+            form.addEventListener("submit", async event => {
+                event.preventDefault();
+                const message = input.value.trim();
+                if (!message || !activeConversationId) return;
+                input.value = "";
+                if (isTyping) {
+                    isTyping = false;
+                    clearTimeout(typingTimeout);
+                    await window.chatConnectionReady;
+                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, false);
+                }
+                await window.chatConnectionReady;
+                await window.chatConnection.invoke("SendMessage", activeConversationId, message);
+            });
+            imageButton.addEventListener("click", () => image.click());
+            image.addEventListener("change", async () => {
+                const file = image.files?.[0];
+                if (!file || !activeConversationId) return;
+                imageButton.disabled = true;
+                try { await window.uploadChatImage(activeConversationId, file); }
+                catch (error) { alert(error.message); }
+                finally {
+                    image.value = "";
+                    imageButton.disabled = false;
+                }
+            });
+            window.addEventListener("chat:message", event => {
+                if (event.detail.conversationId !== activeConversationId) return;
+                messages.querySelector(".empty")?.remove();
+                messages.querySelector(".chat-typing-indicator")?.remove();
+                addMessage(event.detail);
+                window.chatConnection.invoke("MarkRead", activeConversationId);
+            });
+            window.addEventListener("chat:open-notification", async event => {
+                const conversation = await window.chatConnection.invoke("OpenConversation", event.detail.conversationId);
+                renderChat(conversation);
+            });
+            
+            let typingTimeout;
+            let isTyping = false;
+            input.addEventListener("input", async () => {
+                if (!activeConversationId) return;
+                if (!isTyping) {
+                    isTyping = true;
+                    await window.chatConnectionReady;
+                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, true);
+                }
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(async () => {
+                    isTyping = false;
+                    await window.chatConnectionReady;
+                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, false);
+                }, 2000);
+            });
+
+            window.addEventListener("chat:typing", event => {
+                const { conversationId, isTyping } = event.detail;
+                if (conversationId !== activeConversationId) return;
+                
+                let indicator = messages.querySelector(".chat-typing-indicator");
+                if (isTyping) {
+                    if (!indicator) {
+                        indicator = document.createElement("article");
+                        indicator.className = "chat-message theirs chat-typing-indicator";
+                        indicator.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+                        messages.appendChild(indicator);
+                        messages.scrollTop = messages.scrollHeight;
+                    }
+                } else {
+                    indicator?.remove();
+                }
+            });
+
+            const initialShopkeeperId = Number(workspace.dataset.initialShopkeeperId);
+            const initialConversationId = Number(workspace.dataset.initialConversationId);
+            if (initialConversationId) {
+                window.chatConnectionReady.then(() =>
+                    window.chatConnection.invoke("OpenConversation", initialConversationId).then(renderChat));
+            } else if (initialShopkeeperId) {
+                openCustomerChat(initialShopkeeperId);
+            }
+        })();
+    </script>
+}

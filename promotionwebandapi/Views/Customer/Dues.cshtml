@@ -1,0 +1,94 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "বকেয়া খাতা";
+    ViewData["ActivePage"] = "Dues";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>CUSTOMER DUES</span>
+                    <h1>বকেয়া খাতা</h1>
+                    <p>দোকানদারের নিকট আপনার বর্তমান বকেয়া ক্রয়ের হিসাব।</p>
+                </div>
+                <span class="table-chip" style="background-color: @(Model.TotalDueAmount > 0 ? "#fee2e2" : "#ecfdf5"); color: @(Model.TotalDueAmount > 0 ? "#b91c1c" : "#047857"); font-weight: 700;">
+                    মোট বকেয়া: ৳ @Model.TotalDueAmount.ToString("N2")
+                </span>
+            </header>
+
+            <section class="wallet-page-card" style="border-left: 4px solid @(Model.TotalDueAmount > 0 ? "#ef4444" : "#10b981");">
+                <span>সর্বমোট বকেয়া পাওনা</span>
+                <strong style="color: @(Model.TotalDueAmount > 0 ? "#dc2626" : "#059669");">&#2547; @Model.TotalDueAmount.ToString("N2")</strong>
+                <small>@Model.Dues.Count টি চালানে বকেয়া রয়েছে। দোকানদারকে সরাসরি বকেয়া পরিশোধ করুন।</small>
+            </section>
+
+            <section class="panel customer-orders">
+                <div class="panel-title-row">
+                    <div>
+                        <h2>বকেয়া চালানের তালিকা</h2>
+                        <p>আপনার ফোন নম্বর (@Model.CustomerPhone) দিয়ে তৈরি বকেয়া বিক্রয় তালিকা।</p>
+                    </div>
+                </div>
+
+                @if (Model.Dues.Count == 0)
+                {
+                    <div class="shop-empty-state" style="text-align: center; padding: 40px 20px;">
+                        <div class="shop-empty-icon" style="font-size: 3rem; color: #10b981; margin-bottom: 10px;">✓</div>
+                        <h3>কোনো বকেয়া নেই</h3>
+                        <p style="color: #6b7280;">আপনার কোনো দোকানদারের কাছে বকেয়া অবশিষ্ট নেই।</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="transaction-table customer-order-table">
+                        <article>
+                            <span>তারিখ ও ইনভয়েস</span>
+                            <span>দোকানের নাম</span>
+                            <span>পণ্যসমূহ</span>
+                            <span>মোট ও পরিশোধ</span>
+                            <span>বকেয়া</span>
+                        </article>
+
+                        @foreach (var due in Model.Dues)
+                        {
+                            <article>
+                                <strong>
+                                    @due.InvoiceNo<br />
+                                    <small>@due.SoldAt.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                </strong>
+                                <span>
+                                    <strong>@due.ShopName</strong><br />
+                                    @if (!string.IsNullOrWhiteSpace(due.ShopkeeperPhone))
+                                    {
+                                        <small><a href="tel:@due.ShopkeeperPhone">📞 @due.ShopkeeperPhone</a></small>
+                                    }
+                                </span>
+                                <span>
+                                    @if (due.Items.Count > 0)
+                                    {
+                                        @string.Join(", ", due.Items.Select(item => $"{item.ProductName} x{item.Quantity}"))
+                                    }
+                                    else
+                                    {
+                                        <small style="color: #6b7280;">পণ্য বিবরণী নেই</small>
+                                    }
+                                </span>
+                                <span>
+                                    <small>মোট: ৳@due.GrossAmount.ToString("N2")</small><br />
+                                    <small style="color: #10b981;">পরিশোধ: ৳@due.PaidAmount.ToString("N2")</small>
+                                </span>
+                                <strong style="color: #ef4444; font-size: 1.05rem;">
+                                    ৳ @due.DueAmount.ToString("N2")
+                                </strong>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </section>
+    </div>
+</main>

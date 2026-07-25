@@ -1,0 +1,39 @@
+@model CompanyDashboardViewModel
+@{
+    var isCompany = Context.Session.GetString("UserRole") == Roles.Company;
+    Layout = isCompany ? "_CompanyLayout" : "_Layout";
+    ViewData["Title"] = isCompany ? "Company Overview" : "স্বাগতম";
+    ViewData["PageTitle"] = "Business Overview";
+    ViewData["ActivePage"] = "Dashboard";
+    var deliverySuccessRate = Model.TotalCustomerOrders == 0
+        ? 0
+        : Math.Round(Model.DeliveredCustomerOrders * 100m / Model.TotalCustomerOrders, 1);
+}
+
+@if (!isCompany)
+{
+    <main class="auth-page">
+        <section class="auth-card">
+            <h1>স্বাগতম</h1>
+            <p><b>@Model.CompanyName</b> - @Model.CompanyPhone</p>
+            <form asp-action="Logout" method="post"><button class="btn-primary" type="submit">লগআউট</button></form>
+        </section>
+    </main>
+}
+else
+{
+    <section class="company-section">
+        <div class="company-section-heading">
+            <div><span>OVERVIEW</span><h2>ব্যবসার এক নজরের হিসাব</h2></div>
+            <a class="company-action" asp-action="ExportReport">রিপোর্ট ডাউনলোড</a>
+        </div>
+        <div class="company-kpis">
+            <article class="featured"><span>মোট আয়</span><strong>&#2547; @Model.TotalSalesAmount.ToString("N2")</strong><small>Today &#2547; @Model.TodaySalesAmount.ToString("N2")</small></article>
+            <article><span>মোট অর্ডার</span><strong>@Model.TotalCustomerOrders</strong><small>@Model.PendingCustomerOrders pending</small></article>
+            <article><span>Active shops</span><strong>@Model.TotalShopkeepers</strong><small>@Model.PendingApprovals approvals</small></article>
+            <article><span>চলমান প্রচার</span><strong>@Model.ActiveCampaigns</strong><small>@Model.Campaigns.Count total campaigns</small></article>
+            <article><span>ডেলিভারির অবস্থা</span><strong>@Model.ActiveDeliveryMen / @Model.TotalDeliveryMen</strong><small>@deliverySuccessRate% success rate</small></article>
+            <article><span>ক্রেতা</span><strong>@Model.TotalCustomers</strong><small>@Model.TotalAgents agents &middot; @Model.TotalFieldOfficers field force</small></article>
+        </div>
+    </section>
+}

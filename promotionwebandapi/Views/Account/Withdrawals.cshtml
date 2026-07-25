@@ -1,0 +1,30 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Withdrawal Requests";
+    ViewData["PageTitle"] = "উত্তোলনের অনুরোধ";
+    ViewData["ActivePage"] = "Withdrawals";
+    var requests = ViewBag.Withdrawals as IReadOnlyList<ShopkeeperWithdrawalViewModel> ?? [];
+}
+<section class="company-section">
+    <div class="company-card">
+        <div class="company-card-title"><h3>Shopkeeper withdrawal requests</h3><span>@requests.Count requests</span></div>
+        <div class="company-table-wrap"><table class="company-table">
+            <thead><tr><th>দোকান</th><th>অ্যাকাউন্ট</th><th>পরিমাণ</th><th>তারিখ</th><th>অবস্থা</th><th>Action</th></tr></thead>
+            <tbody>
+            @if (requests.Count == 0) { <tr><td colspan="6" class="company-empty">কোনো withdrawal request নেই।</td></tr> }
+            @foreach (var request in requests)
+            {
+                <tr><td><strong>@request.ShopName</strong><small>@request.ShopCode · @request.ShopPhone</small></td>
+                <td>@request.PaymentMethod<small>@request.AccountNumber</small></td><td>৳ @request.Amount.ToString("N2")</td>
+                <td>@request.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</td><td><span class="company-status">@request.Status</span></td>
+                <td>@if (request.Status is "Pending" or "Approved") { <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    @if (request.Status == "Pending") { <form asp-action="ProcessWithdrawal" method="post"><input type="hidden" name="RequestId" value="@request.Id"/><input type="hidden" name="Status" value="Approved"/><button class="company-table-action">Approve</button></form> }
+                    @if (request.Status == "Approved") { <form asp-action="ProcessWithdrawal" method="post"><input type="hidden" name="RequestId" value="@request.Id"/><input type="hidden" name="Status" value="Paid"/><button class="company-table-action">Mark Paid</button></form> }
+                    <form asp-action="ProcessWithdrawal" method="post"><input type="hidden" name="RequestId" value="@request.Id"/><input type="hidden" name="Status" value="Rejected"/><button class="company-table-action">Reject</button></form>
+                </div> }</td></tr>
+            }
+            </tbody>
+        </table></div>
+    </div>
+</section>

@@ -1,0 +1,89 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "কাছের দোকান";
+    ViewData["ActivePage"] = "Shops";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>SHOP DIRECTORY</span>
+                    <h1>কাছের দোকান</h1>
+                    <p>Allow location access to sort available shopkeepers by distance.</p>
+                </div>
+                <button class="btn-primary location-btn" id="customer-location-btn" type="button">
+                    <span class="location-spinner"></span>Use my location
+                </button>
+            </header>
+
+            <p class="location-status" id="customer-location-status">Location has not been requested yet.</p>
+            <section class="customer-shop-list" id="customer-shop-list">
+                @foreach (var shop in Model.Shopkeepers)
+                {
+                    <article data-latitude="@shop.Latitude" data-longitude="@shop.Longitude">
+                        <div>
+                            <strong>@shop.ShopName</strong>
+                            <span>@shop.ShopType · @shop.Area, @shop.ThanaName, @shop.DistrictName</span>
+                            <small>@shop.Address</small>
+                            <small>Owner: @shop.OwnerName · @shop.Phone</small>
+                        </div>
+                        <div class="shop-select-side">
+                            <b class="distance-label">Distance unknown</b>
+                            <a class="btn-primary" asp-action="PlaceOrder" asp-route-shopkeeperId="@shop.Id">Place order</a>
+                            <a class="btn-light" asp-action="Chat" asp-route-shopkeeperId="@shop.Id">Live chat</a>
+                        </div>
+                    </article>
+                }
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const shops = [...document.querySelectorAll("#customer-shop-list article")];
+            const shopList = document.getElementById("customer-shop-list");
+            const button = document.getElementById("customer-location-btn");
+            const status = document.getElementById("customer-location-status");
+            const toRad = value => value * Math.PI / 180;
+            const distanceKm = (lat1, lon1, lat2, lon2) => {
+                const radius = 6371;
+                const dLat = toRad(lat2 - lat1);
+                const dLon = toRad(lon2 - lon1);
+                const a = Math.sin(dLat / 2) ** 2
+                    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+                return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            };
+
+            button.addEventListener("click", () => {
+                if (!navigator.geolocation) {
+                    status.textContent = "Browser geolocation is unavailable.";
+                    return;
+                }
+                button.disabled = true;
+                button.classList.add("is-loading");
+                status.textContent = "Detecting your location...";
+                navigator.geolocation.getCurrentPosition(position => {
+                    const { latitude, longitude } = position.coords;
+                    shops.map(shop => {
+                        const distance = distanceKm(latitude, longitude, Number(shop.dataset.latitude), Number(shop.dataset.longitude));
+                        shop.querySelector(".distance-label").textContent = `${distance.toFixed(2)} km away`;
+                        return { shop, distance };
+                    }).sort((a, b) => a.distance - b.distance).forEach(item => shopList.appendChild(item.shop));
+                    status.textContent = "Shops are sorted by nearest distance.";
+                    button.disabled = false;
+                    button.classList.remove("is-loading");
+                }, () => {
+                    status.textContent = "Location permission was not granted.";
+                    button.disabled = false;
+                    button.classList.remove("is-loading");
+                }, { enableHighAccuracy: true, timeout: 10000 });
+            });
+        })();
+    </script>
+}

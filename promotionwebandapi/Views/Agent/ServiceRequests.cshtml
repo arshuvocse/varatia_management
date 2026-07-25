@@ -1,0 +1,9 @@
+@model AgentDashboardViewModel
+@{ ViewData["Title"] = "Service Requests"; ViewData["ActivePage"] = "ServiceRequests"; }
+<main class="app-page shop-theme shop-portal-page agent-portal-page"><div class="shop-portal-shell">
+<partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>জেলার Service অনুরোধ</span><h1>Service অনুরোধ</h1><p>Requests whose location contains @(Model.District?.DistrictName ?? "your assigned district").</p></div><span class="table-chip">@Model.ServiceRequests.Count requests</span></header>
+<partial name="_Messages" /><section class="panel"><div class="table-scroll"><table class="registered-shops-table"><thead><tr><th>যোগাযোগ</th><th>Service</th><th>অবস্থান</th><th>প্রয়োজন</th><th>জমার তারিখ</th><th>অবস্থা</th></tr></thead><tbody>
+@foreach (var x in Model.ServiceRequests) { <tr><td><strong>@x.Name</strong><br /><a href="tel:@x.Phone">@x.Phone</a></td><td>@x.Service</td><td>@(x.Location ?? "-")</td><td>@(x.Message ?? "-")</td><td>@x.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</td><td><form asp-action="UpdateServiceRequestStatus" method="post" class="agent-inline-form"><input type="hidden" name="requestId" value="@x.Id" /><select name="status"><option value="New" selected="@(x.Status == "New")">নতুন</option><option value="Contacted" selected="@(x.Status == "Contacted")">যোগাযোগ করা হয়েছে</option><option value="Completed" selected="@(x.Status == "Completed")">সম্পন্ন</option><option value="Rejected" selected="@(x.Status == "Rejected")">বাতিল</option></select><button class="btn-light" type="submit">সংরক্ষণ</button></form></td></tr> }
+</tbody></table></div>@if (Model.ServiceRequests.Count == 0) { <p class="empty-state">এই জেলার কোনো Service অনুরোধ পাওয়া যায়নি।</p> }</section>
+</section></div></main>

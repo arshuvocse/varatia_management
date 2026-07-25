@@ -1,0 +1,227 @@
+@model FieldOfficerProductsViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "প্রোডাক্ট এন্ট্রি";
+    var successMessage = TempData["SuccessMessage"] as string;
+    var errorMessage = TempData["ErrorMessage"] as string;
+}
+
+@section Styles {
+    <style>
+        .product-entry-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .products-table-container {
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .products-table th, .products-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        .products-table th {
+            font-weight: 600;
+            color: #666;
+            background: #f9f9f9;
+        }
+        .products-table td strong {
+            display: block;
+            color: #333;
+        }
+        .products-table td small {
+            color: #777;
+        }
+        .product-edit-form { min-width: 520px; padding: 1rem 0; }
+        .product-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: .75rem; }
+        .product-edit-grid label { display: grid; gap: .3rem; font-size: .82rem; }
+        .product-edit-grid input { width: 100%; }
+        .percentage-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: .5rem; }
+    </style>
+}
+
+<main class="app-page shop-theme shop-portal-page officer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model='new FieldOfficerDashboardViewModel { OfficerName = Model.OfficerName }' view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Products" } }' />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>FIELD FORCE APP</span>
+                    <h1>নতুন প্রোডাক্ট এন্ট্রি</h1>
+                    <p>দোকানদারের ক্যাটাগরি অনুযায়ী নতুন প্রোডাক্ট এন্ট্রি করুন এবং তালিকা দেখুন।</p>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert-success" style="margin: 1rem 2rem;">@successMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="validation-summary-errors" style="margin: 1rem 2rem;">@errorMessage</div>
+            }
+
+            <div class="product-entry-container">
+                <form asp-action="AddProduct" asp-controller="FieldOfficer" method="post" enctype="multipart/form-data" class="form-stack">
+                    <div asp-validation-summary="ModelOnly" class="validation"></div>
+                    
+                    <label asp-for="Input.Name">প্রোডাক্টের নাম</label>
+                    <input asp-for="Input.Name" placeholder="যেমন: মিনিকেট চাল ৫ কেজি" required />
+                    <span asp-validation-for="Input.Name" class="validation"></span>
+
+                    <label asp-for="Input.Category">ক্যাটাগরি (দোকানের ধরন)</label>
+                    <select asp-for="Input.Category" required>
+                        <option value="">নির্বাচন করুন</option>
+                        <option>মুদির দোকান</option>
+                        <option>ফার্মেসি</option>
+                        <option>কসমেটিকস</option>
+                        <option>ইলেকট্রনিক্স</option>
+                    </select>
+                    <span asp-validation-for="Input.Category" class="validation"></span>
+
+                    <label asp-for="Input.Uom">একক (Unit of Measure)</label>
+                    <input asp-for="Input.Uom" placeholder="পিস / কেজি / লিটার" required />
+                    <span asp-validation-for="Input.Uom" class="validation"></span>
+
+                    <label asp-for="Input.UnitPrice">ইউনিট প্রাইস (৳)</label>
+                    <input asp-for="Input.UnitPrice" type="number" step="0.01" min="0.01" required />
+                    <span asp-validation-for="Input.UnitPrice" class="validation"></span>
+
+                    <label asp-for="Input.OpeningStock">প্রারম্ভিক স্টক (পরিমাণ)</label>
+                    <input asp-for="Input.OpeningStock" type="number" min="0" value="0" required />
+                    <span asp-validation-for="Input.OpeningStock" class="validation"></span>
+
+                    <label asp-for="Input.ImageFile">প্রোডাক্টের ছবি</label>
+                    <input asp-for="Input.ImageFile" type="file" accept="image/*" onchange="previewImage(event, 'imagePreviewOfficer')" />
+                    <div style="margin-top: 10px;">
+                        <img id="imagePreviewOfficer" src="#" alt="Image Preview" style="display:none; width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="margin-top:1.5rem">প্রোডাক্ট সেভ করুন</button>
+                </form>
+            </div>
+
+            <div class="products-table-container">
+                <div style="margin-bottom: 1.5rem;">
+                    <h2>এন্ট্রি করা প্রোডাক্টের তালিকা</h2>
+                    <span>মোট @Model.Products.Count প্রোডাক্ট</span>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th>ছবি</th>
+                                <th>কোড</th>
+                                <th>প্রোডাক্ট</th>
+                                <th>একক</th>
+                                <th>প্রাইস</th>
+                                <th>Percentage</th>
+                                <th>Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in Model.Products)
+                            {
+                                var fallbackImage = product.Category switch
+                                {
+                                    "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+                                    "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
+                                    "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
+                                    "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80",
+                                    _ => null
+                                };
+                                var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
+                                <tr>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(imageUrl))
+                                        {
+                                            <img src="@imageUrl" alt="@product.Name" loading="lazy" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                                        }
+                                        else
+                                        {
+                                            <div style="width: 50px; height: 50px; background-color: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 10px;">
+                                                No Image
+                                            </div>
+                                        }
+                                    </td>
+                                    <td><strong>@product.ProductCode</strong></td>
+                                    <td>
+                                        <strong>@product.Name</strong>
+                                        <small>@product.Category</small>
+                                    </td>
+                                    <td>@product.Uom</td>
+                                    <td>৳ @product.UnitPrice.ToString("N2")</td>
+                                    <td>@product.Percentage.ToString("0.####")%</td>
+                                    <td>
+                                        <details>
+                                            <summary class="btn-light">Edit product</summary>
+                                            <form action="/FieldForce/Products/Edit" method="post" enctype="multipart/form-data" class="product-edit-form">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="ProductId" value="@product.Id" />
+                                                <div class="product-edit-grid">
+                                                    <label>Name<input name="Name" value="@product.Name" required maxlength="150" /></label>
+                                                    <label>Category<input name="Category" value="@product.Category" required maxlength="100" /></label>
+                                                    <label>UOM<input name="Uom" value="@product.Uom" required maxlength="30" /></label>
+                                                    <label>Default price<input name="UnitPrice" type="number" min="0.01" step="0.01" value="@product.UnitPrice.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                    <label>Opening stock<input name="OpeningStock" type="number" min="0" value="@product.OpeningStock" required /></label>
+                                                    <label>Replace image<input name="ImageFile" type="file" accept="image/jpeg,image/png,image/webp" /></label>
+                                                    <div class="percentage-grid">
+                                                        <label>Shopkeeper %<input name="ShopkeeperPercentage" type="number" min="0" max="100" step="0.0001" value="@product.ShopkeeperPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                        <label>Company %<input name="CompanyPercentage" type="number" min="0" max="100" step="0.0001" value="@product.CompanyPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                        <label>Agent %<input name="AgentPercentage" type="number" min="0" max="100" step="0.0001" value="@product.AgentPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                        <label>Field Force %<input name="FieldForcePercentage" type="number" min="0" max="100" step="0.0001" value="@product.FieldForcePercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                        <label>Customer %<input name="CustomerPercentage" type="number" min="0" max="100" step="0.0001" value="@product.CustomerPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                    </div>
+                                                </div>
+                                                <small>All percentages together must be exactly 100% of profit.</small>
+                                                <button type="submit" class="btn-primary" style="margin-top:.75rem">Save changes</button>
+                                            </form>
+                                        </details>
+                                    </td>
+                                </tr>
+                            }
+                            @if (Model.Products.Count == 0)
+                            {
+                                <tr><td colspan="7" style="text-align: center; color: #888;">এখনও কোনো প্রোডাক্ট এন্ট্রি করা হয়নি।</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function previewImage(event, imgId) {
+            const file = event.target.files[0];
+            const preview = document.getElementById(imgId);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.src = '#';
+                preview.style.display = 'none';
+            }
+        }
+    </script>
+}

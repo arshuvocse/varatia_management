@@ -1,0 +1,27 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Support";
+    ViewData["ActivePage"] = "Support";
+}
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header"><div><span>HELP CENTER</span><h1>সহায়তা</h1><p>সহায়তার জন্য support team অথবা field officer-এর সাথে যোগাযোগ করুন।</p></div></header>
+            <section class="support-page-grid">
+                <article><span class="support-page-icon">☎</span><small>সাপোর্ট নম্বর</small><strong>@Model.SupportNumber</strong><p>সকাল ৯টা - রাত ৯টা</p></article>
+                <article><span class="support-page-icon">○</span><small>Field Officer</small><strong>@Model.FieldOfficerName</strong><p>@Model.FieldOfficerPhone</p></article>
+            </section>
+            @if (TempData["SupportSuccess"] is string success) { <div class="order-message success">@success</div> }
+            @if (TempData["SupportError"] is string error) { <div class="order-message error">@error</div> }
+            <section class="panel support-report-panel">
+                <div><h2>Issue / Report</h2><p>Sale, wallet বা product সংক্রান্ত সমস্যা report করুন।</p></div>
+                <form asp-action="CreateSupportReport" method="post" style="display:grid; gap:10px; width:min(100%, 520px);">
+                    <input class="input-text" name="Subject" maxlength="100" placeholder="সমস্যার বিষয়" required />
+                    <textarea class="input-text" name="Message" maxlength="2000" rows="4" placeholder="সমস্যাটি বিস্তারিত লিখুন" required></textarea>
+                    <button class="btn-primary" type="submit">রিপোর্ট পাঠান</button>
+                </form>
+            </section>
+        </section>
+    </div>
+</main>

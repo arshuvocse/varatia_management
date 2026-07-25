@@ -1,0 +1,84 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "আমার অর্ডার";
+    ViewData["ActivePage"] = "Orders";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>ORDER HISTORY</span>
+                    <h1>আমার অর্ডার</h1>
+                    <p>Review every submitted order and its current status.</p>
+                </div>
+                <a class="btn-primary" asp-action="PlaceOrder">＋ New Order</a>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+            {
+                <div class="alert-success">@Model.SuccessMessage</div>
+            }
+
+            <section class="panel customer-orders">
+                <div class="panel-title-row">
+                    <div>
+                        <h2>All Orders</h2>
+                        <p>@Model.TotalOrders order(s) submitted.</p>
+                    </div>
+                    <span class="table-chip">৳ @Model.TotalPurchaseAmount.ToString("N2") purchased</span>
+                </div>
+                @if (Model.Orders.Count == 0)
+                {
+                    <p class="empty">No order submitted yet.</p>
+                }
+                else
+                {
+                    <div class="transaction-table customer-order-table">
+                        <article><span>অর্ডার</span><span>Shopkeeper</span><span>Product</span><span>মোট</span><span>অবস্থা</span></article>
+                        @foreach (var order in Model.Orders)
+                        {
+                            var assignment = Model.DeliveryAssignments.FirstOrDefault(x => x.OrderId == order.Id);
+                            <article>
+                                <strong>#@order.Id<br /><small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small></strong>
+                                <span>@order.ShopkeeperName</span>
+                                <span>@string.Join(", ", order.Details.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
+                                <strong>৳ @order.NetAmount.ToString("N2")</strong>
+                                <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
+                            </article>
+                            @if (assignment is not null && assignment.Status is not DeliveryStatus.Delivered
+                                 and not DeliveryStatus.Rejected and not DeliveryStatus.Failed and not DeliveryStatus.Returned
+                                 and not DeliveryStatus.Cancelled)
+                            {
+                                <div class="customer-order-card">
+                                    <div class="delivery-assignment-summary">
+                                        <strong>Delivery: @assignment.DeliveryManName</strong>
+                                        <a href="tel:@assignment.DeliveryManPhone">@assignment.DeliveryManPhone</a>
+                                        <span class="status-chip pending">@assignment.Status</span>
+                                    </div>
+                                    <div class="delivery-live-map compact"
+                                         data-kind="order"
+                                         data-endpoint="@Url.Action("Order", "DeliveryTracking", new { orderId = order.Id })"
+                                         data-lat="@(assignment.CurrentLatitude ?? assignment.CustomerLatitude ?? 23.8103m)"
+                                         data-lng="@(assignment.CurrentLongitude ?? assignment.CustomerLongitude ?? 90.4125m)"></div>
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/delivery-tracking.js" asp-append-version="true"></script>
+}

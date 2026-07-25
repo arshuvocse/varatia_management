@@ -1,0 +1,199 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Users & Roles";
+    ViewData["PageTitle"] = "User & Role Management";
+    ViewData["ActivePage"] = "Users";
+    var fieldForces = Model.Network.Agents.Sum(agent => agent.FieldForces.Count) + Model.Network.UnassignedFieldForces.Count;
+    var deliveryMen = Model.Network.Agents.Sum(agent => agent.DeliveryMen.Count) + Model.Network.UnassignedDeliveryMen.Count;
+    var shopkeepers = Model.Network.Agents.Sum(agent => agent.FieldForces.Sum(fieldForce => fieldForce.Shopkeepers.Count))
+        + Model.Network.UnassignedFieldForces.Sum(fieldForce => fieldForce.Shopkeepers.Count)
+        + Model.Network.UnassignedShopkeepers.Count;
+}
+
+<section class="company-section">
+    <div class="company-section-heading">
+        <div><span>LIVE নেটওয়ার্ক</span><h2>Company Network Directory</h2></div>
+        <small>Lists update automatically from live database relationships</small>
+    </div>
+    <div class="company-network-stats">
+        <article><span>Agents</span><strong>@Model.Network.Agents.Count</strong></article>
+        <article><span>ডেলিভারি কর্মী</span><strong>@deliveryMen</strong></article>
+        <article><span>ফিল্ড কর্মী</span><strong>@fieldForces</strong></article>
+        <article><span>দোকানদার</span><strong>@shopkeepers</strong></article>
+        <article><span>ক্রেতা</span><strong>@Model.Network.Customers.Count</strong></article>
+    </div>
+
+    <div class="company-network-toolbar">
+        <label>
+            <span>Search network</span>
+            <input type="search" id="company-network-search" placeholder="Name, phone, district or shop code" />
+        </label>
+        <div class="company-network-tabs" role="tablist">
+            <button type="button" class="active" data-network-tab="hierarchy">Hierarchy</button>
+            <button type="button" data-network-tab="customers">ক্রেতা</button>
+            <button type="button" data-network-tab="all-users">Recent users</button>
+        </div>
+    </div>
+
+    <div class="company-network-panel active" data-network-panel="hierarchy">
+        @if (Model.Network.Agents.Count == 0)
+        {
+            <div class="company-card company-empty">No agent has been registered yet.</div>
+        }
+        @foreach (var agent in Model.Network.Agents)
+        {
+            <details class="company-network-agent searchable-network-item" open>
+                <summary>
+                    <span class="company-network-avatar">A</span>
+                    <span><strong>@agent.Name</strong><small>@agent.Phone &middot; @agent.DistrictName</small></span>
+                    <span class="company-network-counts">@agent.DeliveryMen.Count delivery &middot; @agent.FieldForces.Count field force</span>
+                    <span class="company-status @(agent.IsActive ? "success" : "danger")">@(agent.IsActive ? "Active" : "Inactive")</span>
+                </summary>
+                <div class="company-network-branches">
+                    <section>
+                        <h3>Delivery Men <span>@agent.DeliveryMen.Count</span></h3>
+                        <div class="company-network-member-list">
+                            @foreach (var person in agent.DeliveryMen)
+                            {
+                                <article class="searchable-network-item">
+                                    <span class="company-network-avatar delivery">D</span>
+                                    <div><strong>@person.Name</strong><small>@person.Phone &middot; @person.Location</small><small>@person.Detail</small></div>
+                                    <span class="company-status @(person.IsActive ? "success" : "danger")">@(person.IsActive ? "Active" : "Inactive")</span>
+                                </article>
+                            }
+                            @if (agent.DeliveryMen.Count == 0) { <p class="company-empty">No delivery man under this agent.</p> }
+                        </div>
+                    </section>
+                    <section>
+                        <h3>Field Force &amp; Shopkeepers <span>@agent.FieldForces.Count</span></h3>
+                        @foreach (var fieldForce in agent.FieldForces)
+                        {
+                            <details class="company-network-field searchable-network-item" open>
+                                <summary>
+                                    <span class="company-network-avatar field">F</span>
+                                    <span><strong>@fieldForce.Name</strong><small>@fieldForce.Phone</small></span>
+                                    <span>@fieldForce.Shopkeepers.Count shops</span>
+                                    <span class="company-status @(fieldForce.IsActive ? "success" : "danger")">@(fieldForce.IsActive ? "Active" : "Inactive")</span>
+                                </summary>
+                                <div class="company-network-shop-list">
+                                    @foreach (var shop in fieldForce.Shopkeepers)
+                                    {
+                                        <article class="searchable-network-item">
+                                            <span class="company-network-avatar shop">S</span>
+                                            <div><strong>@shop.ShopName</strong><small>@shop.OwnerName &middot; @shop.Phone</small><small>@shop.ShopCode &middot; @shop.Location</small></div>
+                                            <span class="company-status @(shop.IsActive ? "success" : "danger")">@(shop.IsActive ? "Active" : "Inactive")</span>
+                                        </article>
+                                    }
+                                    @if (fieldForce.Shopkeepers.Count == 0) { <p class="company-empty">No shopkeeper under this field force.</p> }
+                                </div>
+                            </details>
+                        }
+                        @if (agent.FieldForces.Count == 0) { <p class="company-empty">No field force under this agent.</p> }
+                    </section>
+                </div>
+            </details>
+        }
+
+        @if (Model.Network.UnassignedDeliveryMen.Count > 0 || Model.Network.UnassignedFieldForces.Count > 0 || Model.Network.UnassignedShopkeepers.Count > 0)
+        {
+            <details class="company-network-agent company-network-unassigned" open>
+                <summary><span class="company-network-avatar">!</span><span><strong>নির্ধারিত নয় records</strong><small>Parent account missing or not linked</small></span></summary>
+                <div class="company-network-member-list">
+                    @foreach (var person in Model.Network.UnassignedDeliveryMen)
+                    {
+                        <article class="searchable-network-item"><span class="company-network-avatar delivery">D</span><div><strong>@person.Name</strong><small>@person.Phone &middot; @person.Location</small></div></article>
+                    }
+                    @foreach (var fieldForce in Model.Network.UnassignedFieldForces)
+                    {
+                        <article class="searchable-network-item">
+                            <span class="company-network-avatar field">F</span>
+                            <div><strong>@fieldForce.Name</strong><small>@fieldForce.Phone &middot; @fieldForce.Shopkeepers.Count shops</small></div>
+                        </article>
+                        @foreach (var shop in fieldForce.Shopkeepers)
+                        {
+                            <article class="searchable-network-item"><span class="company-network-avatar shop">S</span><div><strong>@shop.ShopName</strong><small>@shop.OwnerName &middot; @shop.Phone</small></div></article>
+                        }
+                    }
+                    @foreach (var shop in Model.Network.UnassignedShopkeepers)
+                    {
+                        <article class="searchable-network-item"><span class="company-network-avatar shop">S</span><div><strong>@shop.ShopName</strong><small>@shop.OwnerName &middot; @shop.Phone</small></div></article>
+                    }
+                </div>
+            </details>
+        }
+    </div>
+
+    <div class="company-network-panel" data-network-panel="customers">
+        <div class="company-card">
+            <div class="company-table-wrap">
+                <table class="company-table">
+                    <thead><tr><th>ক্রেতা</th><th>ঠিকানা</th><th>Joined</th><th>অবস্থা</th><th>কাজ</th></tr></thead>
+                    <tbody>
+                    @foreach (var customer in Model.Network.Customers)
+                    {
+                        <tr class="searchable-network-item">
+                            <td><strong>@customer.Name</strong><small>@customer.Phone</small></td>
+                            <td>@(string.IsNullOrWhiteSpace(customer.Address) ? "Not provided" : customer.Address)</td>
+                            <td>@customer.CreatedAt.ToString("dd MMM yyyy")</td>
+                            <td><span class="company-status @(customer.IsActive ? "success" : "danger")">@(customer.IsActive ? "Active" : "Inactive")</span></td>
+                            <td>
+                                @if (customer.UserId is int customerUserId)
+                                {
+                                    <form asp-action="SetUserActive" method="post"><input type="hidden" name="userId" value="@customerUserId" /><input type="hidden" name="isActive" value="@(!customer.IsActive)" /><button class="company-table-action" type="submit">@(customer.IsActive ? "Deactivate" : "Activate")</button></form>
+                                }
+                                else { <small>Sale-only customer</small> }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="company-network-panel" data-network-panel="all-users">
+    <div class="company-card">
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>User</th><th>Role</th><th>Joined</th><th>অবস্থা</th><th>কাজ</th></tr></thead>
+                <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr class="searchable-network-item">
+                        <td><strong>@user.Name</strong><small>@user.Phone</small></td><td>@RoleLabels.GetDisplayName(user.Role)</td><td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td><span class="company-status @(user.IsActive ? "success" : "danger")">@(user.IsActive ? "Active" : "Inactive")</span></td>
+                        <td>
+                            <form asp-action="SetUserActive" method="post"><input type="hidden" name="userId" value="@user.Id" /><input type="hidden" name="isActive" value="@(!user.IsActive)" /><button class="company-table-action" type="submit">@(user.IsActive ? "Deactivate" : "Activate")</button></form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    </div>
+</section>
+
+<script>
+    (() => {
+        const tabs = document.querySelectorAll("[data-network-tab]");
+        const panels = document.querySelectorAll("[data-network-panel]");
+        const search = document.getElementById("company-network-search");
+
+        tabs.forEach(tab => tab.addEventListener("click", () => {
+            tabs.forEach(item => item.classList.toggle("active", item === tab));
+            panels.forEach(panel => panel.classList.toggle("active", panel.dataset.networkPanel === tab.dataset.networkTab));
+            filterNetwork();
+        }));
+
+        const filterNetwork = () => {
+            const query = (search.value || "").trim().toLowerCase();
+            document.querySelectorAll(".company-network-panel.active .searchable-network-item").forEach(item => {
+                item.hidden = query.length > 0 && !item.textContent.toLowerCase().includes(query);
+            });
+        };
+
+        search.addEventListener("input", filterNetwork);
+    })();
+</script>

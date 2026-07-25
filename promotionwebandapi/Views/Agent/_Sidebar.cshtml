@@ -1,0 +1,30 @@
+@model AgentDashboardViewModel
+@{
+    var active = ViewData["ActivePage"]?.ToString() ?? "Dashboard";
+}
+<aside class="shop-sidebar agent-sidebar">
+    <a class="shop-sidebar-brand" asp-action="Dashboard">
+        <img src="~/images/amar_thikanaa_icon.png" alt="" />
+        <span><strong>@Model.AgentName</strong><small>@(Model.District?.DistrictName ?? "জেলা নির্ধারিত হয়নি")</small></span>
+    </a>
+    <nav aria-label="এজেন্ট মেনু">
+        <a class="@(active == "Dashboard" ? "active" : "")" asp-action="Dashboard"><span class="shop-nav-icon">D</span><span>ড্যাশবোর্ড</span></a>
+        <a class="@(active == "FieldForce" ? "active" : "")" asp-action="FieldForce"><span class="shop-nav-icon">F</span><span>ফিল্ড কর্মী</span></a>
+        <a class="@(active == "Shopkeepers" ? "active" : "")" asp-action="Shopkeepers"><span class="shop-nav-icon">S</span><span>দোকানদার</span></a>
+        <a class="@(active == "DeliveryTeam" ? "active" : "")" asp-action="DeliveryTeam"><span class="shop-nav-icon">R</span><span>ডেলিভারি দল</span></a>
+        <a class="@(active == "LiveTracking" ? "active" : "")" asp-action="LiveTracking"><span class="shop-nav-icon">M</span><span>লাইভ অবস্থান</span></a>
+        <a class="@(active == "Orders" ? "active" : "")" asp-action="Orders">
+            <span class="shop-nav-icon">O</span><span>অর্ডার</span>
+            @if (Model.ActiveAssignments > 0) { <b class="chat-unread-badge">@Model.ActiveAssignments</b> }
+        </a>
+        <a class="@(active == "ServiceRequests" ? "active" : "")" asp-action="ServiceRequests">
+            <span class="shop-nav-icon">Q</span><span>সেবা অনুরোধ</span>
+            @if (Model.ServiceRequests.Count(x => x.Status == "New") > 0) { <b class="chat-unread-badge">@Model.ServiceRequests.Count(x => x.Status == "New")</b> }
+        </a>
+        <a class="@(active == "Reports" ? "active" : "")" asp-action="Reports"><span class="shop-nav-icon">P</span><span>রিপোর্ট</span></a>
+        <a class="@(active == "Profile" ? "active" : "")" asp-action="Profile"><span class="shop-nav-icon">A</span><span>প্রোফাইল ও পাসওয়ার্ড</span></a>
+    </nav>
+    <form asp-controller="Account" asp-action="Logout" method="post">
+        <button type="submit" class="shop-sidebar-logout"><span class="shop-nav-icon">X</span><span>লগআউট</span></button>
+    </form>
+</aside>

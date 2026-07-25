@@ -1,0 +1,30 @@
+@model FieldOfficerDashboardViewModel
+@{
+    var active = ViewData["ActivePage"]?.ToString() ?? "Dashboard";
+}
+<aside class="shop-sidebar fieldofficer-sidebar">
+    <a class="shop-sidebar-brand" href="/FieldForce">
+        <img src="~/images/amar_thikanaa_icon.png" alt="" />
+        <span><strong>@Model.OfficerName</strong><small>ফিল্ড ফোর্স</small></span>
+    </a>
+    <nav aria-label="ফিল্ড ফোর্স মেনু">
+        <a class="@(active == "Dashboard" ? "active" : "")" href="/FieldForce">
+            <span class="shop-nav-icon">D</span><span>ড্যাশবোর্ড</span>
+        </a>
+        <a class="@(active == "Shops" ? "active" : "")" href="/FieldForce/Shops">
+            <span class="shop-nav-icon">S</span><span>দোকানসমূহ</span>
+        </a>
+        <a class="@(active == "Prices" ? "active" : "")" href="/FieldForce/Prices">
+            <span class="shop-nav-icon">৳</span><span>দাম সেটিং</span>
+        </a>
+        <a class="@(active == "Products" ? "active" : "")" href="/FieldForce/Products">
+            <span class="shop-nav-icon">P</span><span>প্রোডাক্ট এন্ট্রি</span>
+        </a>
+        <a class="@(active == "ProductDistribution" ? "active" : "")" href="/FieldForce/ProductDistribution">
+            <span class="shop-nav-icon">%</span><span>বণ্টন</span>
+        </a>
+    </nav>
+    <form asp-controller="Account" asp-action="Logout" method="post">
+        <button type="submit" class="shop-sidebar-logout"><span class="shop-nav-icon">X</span><span>লগআউট</span></button>
+    </form>
+</aside>

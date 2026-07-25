@@ -1,0 +1,53 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_Layout";
+    var activePage = ViewData["ActivePage"] as string ?? "Dashboard";
+}
+
+<main class="company-admin">
+    <aside class="company-sidebar">
+        <a class="company-brand" asp-action="Dashboard">
+            <img src="~/images/amar_thikanaa_icon.png" alt="" />
+            <span><strong>আমার ঠিকানা</strong><small>কোম্পানি পরিচালনা</small></span>
+        </a>
+        <nav aria-label="কোম্পানি মেনু">
+            <a class="@(activePage == "Dashboard" ? "active" : "")" asp-action="Dashboard">সারসংক্ষেপ</a>
+            <a class="@(activePage == "Sale" ? "active" : "")" asp-action="Sales">বিক্রি ও আয়</a>
+            <a class="@(activePage == "Withdrawals" ? "active" : "")" asp-action="Withdrawals">উত্তোলন</a>
+            <a class="@(activePage == "ActivationPayments" ? "active" : "")" asp-action="ActivationPayments">সক্রিয়করণ পেমেন্ট</a>
+            <a class="@(activePage == "Campaigns" ? "active" : "")" asp-action="Campaigns">প্রচার</a>
+            <a class="@(activePage == "Orders" ? "active" : "")" asp-action="Orders">অর্ডার</a>
+            <a class="@(activePage == "Shopkeepers" ? "active" : "")" asp-action="Shopkeepers">দোকানদার</a>
+            <a class="@(activePage == "Delivery" ? "active" : "")" asp-action="Delivery">ডেলিভারি</a>
+            <a class="@(activePage == "Products" ? "active" : "")" asp-action="Products">পণ্য</a>
+            <a class="@(activePage == "ProductDistribution" ? "active" : "")" asp-action="ProductDistribution">শতাংশ বণ্টন</a>
+            <a class="@(activePage == "Locations" ? "active" : "")" asp-action="Locations">এলাকা</a>
+            <a class="@(activePage == "Reports" ? "active" : "")" asp-action="Reports">রিপোর্ট</a>
+            <a class="@(activePage == "Notifications" ? "active" : "")" asp-action="Notifications">নোটিফিকেশন <b>@Model.UnreadNotifications</b></a>
+            <a class="@(activePage == "Bulletins" ? "active" : "")" asp-action="Bulletins">ঘোষণা</a>
+            <a class="@(activePage == "Users" ? "active" : "")" asp-action="Users">ব্যবহারকারী ও দায়িত্ব</a>
+            <a class="@(activePage == "SupportAgents" ? "active" : "")" asp-action="SupportAgents">সাপোর্ট টিম</a>
+            <a class="@(activePage == "Settings" ? "active" : "")" asp-action="Settings">সেটিংস</a>
+            <a class="@(activePage == "ServiceRequests" ? "active" : "")" asp-action="ServiceRequests">সেবা অনুরোধ</a>
+        </nav>
+        <form asp-action="Logout" method="post"><button type="submit">লগআউট</button></form>
+    </aside>
+
+    <section class="company-content">
+        <header class="company-topbar">
+            <div><span>কোম্পানি নিয়ন্ত্রণ কেন্দ্র</span><h1>@ViewData["PageTitle"]</h1></div>
+            <div class="company-admin-profile"><small>@DateTime.Now.ToString("dd-MM-yyyy")</small><strong>@Model.CompanyName</strong><small>@Model.CompanyPhone</small></div>
+        </header>
+
+        @if (TempData["CompanyMessage"] is string message)
+        {
+            <div class="company-alert success">@message</div>
+        }
+        @if (TempData["CompanyError"] is string error)
+        {
+            <div class="company-alert error">@error</div>
+        }
+
+        @RenderBody()
+    </section>
+</main>

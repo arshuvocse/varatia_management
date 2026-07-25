@@ -1,0 +1,44 @@
+@model PromotionWeb.Models.ShopkeeperDashboardViewModel
+
+<div class="shop-page-header">
+    <h1 class="shop-page-title">দৈনিক রিপোর্ট</h1>
+</div>
+
+@if (Model.DailyReports.Count == 0)
+{
+    <div class="shop-empty-state">
+        <div class="shop-empty-icon">📊</div>
+        <h3>কোনো রিপোর্ট নেই</h3>
+        <p>এখন পর্যন্ত কোনো লেনদেন সম্পন্ন হয়নি।</p>
+    </div>
+}
+else
+{
+    <div class="shop-data-table-container">
+        <table class="shop-data-table">
+            <thead>
+                <tr>
+                    <th>তারিখ</th>
+                    <th>মোট বিক্রির পরিমাণ</th>
+                    <th>মোট সেলস (টাকা)</th>
+                    <th>মোট ক্যাশ/ইনস্ট্যান্ট রিসিভ</th>
+                    <th>বকেয়া আদায়</th>
+                    <th>মোট রিসিভ (সারাদিন)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var report in Model.DailyReports)
+                {
+                    <tr>
+                        <td><strong>@report.Date.ToString("dd MMM yyyy")</strong></td>
+                        <td>@report.TotalSalesCount টি</td>
+                        <td>৳@report.TotalSalesAmount.ToString("N2")</td>
+                        <td>৳@((report.TotalCashCollected - report.TotalDueCollected).ToString("N2"))</td>
+                        <td>৳@report.TotalDueCollected.ToString("N2")</td>
+                        <td style="color: #059669; font-weight: bold;">৳@report.TotalCashCollected.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

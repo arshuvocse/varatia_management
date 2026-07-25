@@ -1,0 +1,380 @@
+using Microsoft.AspNetCore.Mvc;
+using PromotionWeb.Models;
+using PromotionWeb.Services;
+
+namespace PromotionWeb.Controllers;
+
+public sealed class FieldOfficerController(
+    AppStore store,
+    ProductDistributionStore productStore,
+    IWebHostEnvironment environment) : Controller
+{
+    [HttpGet("/FieldForce")]
+    public IActionResult Dashboard()
+    {
+        if (!IsFieldOfficer())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        return View("Dashboard", BuildDashboard());
+    }
+
+    [HttpGet("/FieldForce/Dashboard")]
+    public IActionResult FieldForceDashboard()
+    {
+        return Dashboard();
+    }
+
+    [HttpGet("/FieldForce/Shops")]
+    public IActionResult Shops()
+    {
+        if (!IsFieldOfficer())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        return View("Shops", BuildShopsModel());
+    }
+
+    [HttpGet("/FieldForce/Prices")]
+    public IActionResult Prices()
+    {
+        if (!IsFieldOfficer())
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        return View("Prices", BuildShopsModel());
+    }
+
+    [HttpGet("/FieldForce/Products")]
+    public IActionResult Products()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+
+        var model = new FieldOfficerProductsViewModel
+        {
+            OfficerName = HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স",
+            Products = productStore.GetProducts(GetUserId())
+        };
+        return View("Products", model);
+    }
+
+    [HttpGet("/FieldForce/ProductDistribution")]
+    public IActionResult ProductDistribution()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+
+        return View("~/Views/Account/ProductDistribution.cshtml", new CompanyDashboardViewModel
+        {
+            CompanyName = HttpContext.Session.GetString("UserName") ?? "Field Force",
+            CompanyPhone = HttpContext.Session.GetString("UserPhone") ?? "",
+            DistributionProducts = productStore.GetProducts(GetUserId()),
+            Locations = store.GetLocationCatalog()
+        });
+    }
+
+    [HttpPost("/FieldForce/Products")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddProduct(FieldOfficerProductsViewModel model)
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+
+        if (!ModelState.IsValid)
+        {
+            model.OfficerName = HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স";
+            model.Products = productStore.GetProducts(GetUserId());
+            return View("Products", model);
+        }
+
+        if (model.Input.ImageFile is { Length: > 0 })
+        {
+            var uploads = Path.Combine(environment.ContentRootPath, "uploads", "products");
+            Directory.CreateDirectory(uploads);
+            var filename = Guid.NewGuid().ToString() + Path.GetExtension(model.Input.ImageFile.FileName);
+            var filepath = Path.Combine(uploads, filename);
+            using var stream = new FileStream(filepath, FileMode.Create);
+            await model.Input.ImageFile.CopyToAsync(stream);
+            model.Input.ImageUrl = $"/uploads/products/{filename}";
+        }
+
+        try
+        {
+            productStore.CreateProduct(GetUserId(), model.Input);
+            TempData["SuccessMessage"] = "প্রোডাক্ট সফলভাবে এন্ট্রি করা হয়েছে।";
+            return RedirectToAction(nameof(Products));
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", "প্রোডাক্ট এন্ট্রি করতে সমস্যা হয়েছে: " + ex.Message);
+            model.OfficerName = HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স";
+            model.Products = productStore.GetProducts(GetUserId());
+            return View("Products", model);
+        }
+    }
+
+    [HttpPost("/FieldForce/Products/Edit")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditProduct(FieldOfficerProductEditInputModel input)
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        try
+        {
+            if (input.ImageFile is { Length: > 0 })
+            {
+                if (input.ImageFile.Length > 4 * 1024 * 1024)
+                    throw new InvalidOperationException("Product image must be 4 MB or smaller.");
+                var extension = Path.GetExtension(input.ImageFile.FileName).ToLowerInvariant();
+                if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+                    throw new InvalidOperationException("Only JPG, PNG and WebP images are allowed.");
+                var uploads = Path.Combine(environment.ContentRootPath, "uploads", "products");
+                Directory.CreateDirectory(uploads);
+                var filename = $"{Guid.NewGuid():N}{extension}";
+                await using var stream = System.IO.File.Create(Path.Combine(uploads, filename));
+                await input.ImageFile.CopyToAsync(stream);
+                input.ImageUrl = $"/uploads/products/{filename}";
+            }
+            productStore.UpdateProductForFieldOfficer(GetUserId(), input);
+            TempData["SuccessMessage"] = "Product details and percentage allocation updated.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Products));
+    }
+
+    [HttpPost("/FieldForce/Shops/Edit")]
+    [ValidateAntiForgeryToken]
+    public IActionResult EditShopkeeper(FieldOfficerShopEditInputModel input)
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        try
+        {
+            store.UpdateShopkeeper(GetUserId(), input);
+            productStore.UpdateShopProductAssignments(
+                GetUserId(),
+                input.ShopkeeperId,
+                input.ShopType,
+                input.SelectedProductIds,
+                input.ProductPrices);
+            TempData["SuccessMessage"] = "Shopkeeper details, products and prices updated.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Shops));
+    }
+
+    [HttpPost("/FieldForce/Shops/Prices")]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateShopPrices(FieldOfficerShopPricingInputModel input)
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        try
+        {
+            var selectedShopIds = input.ShopkeeperIds.Count > 0
+                ? input.ShopkeeperIds.Where(id => id > 0).Distinct().ToArray()
+                : input.ShopkeeperId > 0 ? [input.ShopkeeperId] : [];
+            if (selectedShopIds.Length == 0)
+            {
+                throw new InvalidOperationException("Select at least one shopkeeper.");
+            }
+
+            var shops = store.GetShopkeepers(GetUserId())
+                .Where(item => selectedShopIds.Contains(item.Id))
+                .ToList();
+            if (shops.Count != selectedShopIds.Length)
+            {
+                throw new InvalidOperationException("Select valid shopkeepers under your account.");
+            }
+            if (shops.Select(shop => shop.ShopType).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
+            {
+                throw new InvalidOperationException("Select shopkeepers from the same shop category.");
+            }
+
+            foreach (var shop in shops)
+            {
+                productStore.UpdateShopProductAssignments(
+                    GetUserId(),
+                    shop.Id,
+                    shop.ShopType,
+                    input.SelectedProductIds,
+                    input.ProductPrices);
+            }
+            TempData["SuccessMessage"] = $"{shops.Count} shopkeeper product purchase and sales prices updated.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Prices));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> RegisterShopkeeper([Bind(Prefix = "Registration")] ShopkeeperRegistrationViewModel registration)
+    {
+        if (!IsFieldOfficer())
+        {
+            if (IsAjaxRequest())
+            {
+                return Unauthorized(new { success = false, message = "সেশন শেষ হয়েছে। আবার লগইন করুন।" });
+            }
+
+            return RedirectToAction("Login", "Account");
+        }
+
+        var selectedProductIds = registration.SelectedProductIds.Distinct().ToHashSet();
+        var validSelectedProductCount = productStore.GetProducts(GetUserId()).Count(product =>
+            product.IsActive
+            && product.Category == registration.ShopType
+            && selectedProductIds.Contains(product.Id));
+        if (selectedProductIds.Count == 0 || validSelectedProductCount != selectedProductIds.Count)
+        {
+            ModelState.AddModelError(
+                "Registration.SelectedProductIds",
+                "Select at least one valid product from the chosen category.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            if (IsAjaxRequest())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "ফর্মের তথ্য ঠিক করে আবার চেষ্টা করুন।",
+                    errors = GetValidationErrors()
+                });
+            }
+
+            return View("Dashboard", BuildDashboard(registration));
+        }
+
+        try
+        {
+            var profilePhotoPath = await SaveShopkeeperImage(registration.ProfilePhoto, "profile");
+            var billboardPhotoPath = await SaveShopkeeperImage(registration.BillboardPhoto, "billboard");
+            var shop = store.RegisterShopkeeper(registration, GetUserId(), profilePhotoPath, billboardPhotoPath);
+            productStore.AssignProductsToShop(shop.Id, registration.ShopType, registration.SelectedProductIds);
+            TempData["SuccessMessage"] = $"{shop.ShopName} রেজিস্ট্রেশন সম্পন্ন। এখন দোকানদার {shop.Phone} দিয়ে লগইন করতে পারবেন।";
+            if (IsAjaxRequest())
+            {
+                return Json(new
+                {
+                    success = true,
+                    message = TempData["SuccessMessage"],
+                    shop = new
+                    {
+                        shop.ShopName,
+                        shop.OwnerName,
+                        shop.Phone,
+                        shop.ShopCode,
+                        shop.ShopType,
+                        shop.Area,
+                        shop.Address,
+                        shop.DistrictName,
+                        shop.ThanaName
+                    }
+                });
+            }
+
+            return RedirectToAction(nameof(Dashboard));
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError("Registration.Phone", ex.Message);
+            if (IsAjaxRequest())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message,
+                    errors = GetValidationErrors()
+                });
+            }
+
+            return View("Dashboard", BuildDashboard(registration));
+        }
+    }
+
+    private FieldOfficerDashboardViewModel BuildDashboard(ShopkeeperRegistrationViewModel? registration = null)
+    {
+        return new FieldOfficerDashboardViewModel
+        {
+            OfficerName = HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স",
+            Registration = registration ?? new ShopkeeperRegistrationViewModel(),
+            Shops = store.GetShopkeepers(GetUserId()),
+            Locations = store.GetLocationCatalog(),
+            Products = productStore.GetProducts(GetUserId())
+                .Where(product => product.IsActive)
+                .OrderBy(product => product.Category)
+                .ThenBy(product => product.Name)
+                .ToList(),
+            SuccessMessage = TempData["SuccessMessage"] as string
+        };
+    }
+
+    private FieldOfficerShopsViewModel BuildShopsModel()
+    {
+        var userId = GetUserId();
+        return new FieldOfficerShopsViewModel
+        {
+            OfficerName = HttpContext.Session.GetString("UserName") ?? "Field Force",
+            Shops = store.GetShopkeepers(userId),
+            Locations = store.GetLocationCatalog(),
+            Products = productStore.GetProducts(userId).Where(product => product.IsActive).ToList(),
+            Assignments = productStore.GetShopProductAssignments(userId)
+        };
+    }
+
+    private async Task<string?> SaveShopkeeperImage(IFormFile? file, string category)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return null;
+        }
+
+        if (file.Length > 4 * 1024 * 1024)
+        {
+            throw new InvalidOperationException("Each image must be 4 MB or smaller.");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (extension is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+        {
+            throw new InvalidOperationException("Only JPG, PNG and WebP images are allowed.");
+        }
+
+        var folder = Path.Combine(environment.ContentRootPath, "uploads", "shopkeepers", category);
+        Directory.CreateDirectory(folder);
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+        await using var stream = System.IO.File.Create(Path.Combine(folder, fileName));
+        await file.CopyToAsync(stream);
+        return $"/uploads/shopkeepers/{category}/{fileName}";
+    }
+
+    private bool IsFieldOfficer() =>
+        HttpContext.Session.GetString("UserRole") == Roles.FieldOfficer
+        && HttpContext.Session.GetInt32("UserId") is not null;
+
+    private int GetUserId() => HttpContext.Session.GetInt32("UserId") ?? 0;
+
+    private bool IsAjaxRequest()
+    {
+        return string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private Dictionary<string, string[]> GetValidationErrors()
+    {
+        return ModelState
+            .Where(item => item.Value?.Errors.Count > 0)
+            .ToDictionary(
+                item => item.Key,
+                item => item.Value!.Errors.Select(error => error.ErrorMessage).ToArray());
+    }
+}

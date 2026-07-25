@@ -1,0 +1,19 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Orders";
+    ViewData["PageTitle"] = "Order Management";
+    ViewData["ActivePage"] = "Orders";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>কার্যক্রম</span><h2>অর্ডারের সারসংক্ষেপ</h2></div></div>
+    <div class="company-order-grid">
+        <article><span>অপেক্ষমাণ</span><strong>@Model.PendingCustomerOrders</strong></article>
+        <article><span>নিশ্চিত / চলমান</span><strong>@Model.ConfirmedCustomerOrders</strong></article>
+        <article><span>Delivered</span><strong>@Model.DeliveredCustomerOrders</strong></article>
+        <article><span>Cancelled</span><strong>@Model.CancelledCustomerOrders</strong></article>
+        <article><span>Returned</span><strong>@Model.ReturnedCustomerOrders</strong></article>
+        <article><span>ব্যর্থ</span><strong>@Model.FailedCustomerOrders</strong></article>
+    </div>
+</section>

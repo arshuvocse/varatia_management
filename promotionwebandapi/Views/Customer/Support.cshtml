@@ -1,0 +1,46 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "Support";
+    ViewData["ActivePage"] = "Support";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>HELP CENTER</span>
+                    <h1>সহায়তা</h1>
+                    <p>Order, wallet বা account সংক্রান্ত সহায়তা নিন।</p>
+                </div>
+            </header>
+
+            <section class="support-page-grid customer-support-grid">
+                <article>
+                    <span class="support-page-icon">📞</span>
+                    <small>Support number</small>
+                    <strong>01323351028 (WhatsApp)</strong>
+                    <p>সকাল ৯টা - রাত ৯টা</p>
+                    <a class="btn-light" href="tel:01323351028">Call support</a>
+                </article>
+                <article>
+                    <span class="support-page-icon">C</span>
+                    <small>Live chat</small>
+                    <strong>Shopkeeper support</strong>
+                    <p>নির্বাচিত shopkeeper-এর সাথে সরাসরি কথা বলুন।</p>
+                    <a class="btn-light" asp-action="Chat">Open live chat</a>
+                </article>
+            </section>
+
+            <section class="panel support-report-panel">
+                <div>
+                    <h2>Order help</h2>
+                    <p>কোনো order নিয়ে সমস্যা হলে order list থেকে status যাচাই করুন।</p>
+                </div>
+                <a class="btn-primary" asp-action="Orders">আমার অর্ডার</a>
+            </section>
+        </section>
+    </div>
+</main>

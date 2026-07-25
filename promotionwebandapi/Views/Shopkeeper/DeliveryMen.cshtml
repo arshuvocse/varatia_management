@@ -1,0 +1,67 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Delivery Men";
+    ViewData["ActivePage"] = "DeliveryMen";
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div><span>DELIVERY TEAM</span><h1>ডেলিভারি কর্মী</h1><p>Assign active delivery men from your district. Agent creates and manages delivery accounts.</p></div>
+                <span class="table-chip">@Model.DeliveryMen.Count জন সদস্য</span>
+            </header>
+
+            @if (TempData["DeliverySuccess"] is string success) { <div class="order-message success">@success</div> }
+            @if (TempData["DeliveryError"] is string error) { <div class="order-message error">@error</div> }
+
+            <section class="panel">
+                <div class="panel-title-row">
+                    <div>
+                        <h2>Live delivery map</h2>
+                        <p>Tracks active delivery men using their latest shared browser or app location.</p>
+                    </div>
+                </div>
+                <div class="delivery-live-map"
+                     data-kind="fleet"
+                     data-endpoint="@Url.Action("ShopkeeperDeliveryMen", "DeliveryTracking")"
+                     data-lat="@Model.Shop.Latitude"
+                     data-lng="@Model.Shop.Longitude"></div>
+            </section>
+
+            <section class="panel">
+                <h2>জেলার ডেলিভারি কর্মী</h2>
+                <div class="delivery-team-grid">
+                    @foreach (var person in Model.DeliveryMen)
+                    {
+                        <article class="delivery-person-card">
+                            @if (!string.IsNullOrWhiteSpace(person.ProfilePhotoUrl))
+                            {
+                                <img src="@person.ProfilePhotoUrl" alt="@person.Name" />
+                            }
+                            else { <span class="delivery-avatar">@person.Name[..1].ToUpperInvariant()</span> }
+                            <div>
+                                <h3>@person.Name</h3>
+                                <a href="tel:@person.Phone">@person.Phone</a>
+                                <p>@person.DistrictName, @person.ThanaName</p>
+                                <small>@person.VehicleType @person.VehicleNumber</small>
+                                <span class="status-chip @(person.IsActive ? "paid" : "pending")">@(person.IsActive ? person.Availability : "Inactive")</span>
+                            </div>
+                        </article>
+                    }
+                    @if (Model.DeliveryMen.Count == 0) { <p class="empty-state">No district delivery man registered by agent yet.</p> }
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/delivery-tracking.js" asp-append-version="true"></script>
+}

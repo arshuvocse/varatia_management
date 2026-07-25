@@ -1,0 +1,25 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Service Requests";
+    ViewData["PageTitle"] = "Service Requests";
+    ViewData["ActivePage"] = "ServiceRequests";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>হোম পেজ</span><h2>Service অনুরোধ</h2></div></div>
+    <div class="company-card">
+        <div class="company-card-title"><h3>হোম পেজের Service অনুরোধ</h3><span>@Model.ServiceRequests.Count requests</span></div>
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>নাম</th><th>মোবাইল</th><th>Service</th><th>অবস্থান</th><th>জমার তারিখ</th></tr></thead>
+                <tbody>
+                @foreach (var request in Model.ServiceRequests)
+                {
+                    <tr><td><strong>@request.Name</strong></td><td>@request.Phone</td><td>@request.Service</td><td>@(request.Location ?? "-")</td><td>@request.CreatedAt.ToLocalTime().ToString("dd MMM yyyy")</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

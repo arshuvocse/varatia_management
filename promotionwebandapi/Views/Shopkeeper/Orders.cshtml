@@ -1,0 +1,157 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Customer Orders";
+    ViewData["ActivePage"] = "Orders";
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>CUSTOMER ORDERS</span>
+                    <h1>Orders sent to @Model.Shop.ShopName</h1>
+                    <p>Review customer orders and update their status.</p>
+                </div>
+                <span class="table-chip">@Model.PendingCustomerOrderCount pending</span>
+            </header>
+
+            @if (TempData["OrderSuccess"] is string success)
+            {
+                <div class="order-message success">@success</div>
+            }
+            @if (TempData["OrderError"] is string error)
+            {
+                <div class="order-message error">@error</div>
+            }
+
+            <section class="panel">
+                @if (Model.CustomerOrders.Count == 0)
+                {
+                    <p class="empty-state">No customer has placed an order with this shop yet.</p>
+                }
+                else
+                {
+                    <div class="customer-orders-list">
+                        @foreach (var order in Model.CustomerOrders)
+                        {
+                            var assignment = Model.DeliveryAssignments.FirstOrDefault(x => x.OrderId == order.Id);
+                            <article class="customer-order-card">
+                                <header>
+                                    <div>
+                                        <strong>Order #@order.Id</strong>
+                                        <small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                    </div>
+                                    <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
+                                </header>
+
+                                <div class="customer-order-meta">
+                                    <span><b>Customer:</b> @order.CustomerName</span>
+                                    <span><b>Phone:</b> @order.CustomerPhone</span>
+                                    <span><b>Total:</b> ৳ @order.NetAmount.ToString("N2")</span>
+                                </div>
+
+                                @if (assignment is not null)
+                                {
+                                    <div class="delivery-assignment-summary">
+                                        <strong>Delivery: @assignment.DeliveryManName</strong>
+                                        <a href="tel:@assignment.DeliveryManPhone">@assignment.DeliveryManPhone</a>
+                                        <span class="status-chip pending">@assignment.Status</span>
+                                        @if (assignment.Status != DeliveryStatus.Delivered)
+                                        {
+                                            <small>Customer OTP: @assignment.DeliveryOtp</small>
+                                        }
+                                    </div>
+                                    @if (assignment.Status is not DeliveryStatus.Delivered and not DeliveryStatus.Rejected
+                                         and not DeliveryStatus.Failed and not DeliveryStatus.Returned and not DeliveryStatus.Cancelled)
+                                    {
+                                        <div class="delivery-live-map compact"
+                                             data-kind="order"
+                                             data-endpoint="@Url.Action("Order", "DeliveryTracking", new { orderId = order.Id })"
+                                             data-lat="@(assignment.CurrentLatitude ?? assignment.CustomerLatitude ?? Model.Shop.Latitude)"
+                                             data-lng="@(assignment.CurrentLongitude ?? assignment.CustomerLongitude ?? Model.Shop.Longitude)"></div>
+                                    }
+                                }
+
+                                <div class="customer-order-items">
+                                    @foreach (var item in order.Details)
+                                    {
+                                        <span>@item.ProductName x @item.Quantity <b>৳ @item.TotalPrice.ToString("N2")</b></span>
+                                    }
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(order.Remarks))
+                                {
+                                    <p><b>Note:</b> @order.Remarks</p>
+                                }
+
+                                @if (order.Status is CustomerOrderStatus.Pending or CustomerOrderStatus.Approved)
+                                {
+                                    <div class="customer-order-actions">
+                                        @if (order.Status == CustomerOrderStatus.Pending)
+                                        {
+                                            <form asp-action="UpdateOrderStatus" method="post">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="status" value="@CustomerOrderStatus.Approved" />
+                                                <button class="btn-primary" type="submit">Approve</button>
+                                            </form>
+                                            <form asp-action="UpdateOrderStatus" method="post">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <input type="hidden" name="status" value="@CustomerOrderStatus.Rejected" />
+                                                <button class="btn-light" type="submit">Reject</button>
+                                            </form>
+                                        }
+                                        @if (order.Status == CustomerOrderStatus.Approved)
+                                        {
+                                            <form asp-action="AssignDeliveryMan" method="post" class="delivery-assign-form">
+                                                <input type="hidden" name="orderId" value="@order.Id" />
+                                                <select name="deliveryManId" required>
+                                                    <option value="">Select delivery man</option>
+                                                    @foreach (var deliveryMan in Model.DeliveryMen.Where(x => x.IsActive))
+                                                    {
+                                                        <option value="@deliveryMan.Id">@deliveryMan.Name (@deliveryMan.Availability)</option>
+                                                    }
+                                                </select>
+                                                <button class="btn-primary" type="submit">Assign</button>
+                                            </form>
+                                        }
+                                    </div>
+                                }
+                                else if (assignment is not null && assignment.Status is not DeliveryStatus.Delivered
+                                         and not DeliveryStatus.Rejected and not DeliveryStatus.Failed and not DeliveryStatus.Returned)
+                                {
+                                    <form asp-action="AssignDeliveryMan" method="post" class="delivery-assign-form">
+                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                        <select name="deliveryManId" required>
+                                            <option value="">Change delivery man</option>
+                                            @foreach (var deliveryMan in Model.DeliveryMen.Where(x => x.IsActive))
+                                            {
+                                                <option value="@deliveryMan.Id">@deliveryMan.Name (@deliveryMan.Availability)</option>
+                                            }
+                                        </select>
+                                        <button class="btn-light" type="submit">Reassign</button>
+                                    </form>
+                                    <form asp-action="CancelDeliveryAssignment" method="post" class="delivery-assign-form">
+                                        <input type="hidden" name="orderId" value="@order.Id" />
+                                        <button class="btn-light" type="submit">Cancel assignment</button>
+                                    </form>
+                                }
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/js/delivery-tracking.js" asp-append-version="true"></script>
+}

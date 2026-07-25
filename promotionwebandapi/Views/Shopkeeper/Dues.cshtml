@@ -1,0 +1,136 @@
+@model PromotionWeb.Models.ShopkeeperDashboardViewModel
+
+<div class="shop-page-header">
+    <h1 class="shop-page-title">বকেয়া খাতা</h1>
+</div>
+
+@if (Model.Dues.Count == 0)
+{
+    <div class="shop-empty-state">
+        <div class="shop-empty-icon">✓</div>
+        <h3>কোনো বকেয়া নেই</h3>
+        <p>আপনার কোনো গ্রাহকের কাছে বকেয়া পাওনা নেই।</p>
+    </div>
+}
+else
+{
+    <div class="shop-data-table-container">
+        <table class="shop-data-table">
+            <thead>
+                <tr>
+                    <th>তারিখ</th>
+                    <th>ইনভয়েস</th>
+                    <th>গ্রাহক</th>
+                    <th>মোট বিল</th>
+                    <th>পেমেন্ট</th>
+                    <th>বকেয়া</th>
+                    <th>অ্যাকশন</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var due in Model.Dues)
+                {
+                    <tr>
+                        <td>@due.SoldAt.ToString("dd MMM yyyy, hh:mm tt")</td>
+                        <td>@due.InvoiceNo</td>
+                        <td>
+                            <strong>@due.CustomerName</strong><br />
+                            <small>@due.CustomerPhone</small>
+                        </td>
+                        <td>৳@due.GrossAmount.ToString("N2")</td>
+                        <td>৳@due.PaidAmount.ToString("N2")</td>
+                        <td style="color: #e11d48; font-weight: bold;">৳@due.DueAmount.ToString("N2")</td>
+                        <td>
+                            <button class="shop-btn shop-btn-primary shop-btn-sm" onclick="openPaymentModal(@due.SaleId, @due.DueAmount)">আদায় করুন</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div id="paymentModal" class="shop-modal" style="display: none;">
+    <div class="shop-modal-content" style="max-width: 400px;">
+        <div class="shop-modal-header">
+            <h2>বকেয়া আদায়</h2>
+            <button class="shop-modal-close" onclick="closePaymentModal()">&times;</button>
+        </div>
+        <form id="paymentForm" onsubmit="submitPayment(event)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="SaleId" name="SaleId" />
+            <div class="shop-form-group">
+                <label>আদায়ের পরিমাণ (সর্বোচ্চ: ৳<span id="maxDueLabel">0</span>)</label>
+                <input type="number" id="Amount" name="Amount" step="0.01" min="1" required class="shop-input" />
+            </div>
+            <div class="shop-form-group">
+                <label>পেমেন্ট মাধ্যম</label>
+                <select id="PaymentMethod" name="PaymentMethod" class="shop-input" required>
+                    <option value="ক্যাশ">ক্যাশ</option>
+                    <option value="বিকাশ">বিকাশ</option>
+                    <option value="নগদ">নগদ</option>
+                    <option value="কার্ড">কার্ড</option>
+                </select>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="button" class="shop-btn shop-btn-secondary" onclick="closePaymentModal()">বাতিল</button>
+                <button type="submit" class="shop-btn shop-btn-primary">নিশ্চিত করুন</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let maxDue = 0;
+
+        function openPaymentModal(saleId, dueAmount) {
+            maxDue = dueAmount;
+            document.getElementById('SaleId').value = saleId;
+            document.getElementById('Amount').value = dueAmount;
+            document.getElementById('Amount').max = dueAmount;
+            document.getElementById('maxDueLabel').innerText = dueAmount.toFixed(2);
+            document.getElementById('paymentModal').style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+        }
+
+        async function submitPayment(e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+                SaleId: parseInt(form.SaleId.value),
+                Amount: parseFloat(form.Amount.value),
+                PaymentMethod: form.PaymentMethod.value
+            };
+            
+            if (data.Amount <= 0 || data.Amount > maxDue) {
+                alert("আদায়ের পরিমাণ সঠিক নয়।");
+                return;
+            }
+
+            try {
+                const response = await fetch('@Url.Action("PayDue")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message);
+                    location.reload();
+                } else {
+                    alert(result.message || "পেমেন্ট ব্যর্থ হয়েছে।");
+                }
+            } catch (err) {
+                alert("পেমেন্ট ব্যর্থ হয়েছে। " + err.message);
+            }
+        }
+    </script>
+}

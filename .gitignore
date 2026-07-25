@@ -1,0 +1,33 @@
+# Visual Studio / .NET ignores
+.vs/
+bin/
+obj/
+artifacts/
+publish/
+publish_test/
+*.user
+*.userosscache
+*.suo
+*.userlibraries
+
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Flutter / Dart (subfolder already has its own, but good as fallback)
+.dart_tool/
+.build/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+
+# Credentials & Secrets
+Firebase/*.json
+*firebase-adminsdk*.json
+

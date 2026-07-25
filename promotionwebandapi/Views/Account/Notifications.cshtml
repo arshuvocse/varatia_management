@@ -1,0 +1,28 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Notifications";
+    ViewData["PageTitle"] = "Notifications & Activity";
+    ViewData["ActivePage"] = "Notifications";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>সতর্কতা</span><h2>নোটিফিকেশন &amp; Recent Activity</h2></div></div>
+    <div class="company-two-column">
+        <div class="company-card company-feed">
+            <div class="company-card-title"><h3>নোটিফিকেশন</h3><span>@Model.UnreadNotifications unread</span></div>
+            @foreach (var notification in Model.Notifications)
+            {
+                <article class="@(!notification.IsRead ? "unread" : "")"><strong>@notification.Title</strong><p>@notification.Message</p><small>@notification.CreatedAt.ToString("dd MMM, hh:mm tt")</small></article>
+            }
+            @if (Model.Notifications.Count == 0) { <p class="company-empty">কোনো নোটিফিকেশন নেই।</p> }
+        </div>
+        <div class="company-card company-feed">
+            <div class="company-card-title"><h3>সাম্প্রতিক কাজ</h3></div>
+            @foreach (var activity in Model.Activities)
+            {
+                <article><span>@activity.Type</span><strong>@activity.Title</strong><p>@activity.Detail</p><small>@activity.OccurredAt.ToString("dd MMM, hh:mm tt")</small></article>
+            }
+        </div>
+    </div>
+</section>

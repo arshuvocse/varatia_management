@@ -1,0 +1,27 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Commission";
+    ViewData["ActivePage"] = "Commission";
+    var totalCommission = Model.SystemCommission;
+}
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header"><div><span>EARNINGS</span><h1>কমিশন</h1><p>Paid, pending এবং commission breakdown এক জায়গায়।</p></div></header>
+            <section class="commission-page-summary">
+                <article><span>মোট কমিশন</span><strong>৳ @totalCommission.ToString("N2")</strong></article>
+                <article><span>পরিশোধিত</span><strong>৳ @Model.PaidCommission.ToString("N2")</strong></article>
+                <article><span>অপেক্ষমাণ</span><strong>৳ @Model.PendingCommission.ToString("N2")</strong></article>
+            </section>
+            <section class="panel">
+                <h2>Commission Breakdown</h2>
+                <div class="commission-list">
+                    <div><span>Customer cashback</span><strong>৳ @Model.CashbackCommission.ToString("N2")</strong><small>ক্রেতাকে দেওয়া cashback; commission total-এর অংশ নয়</small></div>
+                    <div><span>Shop/System commission</span><strong>৳ @Model.SystemCommission.ToString("N2")</strong><small>সংরক্ষিত sale record অনুযায়ী</small></div>
+                    <div class="total"><span>সর্বমোট commission</span><strong>৳ @totalCommission.ToString("N2")</strong><small>Paid এবং pending সহ</small></div>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>

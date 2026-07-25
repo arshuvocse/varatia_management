@@ -1,0 +1,565 @@
+@{
+    ViewData["Title"] = "Live Support Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Adjust based on your layout
+    var profilePic = ViewBag.ProfilePictureUrl as string ?? "/images/default-avatar.png";
+    var agentName = ViewBag.AgentName as string ?? "Support Agent";
+    var agentId = ViewBag.AgentId as int? ?? 0;
+}
+
+<style>
+    :root {
+        --glossy-bg: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --chat-bg: #1a1a2e;
+        --sidebar-bg: #16213e;
+        --text-light: #e0e0e0;
+        --border-color: rgba(255, 255, 255, 0.1);
+    }
+    body {
+        background: #0f3443;
+        background: linear-gradient(to right, #34e89e, #0f3443); 
+        margin: 0;
+        font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .support-wrapper {
+        display: flex;
+        height: calc(100vh - 80px);
+        margin: 20px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        backdrop-filter: blur(10px);
+        background: rgba(26, 26, 46, 0.85);
+        border: 1px solid var(--border-color);
+        color: var(--text-light);
+    }
+    
+    /* Sidebar */
+    .support-sidebar {
+        width: 350px;
+        background: var(--sidebar-bg);
+        border-right: 1px solid var(--border-color);
+        display: flex;
+        flex-direction: column;
+    }
+    .agent-profile {
+        padding: 20px;
+        background: var(--glossy-bg);
+        border-bottom: 1px solid var(--border-color);
+        text-align: center;
+    }
+    .profile-pic-container {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 10px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #764ba2;
+        box-shadow: 0 0 15px rgba(118, 75, 162, 0.5);
+        cursor: pointer;
+    }
+    .profile-pic-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .profile-pic-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 30%;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        opacity: 0;
+        transition: 0.3s;
+    }
+    .profile-pic-container:hover .profile-pic-overlay {
+        opacity: 1;
+    }
+    .sessions-list {
+        flex: 1;
+        overflow-y: auto;
+    }
+    .session-item {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    .session-item:hover, .session-item.active {
+        background: var(--primary-gradient);
+    }
+    .session-name {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 5px;
+    }
+    .session-phone {
+        font-size: 0.9rem;
+        color: #bbb;
+    }
+    .session-status {
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.2);
+        float: right;
+    }
+
+    /* Chat Area */
+    .support-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: var(--chat-bg);
+    }
+    .chat-header {
+        padding: 20px;
+        background: var(--glossy-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .chat-header h3 {
+        margin: 0;
+    }
+    .btn-claim {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+        transition: 0.3s;
+    }
+    .btn-claim:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(118, 75, 162, 0.6);
+    }
+    .btn-resolve {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(56, 239, 125, 0.4);
+        transition: 0.3s;
+    }
+    .chat-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .chat-bubble {
+        max-width: 70%;
+        padding: 12px 18px;
+        border-radius: 18px;
+        position: relative;
+        font-size: 1rem;
+        line-height: 1.4;
+    }
+    .chat-bubble.guest {
+        align-self: flex-start;
+        background: rgba(255,255,255,0.1);
+        border-bottom-left-radius: 5px;
+    }
+    .chat-bubble.agent {
+        align-self: flex-end;
+        background: var(--primary-gradient);
+        border-bottom-right-radius: 5px;
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+    }
+    .agent-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .chat-input-area {
+        padding: 20px;
+        background: var(--glossy-bg);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 10px;
+    }
+    .chat-input-area input {
+        flex: 1;
+        padding: 15px;
+        border-radius: 25px;
+        border: 1px solid var(--border-color);
+        background: rgba(0,0,0,0.3);
+        color: white;
+        font-size: 1rem;
+        outline: none;
+    }
+    .chat-input-area button {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: none;
+        background: var(--primary-gradient);
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+    }
+    .empty-state {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        color: #888;
+    }
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+    .connection-state.offline { color: #fca5a5; }
+    @@media (max-width: 800px) {
+        .support-wrapper { margin: 0; height: 100vh; border-radius: 0; }
+        .support-sidebar { width: 135px; }
+        .agent-profile { padding: 12px 6px; }
+        .profile-pic-container { width: 52px; height: 52px; }
+        .session-item { padding: 12px 8px; }
+        .session-name { font-size: .9rem; overflow-wrap: anywhere; }
+        .chat-header, .chat-messages, .chat-input-area { padding: 12px; }
+        .chat-bubble { max-width: 88%; }
+    }
+</style>
+
+<div class="support-wrapper">
+    <div class="support-sidebar">
+        <div class="agent-profile">
+            <div class="profile-pic-container" onclick="document.getElementById('photoInput').click()">
+                <img src="@profilePic" id="profileImage" alt="Agent">
+                <div class="profile-pic-overlay">Update</div>
+            </div>
+            <input type="file" id="photoInput" style="display:none" accept="image/*" onchange="uploadProfilePicture(this)">
+            <h4 style="margin:0;">@agentName</h4>
+            <small id="connectionState" class="connection-state offline">Connecting...</small>
+        </div>
+        <div class="sessions-list" id="sessionsList">
+            <!-- Sessions will be loaded here -->
+        </div>
+    </div>
+    
+    <div class="support-chat" id="chatArea" style="display: none;">
+        <div class="chat-header">
+            <div>
+                <h3 id="chatHeaderName">Guest Name</h3>
+                <small id="chatHeaderPhone">Phone Number</small>
+            </div>
+            <div>
+                <button id="btnClaim" class="btn-claim" onclick="claimSession()" style="display:none;">Claim Chat</button>
+                <button id="btnResolve" class="btn-resolve" onclick="resolveSession()" style="display:none;">Resolve</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <!-- Messages will be loaded here -->
+        </div>
+        <form class="chat-input-area" id="chatForm">
+            @Html.AntiForgeryToken()
+            <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off" disabled>
+            <button type="submit" id="btnSend" disabled><i class="fa fa-paper-plane"></i></button>
+        </form>
+    </div>
+    <div class="support-chat empty-state" id="emptyState">
+        <i class="fa fa-comments"></i>
+        <h2>Select a session to start chatting</h2>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script>
+        let currentSessionId = null;
+        let isClaimedByMe = false;
+        const currentAgentId = @agentId;
+        const knownMessageIds = new Set();
+        const sessionsById = new Map();
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/live-support", {
+                // The production IIS host rejects SignalR's default text/plain POSTs.
+                headers: { "Content-Type": "application/json" }
+            })
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("LoadActiveSessions", (sessions) => {
+            const list = document.getElementById('sessionsList');
+            list.innerHTML = '';
+            sessionsById.clear();
+            sessions.forEach(s => addSessionToList(s));
+        });
+
+        connection.on("RefreshSessions", async () => {
+            try {
+                await connection.invoke("JoinDashboard");
+            } catch (error) {
+                setConnectionState(false);
+                console.error(error);
+            }
+        });
+
+        connection.on("SessionUpdated", (session) => {
+            const el = document.getElementById(`session-${session.sessionId}`);
+            if (el) el.remove();
+            addSessionToList(session, true);
+        });
+
+        connection.on("IncomingGuestMessage", (sessionId, msg) => {
+            if (currentSessionId === sessionId) {
+                appendMessage(msg);
+            }
+        });
+
+        connection.on("ReceiveMessage", (msg) => {
+            if (currentSessionId === msg.sessionId) {
+                appendMessage(msg);
+            }
+        });
+
+        connection.on("SessionHistory", (sessionId, messages) => {
+            if (currentSessionId === sessionId) {
+                document.getElementById('chatMessages').innerHTML = '';
+                messages.forEach(m => appendMessage(m));
+            }
+        });
+        
+        connection.on("SessionClaimed", (sessionId, agentId) => {
+            const el = document.getElementById(`session-${sessionId}`);
+            if(el) {
+                el.querySelector('.session-status').textContent = 'Assigned';
+            }
+            if(currentSessionId === sessionId) {
+                document.getElementById('btnClaim').style.display = 'none';
+                if (agentId !== currentAgentId) {
+                    isClaimedByMe = false;
+                    setComposerEnabled(false);
+                    document.getElementById('btnResolve').style.display = 'none';
+                }
+            }
+        });
+
+        connection.on("SessionResolved", (sessionId) => {
+            const el = document.getElementById(`session-${sessionId}`);
+            if(el) el.remove();
+            sessionsById.delete(sessionId);
+            if(currentSessionId === sessionId) {
+                document.getElementById('chatArea').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'flex';
+                currentSessionId = null;
+            }
+        });
+
+        async function start() {
+            try {
+                await connection.start();
+                await connection.invoke("JoinDashboard");
+                setConnectionState(true);
+            } catch (err) {
+                console.error(err);
+                setConnectionState(false);
+                setTimeout(start, 5000);
+            }
+        }
+        connection.onreconnecting(() => setConnectionState(false));
+        connection.onreconnected(async () => {
+            setConnectionState(true);
+            await connection.invoke("JoinDashboard");
+            const session = currentSessionId ? sessionsById.get(currentSessionId) : null;
+            if (session) await openSession(session);
+        });
+        connection.onclose(() => {
+            setConnectionState(false);
+            setTimeout(start, 5000);
+        });
+        start();
+
+        function setConnectionState(online) {
+            const state = document.getElementById('connectionState');
+            state.textContent = online ? 'Online & Ready' : 'Offline - reconnecting';
+            state.classList.toggle('offline', !online);
+        }
+
+        function setComposerEnabled(enabled) {
+            document.getElementById('messageInput').disabled = !enabled;
+            document.getElementById('btnSend').disabled = !enabled;
+        }
+
+        function addSessionToList(session, prepend = false) {
+            const list = document.getElementById('sessionsList');
+            sessionsById.set(session.sessionId, session);
+            const div = document.createElement('div');
+            div.className = 'session-item';
+            div.id = `session-${session.sessionId}`;
+            if (currentSessionId === session.sessionId) div.classList.add('active');
+            
+            const status = document.createElement('span');
+            status.className = 'session-status';
+            status.textContent = session.status;
+            const name = document.createElement('div');
+            name.className = 'session-name';
+            name.textContent = session.userName;
+            const phone = document.createElement('div');
+            phone.className = 'session-phone';
+            phone.textContent = session.userPhone;
+            div.append(status, name, phone);
+            
+            div.onclick = () => openSession(session);
+            
+            if (prepend) {
+                list.insertBefore(div, list.firstChild);
+            } else {
+                list.appendChild(div);
+            }
+        }
+
+        async function openSession(session) {
+            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`session-${session.sessionId}`).classList.add('active');
+            
+            currentSessionId = session.sessionId;
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('chatArea').style.display = 'flex';
+            document.getElementById('chatHeaderName').textContent = session.userName;
+            document.getElementById('chatHeaderPhone').textContent = session.userPhone;
+            
+            document.getElementById('chatMessages').innerHTML = '<div class="chat-bubble guest">Loading history...</div>';
+
+            try {
+                const opened = await connection.invoke("OpenSession", session.sessionId);
+                isClaimedByMe = opened.canReply;
+                document.getElementById('chatMessages').innerHTML = '';
+                knownMessageIds.clear();
+                (opened.messages || []).forEach(message => appendMessage(message));
+
+                if (opened.status === 'Active') {
+                    document.getElementById('btnClaim').style.display = 'block';
+                    document.getElementById('btnResolve').style.display = 'none';
+                    setComposerEnabled(false);
+                } else if (opened.canReply) {
+                    document.getElementById('btnClaim').style.display = 'none';
+                    document.getElementById('btnResolve').style.display = 'block';
+                    setComposerEnabled(true);
+                } else {
+                    document.getElementById('btnClaim').style.display = 'none';
+                    document.getElementById('btnResolve').style.display = 'none';
+                    setComposerEnabled(false);
+                }
+            } catch (error) {
+                console.error(error);
+                document.getElementById('chatMessages').innerHTML = '<div class="chat-bubble guest">Chat history could not be loaded.</div>';
+            }
+
+        }
+
+        async function claimSession() {
+            if (!currentSessionId) return;
+            try {
+                await connection.invoke("ClaimSession", currentSessionId);
+                isClaimedByMe = true;
+                document.getElementById('btnClaim').style.display = 'none';
+                document.getElementById('btnResolve').style.display = 'block';
+                setComposerEnabled(true);
+                document.getElementById('messageInput').focus();
+            } catch (error) {
+                alert(error.message || 'This chat could not be claimed.');
+                const session = sessionsById.get(currentSessionId);
+                if (session) await openSession(session);
+            }
+        }
+
+        async function resolveSession() {
+            if (!currentSessionId) return;
+            if (!confirm('Mark this chat as resolved?')) return;
+            try {
+                await connection.invoke("ResolveSession", currentSessionId);
+            } catch (error) {
+                alert(error.message || 'Chat could not be resolved.');
+            }
+        }
+
+        document.getElementById('chatForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            if (!text || !currentSessionId) return;
+            
+            input.value = '';
+            try {
+                await connection.invoke("SendAgentMessage", currentSessionId, text);
+            } catch (error) {
+                input.value = text;
+                alert(error.message || 'Message could not be sent.');
+            }
+        });
+
+        function appendMessage(msg) {
+            if (msg.messageId && knownMessageIds.has(msg.messageId)) return;
+            if (msg.messageId) knownMessageIds.add(msg.messageId);
+            const msgs = document.getElementById('chatMessages');
+            if (msgs.innerHTML.includes('Loading history')) msgs.innerHTML = '';
+            
+            const div = document.createElement('div');
+            
+            if (msg.senderType === 'Agent') {
+                div.className = 'chat-bubble agent';
+                const pic = msg.agentProfilePictureUrl || '/images/default-avatar.png';
+                const text = document.createElement('span');
+                text.textContent = msg.messageText;
+                const avatar = document.createElement('img');
+                avatar.src = pic;
+                avatar.className = 'agent-avatar';
+                avatar.alt = msg.agentName || 'Support agent';
+                avatar.title = msg.agentName || 'Support agent';
+                div.append(text, avatar);
+            } else {
+                div.className = 'chat-bubble guest';
+                div.textContent = msg.messageText;
+            }
+            
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        async function uploadProfilePicture(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('photo', file);
+            formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+
+            try {
+                const res = await fetch('/Support/UploadProfilePicture', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('profileImage').src = data.url;
+                } else {
+                    alert('Upload failed.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Upload error.');
+            }
+        }
+    </script>
+}

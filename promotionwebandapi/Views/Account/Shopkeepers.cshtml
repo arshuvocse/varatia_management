@@ -1,0 +1,24 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Shopkeepers";
+    ViewData["PageTitle"] = "দোকানদার পরিচালনা";
+    ViewData["ActivePage"] = "Shopkeepers";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>নেটওয়ার্ক</span><h2>দোকানদার পরিচালনা</h2></div></div>
+    <div class="company-card">
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>দোকান</th><th>মালিক</th><th>অবস্থান</th><th>ফিল্ড কর্মী</th><th>Registered</th></tr></thead>
+                <tbody>
+                @foreach (var shop in Model.RecentShops)
+                {
+                    <tr><td><strong>@shop.ShopName</strong><small>@shop.ShopCode</small></td><td>@shop.OwnerName<small>@shop.Phone</small></td><td>@shop.ThanaName, @shop.DistrictName</td><td>@shop.FieldOfficerName</td><td>@shop.RegisteredAt.ToString("dd MMM yyyy")</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

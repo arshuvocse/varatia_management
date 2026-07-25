@@ -1,0 +1,17 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Locations";
+    ViewData["PageTitle"] = "Areaভিত্তিক Conversion";
+    ViewData["ActivePage"] = "Locations";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>বিশ্লেষণ</span><h2>Areaভিত্তিক Conversion</h2></div></div>
+    <div class="company-location-grid">
+        @foreach (var district in Model.Districts)
+        {
+            <article><div><strong>@district.DistrictName</strong><span>&#2547; @district.SalesAmount.ToString("N0")</span></div><small>@district.ShopkeeperCount shops &middot; @district.CustomerCount customers</small></article>
+        }
+    </div>
+</section>

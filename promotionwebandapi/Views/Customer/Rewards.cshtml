@@ -1,0 +1,37 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "Rewards";
+    ViewData["ActivePage"] = "Rewards";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>OFFERS & BENEFITS</span>
+                    <h1>Rewards</h1>
+                    <p>See your earned points and currently available customer benefits.</p>
+                </div>
+                <span class="table-chip">@Model.RewardPoints points</span>
+            </header>
+
+            <section class="customer-summary">
+                <article><span>Reward points</span><strong>@Model.RewardPoints</strong><small>Approximately 1 point per ৳100</small></article>
+                <article><span>Total purchased</span><strong>৳ @Model.TotalPurchaseAmount.ToString("N2")</strong><small>Across all orders</small></article>
+                <article><span>Delivered orders</span><strong>@Model.CompletedOrders</strong><small>Successfully completed</small></article>
+                <article><span>Available discount</span><strong>3%</strong><small>On orders of ৳1,000 or more</small></article>
+            </section>
+
+            <section class="panel customer-promo-panel">
+                <div class="promotion-grid">
+                    <article><strong>Active offer</strong><span>Get a 3% discount on orders of ৳1,000 or more.</span></article>
+                    <article><strong>Reward points</strong><span>Earn approximately 1 point for every ৳100 purchased.</span></article>
+                    <article><strong>Live support</strong><span>Chat or start an audio call with a selected shopkeeper.</span></article>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>

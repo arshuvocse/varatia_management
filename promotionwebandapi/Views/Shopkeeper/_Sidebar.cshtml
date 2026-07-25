@@ -1,0 +1,54 @@
+@model ShopkeeperDashboardViewModel
+@{
+    var activePage = ViewData["ActivePage"]?.ToString() ?? "Dashboard";
+}
+
+<aside class="shop-sidebar">
+    <a class="shop-sidebar-brand" asp-controller="Shopkeeper" asp-action="Dashboard">
+        @if (!string.IsNullOrEmpty(Model.Shop.ProfilePhotoPath))
+        {
+            <img src="@Model.Shop.ProfilePhotoPath" alt="Profile" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" />
+        }
+        else
+        {
+            <div style="width: 48px; height: 48px; border-radius: 50%; background-color: #f1f5f9; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.5rem; font-weight: bold; margin-right: 14px; flex-shrink: 0;">
+                @(string.IsNullOrWhiteSpace(Model.Shop.ShopName) ? "S" : Model.Shop.ShopName.Trim()[..1].ToUpperInvariant())
+            </div>
+        }
+        <span>
+            <strong>@Model.Shop.ShopName</strong>
+            <small>@Model.Shop.ShopCode</small>
+        </span>
+    </a>
+
+    <nav aria-label="দোকানদারের মেনু">
+        <a class="@(activePage == "Dashboard" ? "active" : "")" asp-action="Dashboard"><span class="shop-nav-icon">D</span><span>ড্যাশবোর্ড</span></a>
+        <a class="@(activePage == "NewSale" ? "active" : "")" asp-action="NewSale"><span class="shop-nav-icon">+</span><span>নতুন বিক্রি</span></a>
+        <a class="@(activePage == "Transactions" ? "active" : "")" asp-action="Transactions"><span class="shop-nav-icon">T</span><span>লেনদেন</span></a>
+        <a class="@(activePage == "Dues" ? "active" : "")" asp-action="Dues"><span class="shop-nav-icon">B</span><span>বকেয়া খাতা</span></a>
+        <a class="@(activePage == "DailyReport" ? "active" : "")" asp-action="DailyReport"><span class="shop-nav-icon">R</span><span>দৈনিক রিপোর্ট</span></a>
+        <a class="@(activePage == "Orders" ? "active" : "")" asp-action="Orders">
+            <span class="shop-nav-icon">O</span><span>ক্রেতার অর্ডার</span>
+            @if (Model.PendingCustomerOrderCount > 0) { <b class="chat-unread-badge">@Model.PendingCustomerOrderCount</b> }
+        </a>
+        <a class="@(activePage == "DeliveryMen" ? "active" : "")" asp-action="DeliveryMen">
+            <span class="shop-nav-icon">D</span><span>ডেলিভারি কর্মী</span>
+            @if (Model.UnassignedApprovedOrderCount > 0) { <b class="chat-unread-badge">@Model.UnassignedApprovedOrderCount</b> }
+        </a>
+        <a class="@(activePage == "Expenses" ? "active" : "")" asp-action="Expenses"><span class="shop-nav-icon">E</span><span>খরচ</span></a>
+        <a class="@(activePage == "Products" ? "active" : "")" asp-action="Products"><span class="shop-nav-icon">P</span><span>পণ্য</span></a>
+        <a class="@(activePage == "Commission" ? "active" : "")" asp-action="Commission"><span class="shop-nav-icon">C</span><span>কমিশন</span></a>
+        <a class="@(activePage == "Wallet" ? "active" : "")" asp-action="Wallet"><span class="shop-nav-icon">W</span><span>ওয়ালেট</span></a>
+        <a class="@(activePage == "Profile" ? "active" : "")" asp-action="Profile"><span class="shop-nav-icon">S</span><span>দোকানের প্রোফাইল</span></a>
+        <a class="@(activePage == "ChangePassword" ? "active" : "")" asp-action="ChangePassword"><span class="shop-nav-icon">K</span><span>পাসওয়ার্ড পরিবর্তন</span></a>
+        <a class="@(activePage == "Support" ? "active" : "")" asp-action="Support"><span class="shop-nav-icon">?</span><span>সহায়তা</span></a>
+        <a class="@(activePage == "Chat" ? "active" : "") chat-nav-link" asp-action="Chat">
+            <span class="shop-nav-icon">C</span><span>ক্রেতার সঙ্গে চ্যাট</span>
+            <b class="chat-unread-badge" data-chat-notification-badge hidden="@(Model.UnreadChatCount == 0)">@Model.UnreadChatCount</b>
+        </a>
+    </nav>
+
+    <form asp-controller="Account" asp-action="Logout" method="post">
+        <button type="submit" class="shop-sidebar-logout"><span class="shop-nav-icon">X</span><span>লগআউট</span></button>
+    </form>
+</aside>

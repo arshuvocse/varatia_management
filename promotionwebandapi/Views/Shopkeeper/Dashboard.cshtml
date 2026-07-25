@@ -1,0 +1,213 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Shopkeeper Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var totalCommission = Model.SystemCommission;
+    var recentTransactions = Model.Transactions.Take(5).ToList();
+    var recentCustomerOrders = Model.CustomerOrders.Take(5).ToList();
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>SHOPKEEPER DASHBOARD</span>
+                    <h1>স্বাগতম, @Model.Shop.ShopName</h1>
+                    <p>আজকের ব্যবসার সারসংক্ষেপ এবং সাম্প্রতিক কার্যক্রম।</p>
+                </div>
+                <a class="btn-primary" asp-action="NewSale">＋ New Sale</a>
+            </header>
+
+            @if (Model.RequiresMonthlyPayment)
+            {
+                <div class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.8);" data-bs-backdrop="static" data-bs-keyboard="false">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Monthly Subscription Payment</h5>
+                            </div>
+                            <div class="modal-body text-center">
+                                <p>আপনার <strong>@Model.CurrentMonthName</strong> মাসের সাবস্ক্রিপশন ফি (৳ ৫০) বকেয়া আছে। ড্যাশবোর্ড ব্যবহার করতে অনুগ্রহ করে ফি পরিশোধ করুন।</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <form asp-action="PayMonthlySubscription" method="post">
+                                    <input type="hidden" name="monthYear" value="@Model.SubscriptionMonthYearToPay" />
+                                    <button type="submit" class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;">Pay ৳50 via SSL Commerz</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (Model.DaysUntilNextPayment.HasValue)
+            {
+                <div class="alert alert-warning d-flex justify-content-between align-items-center" style="margin-bottom: 1rem; border-left: 4px solid #ffc107;">
+                    <div>
+                        <strong>Upcoming Subscription:</strong> 
+                        আগামী মাসের (@Model.NextMonthName) সাবস্ক্রিপশন ফি (৳ ৫০) পরিশোধ করতে আর <strong>@Model.DaysUntilNextPayment</strong> দিন বাকি আছে।
+                    </div>
+                    <form asp-action="PayMonthlySubscription" method="post">
+                        <input type="hidden" name="monthYear" value="@Model.SubscriptionMonthYearToPay" />
+                        <button type="submit" class="btn btn-sm btn-warning">Pay in Advance</button>
+                    </form>
+                </div>
+            }
+
+            @if (TempData["ActivationSuccess"] is string activationSuccess)
+            {
+                <div class="order-message success">@activationSuccess</div>
+            }
+
+            <section class="shopkeeper-hero">
+                <div class="sales-card shopkeeper-sales">
+                    <span>আজকের Sale</span>
+                    <strong>৳ @Model.TodaySales.ToString("N2")</strong>
+                    <small>এই মাসে মোট Sale ৳ @Model.MonthSales.ToString("N2")</small>
+                </div>
+                <div class="shopkeeper-stats">
+                    <article><span>মোট অর্ডার</span><strong>@Model.TotalOrders</strong><small>গড় অর্ডার ৳ @Model.AverageOrderValue.ToString("N2")</small></article>
+                    <article><span>মোট কমিশন</span><strong>৳ @totalCommission.ToString("N2")</strong><small>Paid ৳ @Model.PaidCommission.ToString("N2")</small></article>
+                    <article><span>ওয়ালেট ব্যালেন্স</span><strong>৳ @Model.WalletBalance.ToString("N2")</strong><small>Withdrawable ৳ @Model.WalletWithdrawable.ToString("N2")</small></article>
+                </div>
+            </section>
+
+            <section class="panel" style="margin-bottom: 24px;">
+                <h2>গত ৭ দিনের সেলস বনাম খরচ</h2>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="salesExpenseChart"></canvas>
+                </div>
+            </section>
+
+            @if (Model.PendingCustomerOrderCount > 0)
+            {
+                <section class="panel order-notification-panel">
+                    <div>
+                        <strong>@Model.PendingCustomerOrderCount new customer order(s)</strong>
+                        <span>Waiting for your approval.</span>
+                    </div>
+                    <a class="btn-primary" asp-action="Orders">View orders</a>
+                </section>
+            }
+
+            <nav class="shopkeeper-actions shop-page-shortcuts" aria-label="Shopkeeper quick actions">
+                <a asp-action="Orders"><span>O</span><strong>ক্রেতার অর্ডার</strong><small>@Model.PendingCustomerOrderCount pending</small></a>
+                <a asp-action="NewSale"><span>＋</span><strong>নতুন Sale</strong><small>Product সহ</small></a>
+                <a asp-action="Transactions"><span>▤</span><strong>লেনদেন</strong><small>পূর্ণ হিস্টোরি</small></a>
+                <a asp-action="Products"><span>▦</span><strong>Product</strong><small>Stock/price</small></a>
+                <a asp-action="Commission"><span>৳</span><strong>কমিশন</strong><small>Paid/Pending</small></a>
+                <a asp-action="Wallet"><span>▣</span><strong>ওয়ালেট</strong><small>ব্যালেন্স</small></a>
+            </nav>
+
+            <section class="panel shopkeeper-orders">
+                <div class="panel-title-row">
+                    <h2>Recent Customer Orders</h2>
+                    <a asp-action="Orders">সব দেখুন</a>
+                </div>
+                @if (recentCustomerOrders.Count == 0)
+                {
+                    <p class="empty-state">No customer orders yet.</p>
+                }
+                else
+                {
+                    <div class="transaction-table customer-order-table">
+                        <article><span>অর্ডার</span><span>ক্রেতা</span><span>Product</span><span>মোট</span><span>অবস্থা</span></article>
+                        @foreach (var order in recentCustomerOrders)
+                        {
+                            <article>
+                                <strong>#@order.Id<br /><small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small></strong>
+                                <span>@order.CustomerName<br /><small>@order.CustomerPhone</small></span>
+                                <span>@string.Join(", ", order.Details.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
+                                <strong>৳ @order.NetAmount.ToString("N2")</strong>
+                                <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+
+            <section class="panel shopkeeper-transactions">
+                <div class="panel-title-row">
+                    <h2>Recent Transactions</h2>
+                    <a asp-action="Transactions">সব দেখুন</a>
+                </div>
+                <div class="transaction-table shopkeeper-recent-table">
+                    <article><span>ক্রেতা</span><span>Product</span><span>Sale</span><span>Cashback</span><span>পেমেন্ট</span><span>অবস্থা</span></article>
+                    @foreach (var transaction in recentTransactions)
+                    {
+                        <article>
+                            <strong>@transaction.CustomerName<br /><small>@transaction.CustomerPhone</small></strong>
+                            <span>@string.Join(", ", transaction.Items.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
+                            <strong>৳ @transaction.SaleAmount.ToString("N2")</strong>
+                            <em>৳ @transaction.CashbackAmount.ToString("N2")</em>
+                            <span>@transaction.PaymentMethod</span>
+                            <span class="status-chip @(transaction.Status == "Paid" ? "paid" : "pending")">@transaction.Status</span>
+                        </article>
+                    }
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var ctx = document.getElementById('salesExpenseChart').getContext('2d');
+            var chartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartLabels));
+            var salesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartSalesData));
+            var expenseData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartExpenseData));
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'Sales (৳)',
+                            data: salesData,
+                            backgroundColor: 'rgba(20, 100, 233, 0.7)',
+                            borderColor: 'rgba(20, 100, 233, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Expenses (৳)',
+                            data: expenseData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e2e8f0'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

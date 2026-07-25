@@ -1,0 +1,45 @@
+@model AgentDashboardViewModel
+@{
+    ViewData["Title"] = "Agent Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var recentAssignments = Model.Assignments.Take(5).ToList();
+}
+<main class="app-page shop-theme shop-portal-page agent-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div><span>এজেন্ট ড্যাশবোর্ড</span><h1>স্বাগতম, @Model.AgentName</h1><p>@(Model.District is null ? "জেলা নির্ধারণ করতে প্রথম দলের সদস্য নিবন্ধন করুন।" : $"Operations overview for {Model.District.DistrictName}.")</p></div>
+                <span class="table-chip">@(Model.District?.DistrictName ?? "নির্ধারিত নয়")</span>
+            </header>
+            <partial name="_Messages" />
+            <section class="agent-stat-grid">
+                <article><span>ফিল্ড কর্মী</span><strong>@Model.FieldOfficers.Count</strong><small>@Model.Shops.Count টি নিবন্ধিত দোকান</small></article>
+                <article><span>ডেলিভারি দল</span><strong>@Model.ActiveDeliveryMen / @Model.DeliveryMen.Count</strong><small>@Model.AvailableDeliveryMen available, @Model.BusyDeliveryMen ব্যস্ত</small></article>
+                <article><span>চলমান ডেলিভারি</span><strong>@Model.ActiveAssignments</strong><small>@Model.DeliveredAssignments টি ডেলিভারি Delivered</small></article>
+                <article><span>নতুন অনুরোধ</span><strong>@Model.ServiceRequests.Count(x => x.Status == "New")</strong><small>@Model.ServiceRequests.Count টি জেলার অনুরোধ</small></article>
+            </section>
+            <nav class="agent-quick-actions">
+                <a asp-action="FieldForce"><strong>+ ফিল্ড কর্মী</strong><small>অ্যাকাউন্ট তৈরি ও পরিচালনা</small></a>
+                <a asp-action="DeliveryTeam"><strong>+ ডেলিভারি কর্মী</strong><small>ডেলিভারি কর্মী নিবন্ধন ও যাচাই</small></a>
+                <a asp-action="LiveTracking"><strong>লাইভ মানচিত্র</strong><small>সক্রিয় ডেলিভারি দল দেখুন</small></a>
+                <a asp-action="ServiceRequests"><strong>Service অনুরোধ</strong><small>জেলার অনুরোধ দেখুন</small></a>
+            </nav>
+            <section class="panel">
+                <div class="panel-title-row"><div><h2>চলমান ও সাম্প্রতিক ডেলিভারি</h2><p>আপনার দলের সর্বশেষ ডেলিভারি কাজ।</p></div><a asp-action="Orders">সব দেখুন</a></div>
+                <div class="table-scroll">
+                    <table class="registered-shops-table">
+                        <thead><tr><th>অর্ডার</th><th>ডেলিভারি কর্মী</th><th>দোকান</th><th>ক্রেতা</th><th>টাকার পরিমাণ</th><th>অবস্থা</th></tr></thead>
+                        <tbody>
+                        @foreach (var item in recentAssignments)
+                        {
+                            <tr><td>#@item.OrderId</td><td>@item.DeliveryManName</td><td>@item.ShopName</td><td>@item.CustomerName</td><td>৳ @item.CollectionAmount.ToString("N2")</td><td><span class="status-chip @(item.Status == DeliveryStatus.Delivered ? "paid" : "pending")">@UiText.Status(item.Status)</span></td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                @if (recentAssignments.Count == 0) { <p class="empty-state">এখনও কোনো ডেলিভারি কাজ নেই।</p> }
+            </section>
+        </section>
+    </div>
+</main>

@@ -1,0 +1,158 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Shopkeeper Transactions";
+    ViewData["ActivePage"] = "Transactions";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" />
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>SHOPKEEPER TRANSACTIONS</span>
+                    <h1>লেনদেন হিস্টোরি</h1>
+                    <p>@Model.Shop.ShopName · Search, date filter এবং payment filter সহ সব লেনদেন।</p>
+                </div>
+            </header>
+
+        <section class="registered-shop-summary shopkeeper-transaction-summary">
+            <article>
+                <span>মোট লেনদেন</span>
+                <strong>@Model.Transactions.Count</strong>
+            </article>
+            <article>
+                <span>মোট Sale</span>
+                <strong>৳ @Model.Transactions.Sum(x => x.SaleAmount).ToString("N0")</strong>
+            </article>
+            <article>
+                <span>Cashback</span>
+                <strong>৳ @Model.Transactions.Sum(x => x.CashbackAmount).ToString("N0")</strong>
+            </article>
+            <article>
+                <span>অপেক্ষমাণ</span>
+                <strong>@Model.Transactions.Count(x => x.Status == "Pending")</strong>
+            </article>
+        </section>
+
+        <section class="panel registered-shops-panel">
+            <div class="transaction-filters">
+                <label>
+                    Date from
+                    <input type="date" id="date-from" />
+                </label>
+                <label>
+                    Date to
+                    <input type="date" id="date-to" />
+                </label>
+                <label>
+                    Payment
+                    <select id="payment-filter">
+                        <option value="">সব</option>
+                        <option>ক্যাশ</option>
+                        <option>বিকাশ</option>
+                        <option>নগদ</option>
+                        <option>কার্ড</option>
+                    </select>
+                </label>
+                <button class="btn-light" type="button" onclick="window.print()">Print</button>
+                <button class="btn-light" type="button" disabled>Export later</button>
+            </div>
+
+            <table id="shopkeeper-transactions-table" class="display registered-shops-table">
+                <thead>
+                    <tr>
+                        <th>ক্রেতা</th>
+                        <th>ফোন</th>
+                        <th>Product</th>
+                        <th>Sale amount</th>
+                        <th>Cashback</th>
+                        <th>পেমেন্ট</th>
+                        <th>Date/time</th>
+                        <th>অবস্থা</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in Model.Transactions)
+                    {
+                        <tr>
+                            <td><strong>@transaction.CustomerName</strong></td>
+                            <td>@transaction.CustomerPhone</td>
+                            <td>@string.Join(", ", transaction.Items.Select(item => $"{item.ProductName} x{item.Quantity}"))</td>
+                            <td>৳ @transaction.SaleAmount.ToString("N2")</td>
+                            <td>৳ @transaction.CashbackAmount.ToString("N2")</td>
+                            <td>@transaction.PaymentMethod</td>
+                            <td data-order="@transaction.TransactionAt.ToString("yyyyMMddHHmmss")" data-date="@transaction.TransactionAt.ToString("yyyy-MM-dd")">
+                                @transaction.TransactionAt.ToString("dd MMM yyyy, hh:mm tt")
+                            </td>
+                            <td><span class="status-chip @(transaction.Status == "Paid" ? "paid" : "pending")">@transaction.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(function () {
+            $.fn.dataTable.ext.search.push((settings, data, dataIndex) => {
+                if (settings.nTable.id !== "shopkeeper-transactions-table") {
+                    return true;
+                }
+
+                const row = settings.aoData[dataIndex].nTr;
+                const rowDate = row.querySelector("td[data-date]")?.dataset.date || "";
+                const from = $("#date-from").val();
+                const to = $("#date-to").val();
+                const payment = $("#payment-filter").val();
+
+                if (from && rowDate < from) {
+                    return false;
+                }
+
+                if (to && rowDate > to) {
+                    return false;
+                }
+
+                if (payment && data[5] !== payment) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            const table = $("#shopkeeper-transactions-table").DataTable({
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[6, "desc"]],
+                scrollX: true,
+                language: {
+                    search: "সার্চ:",
+                    lengthMenu: "প্রতি পেজে _MENU_ টি লেনদেন",
+                    info: "_TOTAL_ টি লেনদেনের মধ্যে _START_ থেকে _END_ দেখানো হচ্ছে",
+                    infoEmpty: "কোনো লেনদেন পাওয়া যায়নি",
+                    infoFiltered: "(_MAX_ টি লেনদেন থেকে ফিল্টার করা)",
+                    zeroRecords: "মিল পাওয়া যায়নি",
+                    emptyTable: "এখনও কোনো লেনদেন নেই।",
+                    paginate: {
+                        first: "প্রথম",
+                        last: "শেষ",
+                        next: "পরের",
+                        previous: "আগের"
+                    }
+                }
+            });
+
+            $("#date-from, #date-to, #payment-filter").on("change", () => table.draw());
+        });
+    </script>
+}

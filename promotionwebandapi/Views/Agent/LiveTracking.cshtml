@@ -1,0 +1,10 @@
+@model AgentDashboardViewModel
+@{ ViewData["Title"] = "Live Tracking"; ViewData["ActivePage"] = "LiveTracking"; }
+<main class="app-page shop-theme shop-portal-page agent-portal-page"><div class="shop-portal-shell">
+<partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>লাইভ কার্যক্রম</span><h1>লাইভ অবস্থান</h1><p>Latest browser or app location shared by active delivery men.</p></div><span class="table-chip">@Model.AvailableDeliveryMen available</span></header>
+<partial name="_Messages" /><section class="panel"><div class="delivery-live-map" data-kind="fleet" data-endpoint="@Url.Action("AgentDeliveryMen", "DeliveryTracking")"></div></section>
+<section class="panel"><div class="table-scroll"><table class="registered-shops-table"><thead><tr><th>ডেলিভারি কর্মী</th><th>Area</th><th>যানবাহন</th><th>Availability</th><th>সর্বশেষ আপডেট</th></tr></thead><tbody>@foreach (var x in Model.DeliveryMen) { <tr><td><strong>@x.Name</strong><br /><a href="tel:@x.Phone">@x.Phone</a></td><td>@x.ThanaName</td><td>@x.VehicleType @x.VehicleNumber</td><td><span class="status-chip @(x.IsActive && x.Availability != DeliveryAvailability.Offline ? "paid" : "pending")">@(x.IsActive ? x.Availability : "Inactive")</span></td><td>@(x.LastLocationAt?.ToLocalTime().ToString("dd MMM, hh:mm tt") ?? "কখনও নয়")</td></tr> }</tbody></table></div></section>
+</section></div></main>
+@section Styles { <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" /> }
+@section Scripts { <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="~/js/delivery-tracking.js" asp-append-version="true"></script> }

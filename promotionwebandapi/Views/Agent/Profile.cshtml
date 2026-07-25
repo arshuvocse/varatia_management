@@ -1,0 +1,13 @@
+@model AgentDashboardViewModel
+@{ ViewData["Title"] = "Agent Profile"; ViewData["ActivePage"] = "Profile"; }
+<main class="app-page shop-theme shop-portal-page agent-portal-page"><div class="shop-portal-shell">
+<partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>অ্যাকাউন্ট</span><h1>প্রোফাইল ও পাসওয়ার্ড</h1><p>অ্যাকাউন্টের তথ্য ও লগইন পাসওয়ার্ড পরিচালনা করুন।</p></div></header>
+<partial name="_Messages" /><div class="agent-two-column">
+<section class="panel"><h2>এজেন্ট প্রোফাইল</h2><form asp-action="UpdateProfile" method="post" class="form-stack"><label>নাম</label><input name="name" value="@Model.AgentName" required maxlength="150" /><label>মোবাইল</label><input value="@Model.AgentPhone" readonly /><label>Assigned division</label><input value="@(Model.District?.DivisionName ?? "নির্ধারিত নয়")" readonly /><label>Assigned district</label><input value="@(Model.District?.DistrictName ?? "নির্ধারিত নয়")" readonly /><button class="btn-primary" type="submit">প্রোফাইল আপডেট করুন</button></form></section>
+@if (Model.District is null)
+{
+<section class="panel"><h2>কাজের জেলা নির্ধারণ</h2><p>সেবা অনুরোধ ও জেলা-ভিত্তিক ডেলিভারি পরিচালনার জন্য প্রথমে একটি জেলা নির্বাচন করুন। একবার নির্ধারিত হলে জেলা পরিবর্তন করা যাবে না।</p><form asp-action="AssignDistrict" method="post" class="form-stack"><label>জেলা</label><select name="districtId" required><option value="">জেলা নির্বাচন করুন</option>@foreach (var district in Model.Locations.Districts) { <option value="@district.Id">@district.Name</option> }</select><button class="btn-primary" type="submit">জেলা নির্ধারণ করুন</button></form></section>
+}
+<section class="panel"><h2>পাসওয়ার্ড পরিবর্তন</h2><form asp-action="ChangePassword" method="post" class="form-stack"><label>বর্তমান পাসওয়ার্ড</label><input asp-for="Password.OldPassword" type="password" required /><label>নতুন পাসওয়ার্ড</label><input asp-for="Password.NewPassword" type="password" minlength="4" required /><label>পাসওয়ার্ড নিশ্চিত করুন</label><input asp-for="Password.ConfirmPassword" type="password" minlength="4" required /><button class="btn-primary" type="submit">পাসওয়ার্ড পরিবর্তন</button></form></section>
+</div></section></div></main>

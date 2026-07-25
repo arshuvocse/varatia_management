@@ -1,0 +1,67 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Activation Payments";
+    ViewData["PageTitle"] = "Activation Payments";
+    ViewData["ActivePage"] = "ActivationPayments";
+    var paid = Model.ShopkeeperPayments.Where(x => x.Status == "Paid").ToList();
+    var pending = Model.ShopkeeperPayments.Count(x => x.Status == "Pending");
+    var unsuccessful = Model.ShopkeeperPayments.Count(x => x.Status is "Failed" or "Cancelled");
+    var paidShops = paid.Select(x => x.ShopkeeperId).Distinct().Count();
+}
+
+<section class="company-section">
+    <div class="company-section-heading">
+        <div><span>SSLCOMMERZ</span><h2>দোকানদার অ্যাক্টিভেশন payments</h2></div>
+    </div>
+
+    <div class="company-metric-row">
+        <article><span>যাচাইকৃত Collection</span><strong>&#2547; @paid.Sum(x => x.Amount).ToString("N2")</strong></article>
+        <article><span>Activated shops</span><strong>@paidShops</strong></article>
+        <article><span>অপেক্ষমাণ চেষ্টা</span><strong>@pending</strong></article>
+        <article><span>ব্যর্থ / Cancelled</span><strong>@unsuccessful</strong></article>
+    </div>
+
+    <div class="company-card">
+        <div class="company-card-title">
+            <h3>পেমেন্টের ইতিহাস</h3>
+            <span>@Model.ShopkeeperPayments.Count attempts</span>
+        </div>
+        <div class="company-table-wrap">
+            <table class="company-table company-payment-table">
+                <thead>
+                    <tr>
+                        <th>দোকান</th>
+                        <th>মালিক</th>
+                        <th>Transaction</th>
+                        <th>পেমেন্ট মাধ্যম</th>
+                        <th>টাকার পরিমাণ</th>
+                        <th>অবস্থা</th>
+                        <th>তারিখ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var payment in Model.ShopkeeperPayments)
+                {
+                    var statusClass = payment.Status == "Paid"
+                        ? "success"
+                        : payment.Status == "Pending" ? "warning" : "danger";
+                    <tr>
+                        <td><strong>@payment.ShopName</strong><small>@payment.ShopCode · @payment.DistrictName</small></td>
+                        <td>@payment.OwnerName<small>@payment.Phone</small></td>
+                        <td><strong>@payment.TransactionId</strong><small>@(payment.BankTransactionId ?? "Bank reference pending")</small></td>
+                        <td>@(payment.CardType ?? "SSLCOMMERZ")</td>
+                        <td><strong>&#2547; @payment.Amount.ToString("N2")</strong><small>@payment.Currency</small></td>
+                        <td><span class="company-status @statusClass">@payment.Status</span></td>
+                        <td>@(payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("dd MMM yyyy")<small>@(payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("hh:mm tt")</small></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.ShopkeeperPayments.Count == 0)
+        {
+            <p class="company-empty">এখনও কোনো দোকানদারের পেমেন্ট চেষ্টা নেই।</p>
+        }
+    </div>
+</section>

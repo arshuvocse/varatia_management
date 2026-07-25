@@ -1,0 +1,114 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Products";
+    ViewData["PageTitle"] = "Product & Category";
+    ViewData["ActivePage"] = "Products";
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>NEW PRODUCT</span><h2>Product distribution entry</h2></div></div>
+    <div class="company-card">
+            <form class="company-form" asp-action="CreateDistributionProduct" method="post" enctype="multipart/form-data">
+                <label>Product name<input name="Name" maxlength="150" required /></label>
+                <label>
+                    বিভাগ
+                    <select name="Category" required>
+                        <option value="">বিভাগ নির্বাচন করুন</option>
+                        @foreach (var division in Model.Locations.Divisions)
+                        {
+                            <option value="@division.Name">@division.Name</option>
+                        }
+                    </select>
+                </label>
+                <label>UOM<input name="Uom" maxlength="30" placeholder="pcs / kg / litre" required /></label>
+                <label>Unit price<input name="UnitPrice" type="number" min="0.01" step="0.01" required /></label>
+                <label>Opening stock per shop<input name="OpeningStock" type="number" min="0" value="0" required /></label>
+                <label>
+                    Product Image
+                    <input id="companyProductImage" name="ImageFile" type="file" accept="image/*" onchange="previewCompanyImage(event, 'companyImagePreview')" />
+                    <div style="margin-top: 8px;">
+                        <img id="companyImagePreview" src="#" alt="Preview" style="display:none; width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;" />
+                    </div>
+                </label>
+                <button type="submit">Save product &amp; distribution</button>
+            </form>
+    </div>
+</section>
+
+<script>
+    function previewCompanyImage(event, imgId) {
+        const file = event.target.files[0];
+        const preview = document.getElementById(imgId);
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            preview.src = '#';
+            preview.style.display = 'none';
+        }
+    }
+</script>
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>DISTRIBUTION RULES</span><h2>Who gets how much</h2></div><span>@Model.DistributionProducts.Count products</span></div>
+    <div class="company-card">
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>Image</th><th>Code</th><th>Product</th><th>UOM</th><th>Price</th><th>Percentage</th></tr></thead>
+                <tbody>
+                @foreach (var product in Model.DistributionProducts)
+                {
+                    var fallbackImage = product.Category switch
+                    {
+                        "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+                        "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
+                        "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
+                        "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80",
+                        _ => null
+                    };
+                    var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(imageUrl))
+                            {
+                                <img src="@imageUrl" alt="@product.Name" loading="lazy" style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;" />
+                            }
+                        </td>
+                        <td><strong>@product.ProductCode</strong></td>
+                        <td><strong>@product.Name</strong><small>@product.Category</small></td>
+                        <td>@product.Uom</td>
+                        <td>৳ @product.UnitPrice.ToString("N2")</td>
+                        <td><strong>@product.Percentage.ToString("0.##")%</strong></td>
+                    </tr>
+                }
+                @if (Model.DistributionProducts.Count == 0)
+                {
+                    <tr><td colspan="6">No distribution product has been added.</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>Productের তালিকা</span><h2>Product &amp; Category</h2></div><span class="company-warning">@Model.LowStockProducts low stock</span></div>
+    <div class="company-card">
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>Product</th><th>দোকান</th><th>বিভাগ</th><th>Stock</th><th>Sold</th><th>Sale</th></tr></thead>
+                <tbody>
+                @foreach (var product in Model.TopProducts)
+                {
+                    <tr><td><strong>@product.Name</strong></td><td>@product.ShopName</td><td>@product.Category</td><td><span class="company-status @(product.StockQuantity <= 5 ? "danger" : "success")">@product.StockQuantity</span></td><td>@product.SoldQuantity</td><td>&#2547; @product.SalesAmount.ToString("N2")</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

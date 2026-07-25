@@ -1,0 +1,56 @@
+@model DeliveryDashboardViewModel
+@{
+    ViewData["Title"] = "Delivery Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var activeAssignment = Model.Assignments.FirstOrDefault(x => x.Status is not DeliveryStatus.Delivered
+        and not DeliveryStatus.Rejected and not DeliveryStatus.Failed and not DeliveryStatus.Returned);
+}
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        <section class="shop-page-content">
+            <header class="shop-page-header"><div><span>DELIVERY DASHBOARD</span><h1>স্বাগতম, @Model.DeliveryMan.Name</h1><p>@Model.DeliveryMan.ShopName delivery operations.</p></div></header>
+            @if (TempData["DeliverySuccess"] is string success) { <div class="order-message success">@success</div> }
+            @if (TempData["DeliveryError"] is string error) { <div class="order-message error">@error</div> }
+            <section class="shopkeeper-stats">
+                <article><span>New assignments</span><strong>@Model.NewAssignmentCount</strong></article>
+                <article><span>চলমান ডেলিভারি</span><strong>@Model.ActiveCount</strong></article>
+                <article><span>Delivered</span><strong>@Model.DeliveredCount</strong></article>
+            </section>
+            <section class="panel">
+                <h2>Availability</h2>
+                <form asp-action="SetAvailability" method="post" class="availability-form">
+                    <select name="availability">
+                        @foreach (var value in new[] { DeliveryAvailability.Available, DeliveryAvailability.Busy, DeliveryAvailability.Offline })
+                        {
+                            <option value="@value" selected="@(Model.DeliveryMan.Availability == value)">@value</option>
+                        }
+                    </select>
+                    <button class="btn-primary" type="submit">আপডেট করুন</button>
+                </form>
+            </section>
+            <section class="panel">
+                <h2>Live location sharing</h2>
+                <p class="delivery-location-note" data-location-status>Allow browser location permission to share your live delivery position.</p>
+                <form asp-action="UpdateLocation"
+                      method="post"
+                      class="js-delivery-location-push"
+                      data-assignment-id="@activeAssignment?.AssignmentId"></form>
+            </section>
+            <section class="panel">
+                <h2>Recent assignments</h2>
+                <div class="customer-orders-list">
+                    @foreach (var item in Model.Assignments.Take(5))
+                    {
+                        <article class="customer-order-card"><header><strong>Order #@item.OrderId</strong><span class="status-chip pending">@item.Status</span></header><p>@item.CustomerName, @item.CustomerPhone</p><a class="btn-light" asp-action="Orders">Open order</a></article>
+                    }
+                    @if (Model.Assignments.Count == 0) { <p class="empty-state">No assigned orders.</p> }
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="~/js/delivery-tracking.js" asp-append-version="true"></script>
+}

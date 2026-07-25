@@ -1,0 +1,350 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "Products";
+    ViewData["ActivePage"] = "Products";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.3.2/css/dataTables.dataTables.min.css" />
+    <style>
+        .product-entry-panel {
+            margin-bottom: 24px;
+        }
+
+        .product-entry-panel h2,
+        .product-list-panel h2 {
+            margin-bottom: 6px;
+        }
+
+        .product-entry-panel .panel-copy {
+            margin: 0 0 20px;
+            color: #64748b;
+        }
+
+        .product-entry-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .product-entry-grid .field-wide {
+            grid-column: 1 / -1;
+        }
+
+        .product-entry-grid label {
+            display: block;
+            margin-bottom: 7px;
+            color: #334155;
+            font-weight: 800;
+        }
+
+        .product-entry-grid input,
+        .product-entry-grid select {
+            width: 100%;
+            min-height: 46px;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            background: #fff;
+            color: #0f172a;
+            font: inherit;
+        }
+
+        .product-entry-grid input:focus,
+        .product-entry-grid select:focus {
+            border-color: #1464e9;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(20, 100, 233, .12);
+        }
+
+        .product-submit {
+            justify-self: start;
+            min-width: 170px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 10px;
+            background: #1464e9;
+            color: #fff;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .product-submit:disabled {
+            cursor: wait;
+            opacity: .65;
+        }
+
+        .product-message {
+            display: none;
+            margin-top: 16px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .product-message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .product-message.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .product-table-wrap {
+            overflow-x: auto;
+        }
+
+        #productsTable {
+            width: 100% !important;
+        }
+
+        #productsTable th,
+        #productsTable td {
+            white-space: nowrap;
+        }
+
+        #productsTable .stock-low {
+            color: #dc2626;
+            font-weight: 800;
+        }
+
+        @@media (max-width: 680px) {
+            .product-entry-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .product-entry-grid .field-wide {
+                grid-column: auto;
+            }
+
+            .product-submit {
+                width: 100%;
+            }
+        }
+    </style>
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>INVENTORY</span>
+                    <h1>Product</h1>
+                    <p>Productের দাম, SKU এবং বর্তমান stock পরিচালনা করুন।</p>
+                </div>
+                <span class="table-chip">@Model.Products.Count products</span>
+            </header>
+
+            <section class="panel product-entry-panel">
+                <h2>নতুন Product যোগ করুন</h2>
+                <p class="panel-copy">Productের তথ্য পূরণ করে Save Product বাটনে Clicks করুন।</p>
+
+                <form id="productForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="product-entry-grid">
+                        <div class="field-wide">
+                            <label for="productName">Productের নাম *</label>
+                            <input id="productName" name="Name" type="text" maxlength="150"
+                                   placeholder="যেমন: চাল ৫ কেজি" required />
+                        </div>
+
+                        <div>
+                            <label for="productSku">SKU কোড *</label>
+                            <input id="productSku" name="Sku" type="text" maxlength="50"
+                                   readonly style="background-color: #f1f5f9; cursor: not-allowed;" required />
+                        </div>
+
+                        <div>
+                            <label for="productCategory">ক্যাটাগরি *</label>
+                            <input id="productCategory" name="Category" type="text" value="@Model.Shop.ShopType" readonly style="background-color: #f1f5f9; cursor: not-allowed;" />
+                        </div>
+
+                        <div>
+                            <label for="unitPrice">দাম (টাকা) *</label>
+                            <input id="unitPrice" name="UnitPrice" type="number" min="0.01"
+                                   max="9999999999.99" step="0.01" placeholder="0.00" required />
+                        </div>
+
+
+                        <div>
+                            <label for="productImage">Product Image</label>
+                            <input id="productImage" name="ImageFile" type="file" accept="image/*" onchange="previewImage(event, 'imagePreviewShop')" />
+                            <div style="margin-top: 10px;">
+                                <img id="imagePreviewShop" src="#" alt="Image Preview" style="display:none; width: 140px; height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid #dbe5f1; box-shadow: 0 8px 20px rgba(15, 23, 42, .10);" />
+                            </div>
+                        </div>
+
+                        <button class="product-submit" type="submit">Save Product</button>
+                    </div>
+                </form>
+
+                <div id="formMessage" class="product-message" role="alert"></div>
+            </section>
+
+            <section class="panel product-list-panel">
+                <h2>Product List</h2>
+                <div class="product-table-wrap">
+                    <table id="productsTable" class="display">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Image</th>
+                                <th>Product Name</th>
+                                <th>SKU</th>
+                                <th>বিভাগ</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var index = 0; index < Model.Products.Count; index++)
+                            {
+                                var product = Model.Products[index];
+                                <tr>
+                                    <td>@(index + 1)</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                        {
+                                            <img src="@product.ImageUrl" alt="@product.Name" loading="lazy" style="width: 72px; height: 72px; object-fit: cover; border-radius: 12px; border: 1px solid #dbe5f1; box-shadow: 0 5px 14px rgba(15, 23, 42, .10);" />
+                                        }
+                                        else
+                                        {
+                                            <div style="width: 72px; height: 72px; background-color: #f1f5f9; border: 1px solid #dbe5f1; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; text-align: center;">
+                                                No Image
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>@product.Name</td>
+                                    <td>@product.Sku</td>
+                                    <td>@product.Category</td>
+                                    <td data-order="@product.UnitPrice">৳ @product.UnitPrice.ToString("N2")</td>
+                                    <td data-order="@product.StockQuantity">
+                                        <span class="@(product.StockQuantity < 25 ? "stock-low" : "")">
+                                            @product.StockQuantity
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.3.2/js/dataTables.min.js"></script>
+    <script>
+        $(function () {
+            $('#productsTable').DataTable({
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[1, 'asc']],
+                columnDefs: [
+                    { orderable: false, searchable: false, targets: 0 }
+                ],
+                language: {
+                    search: 'খুঁজুন:',
+                    lengthMenu: '_MENU_ টি দেখান',
+                    info: '_TOTAL_ টি Productের মধ্যে _START_ থেকে _END_',
+                    infoEmpty: 'কোনো Product পাওয়া যায়নি',
+                    zeroRecords: 'মিল আছে এমন কোনো Product পাওয়া যায়নি',
+                    emptyTable: 'কোনো Product যোগ করা হয়নি',
+                    paginate: {
+                        first: 'প্রথম',
+                        last: 'শেষ',
+                        next: 'পরের',
+                        previous: 'আগের'
+                    }
+                }
+            });
+
+            function previewImage(event, imgId) {
+                const file = event.target.files[0];
+                const preview = document.getElementById(imgId);
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                    }
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.src = '#';
+                    preview.style.display = 'none';
+                }
+            }
+            // Initial SKU setup
+            $('#productSku').val('SKU-' + Math.random().toString(36).substr(2, 8).toUpperCase());
+
+            // Make function global so inline onchange can call it
+            window.previewImage = previewImage;
+
+            $('#productForm').on('submit', function (event) {
+                event.preventDefault();
+
+                const $form = $(this);
+                const $button = $form.find('button[type="submit"]');
+                const $message = $('#formMessage');
+                const token = $form.find('input[name="__RequestVerificationToken"]').val();
+                const formData = new FormData();
+                formData.append('Name', $('#productName').val().trim());
+                formData.append('Sku', $('#productSku').val().trim().toUpperCase());
+                formData.append('Category', $('#productCategory').val());
+                formData.append('UnitPrice', $('#unitPrice').val());
+                
+                const imageFile = $('#productImage')[0].files[0];
+                if (imageFile) {
+                    formData.append('ImageFile', imageFile);
+                }
+
+                $message.removeClass('success error').hide();
+                $button.prop('disabled', true).text('Saving...');
+
+                $.ajax({
+                    url: '@Url.Action("AddProduct", "Shopkeeper")',
+                    method: 'POST',
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        RequestVerificationToken: token
+                    },
+                    data: formData
+                })
+                .done(function (result) {
+                    $message.addClass('success').text(result.message || 'Product সফলভাবে যোগ করা হয়েছে।').show();
+                    $form[0].reset();
+                    $('#productSku').val('SKU-' + Math.random().toString(36).substr(2, 8).toUpperCase());
+                    window.setTimeout(function () {
+                        window.location.reload();
+                    }, 700);
+                })
+                .fail(function (xhr) {
+                    let message = 'Product যোগ করা যায়নি। আবার চেষ্টা করুন।';
+
+                    if (xhr.status === 401) {
+                        message = 'আপনার session শেষ হয়েছে। আবার login করুন।';
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+
+                    $message.addClass('error').text(message).show();
+                })
+                .always(function () {
+                    $button.prop('disabled', false).text('Save Product');
+                });
+            });
+        });
+    </script>
+}

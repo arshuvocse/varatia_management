@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AmarThikanaa - One Platform, All Digital Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="amar_thikanaa_icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <symbol id="icon-home" viewBox="0 0 24 24">
+      <path d="M3 10.8 12 3l9 7.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5.5 10.5V21h13V10.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9.5 21v-6h5v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24">
+      <circle cx="10.8" cy="10.8" r="6.8" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="m16 16 5 5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 3 20 6v5.8c0 5-3.4 8.1-8 9.2-4.6-1.1-8-4.2-8-9.2V6l8-3Z" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linejoin="round"/>
+      <path d="m8.2 12.1 2.5 2.5 5.1-5.3" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-key" viewBox="0 0 24 24">
+      <path d="M9.5 14.5a5 5 0 1 1 3.7-8.4 5 5 0 0 1-3.7 8.4Z" fill="none" stroke="currentColor" stroke-width="2.4"/>
+      <path d="M13.2 10.8H22v3h-3v3h-3v-3h-2.8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-cap" viewBox="0 0 24 24">
+      <path d="m3 8.5 9-4 9 4-9 4-9-4Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M6.5 11v4.3c2.9 2.3 8.1 2.3 11 0V11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-truck" viewBox="0 0 24 24">
+      <path d="M3 6h11v10H3V6Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M14 9h4l3 3v4h-7V9Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <circle cx="7" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+      <circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="2.2"/>
+    </symbol>
+    <symbol id="icon-phone" viewBox="0 0 24 24">
+      <rect x="7" y="2.8" width="10" height="18.4" rx="2.4" fill="none" stroke="currentColor" stroke-width="2.3"/>
+      <path d="M10.5 18h3" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24">
+      <path d="M6 10a6 6 0 0 1 12 0v4.8l2 2.7H4l2-2.7V10Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+      <path d="M9.5 20a2.8 2.8 0 0 0 5 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <header class="site-header">
+    <nav class="navbar">
+      <a class="brand" href="#home" aria-label="AmarThikanaa home">
+        <span class="brand-icon"><img src="amar_thikanaa_icon.png" alt=""></span>
+        <span class="brand-text">
+          <img src="amar_thikanaa_logo.png" alt="Amar Thikanaa">
+          <small>আপনার বাসা ও ডিজিটাল সার্ভিসের সহজ ঠিকানা</small>
+        </span>
+      </a>
+
+      <button class="nav-toggle" type="button" aria-label="মেনু খুলুন" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+
+      <div class="nav-links">
+        <a href="#services">সার্ভিস</a>
+        <a href="#dashboard">ড্যাশবোর্ড</a>
+        <a href="#highlights">হাইলাইট</a>
+        <a href="#contact">যোগাযোগ</a>
+      </div>
+      <a class="top-login-btn" href="/Account/Login">লগইন</a>
+    </nav>
+  </header>
+
+  <main id="home">
+    <section class="hero-section">
+      <div class="hero-copy">
+        <span class="eyebrow">One Platform, All Digital Services</span>
+        <h1>বাসা, মার্কেট, সেফটি ও সার্ভিস সব এক প্ল্যাটফর্মে।</h1>
+        <p>AmarThikanaa দিয়ে ফ্ল্যাট ভাড়া, ফ্ল্যাট বিক্রি, বাসা খোঁজা, সিকিউর ডিল, শিক্ষক সার্ভিস, পিকআপ ও ডিজিটাল মার্কেট সহজভাবে পরিচালনা করুন।</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#contact">প্রমোশন শুরু করুন</a>
+          <a class="btn btn-light" href="#services">সার্ভিস দেখুন</a>
+        </div>
+        <div class="metric-row">
+          <div><strong>10K+</strong><span>Happy Customers</span></div>
+          <div><strong>25K+</strong><span>Registered Listings</span></div>
+          <div><strong>99%</strong><span>Secure Transactions</span></div>
+        </div>
+      </div>
+
+      <div class="hero-visual" id="dashboard">
+        <div class="dashboard-card">
+          <aside class="dash-sidebar">
+            <div class="dash-logo">
+              <img src="amar_thikanaa_icon.png" alt="">
+              <div>
+                <strong>DIGITAL ONE WEB</strong>
+                <small>All services in one place</small>
+              </div>
+            </div>
+            <a class="active" href="#"><svg><use href="#icon-home"></use></svg>হোম</a>
+            <a href="#"><svg><use href="#icon-shield"></use></svg>Safety & SOS</a>
+            <a href="#"><svg><use href="#icon-key"></use></svg>Secure Deal</a>
+            <a href="#"><svg><use href="#icon-cap"></use></svg>Teacher Service</a>
+            <a href="#"><svg><use href="#icon-phone"></use></svg>Phone Verify</a>
+          </aside>
+
+          <div class="dash-content">
+            <div class="dash-topbar">
+              <div class="search-box">
+                <input type="search" placeholder="খুঁজুন services, shops, products...">
+                <button type="button" aria-label="খুঁজুন"><svg><use href="#icon-search"></use></svg></button>
+              </div>
+              <a class="login-btn" href="/Account/Login">লগইন</a>
+              <a class="login-btn" href="/Account/Register">ক্রেতা নিবন্ধন</a>
+            </div>
+
+            <div class="promo-banner">
+              <div>
+                <h2>One Platform,<br>All Digital Services</h2>
+                <p>Smart solutions for daily life</p>
+                <a href="#services">Explore Services</a>
+              </div>
+              <div class="banner-phone">
+                <img src="amar_thikanaa_icon.png" alt="">
+              </div>
+            </div>
+
+            <div class="dash-grid">
+              <article><span>1</span><i class="green"><svg><use href="#icon-home"></use></svg></i><strong>Digital Market</strong><small>Shop & Earn</small></article>
+              <article><span>2</span><i class="red"><svg><use href="#icon-shield"></use></svg></i><strong>Safety & SOS</strong><small>Emergency support</small></article>
+              <article><span>3</span><i class="blue"><svg><use href="#icon-key"></use></svg></i><strong>Secure Deal</strong><small>Safe payment</small></article>
+              <article><span>4</span><i class="violet"><svg><use href="#icon-cap"></use></svg></i><strong>Teacher Service</strong><small>Find teachers</small></article>
+              <article><span>5</span><i class="orange"><svg><use href="#icon-home"></use></svg></i><strong>Flat Buy & Sell</strong><small>Property deals</small></article>
+              <article><span>6</span><i class="teal"><svg><use href="#icon-phone"></use></svg></i><strong>Phone Verify</strong><small>Check before buy</small></article>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="service-section" id="services">
+      <div class="section-heading">
+        <span>আমাদের সেবা</span>
+        <h2>প্রয়োজনীয় সার্ভিসগুলো সুন্দরভাবে সাজানো</h2>
+      </div>
+
+      <div class="service-grid">
+        <article class="service-card active">
+          <i class="blue"><svg><use href="#icon-home"></use></svg></i>
+          <h3>ফ্ল্যাট ভাড়া</h3>
+          <p>বাড়িওয়ালা ও ভাড়াটিয়ার জন্য দ্রুত বিজ্ঞাপন, লোকেশন ও যোগাযোগের সুবিধা।</p>
+        </article>
+        <article class="service-card">
+          <i class="green"><svg><use href="#icon-key"></use></svg></i>
+          <h3>ফ্ল্যাট বিক্রি</h3>
+          <p>দাম, লোকেশন, ছবি ও কন্টাক্ট তথ্যসহ প্রপার্টি বিক্রির প্রচার।</p>
+        </article>
+        <article class="service-card">
+          <i class="violet"><svg><use href="#icon-search"></use></svg></i>
+          <h3>বাসা খোঁজা</h3>
+          <p>এলাকা, বাজেট ও পছন্দ অনুযায়ী বাসা খোঁজার সহজ ব্যবস্থা।</p>
+        </article>
+        <article class="service-card">
+          <i class="teal"><svg><use href="#icon-cap"></use></svg></i>
+          <h3>শিক্ষক সার্ভিস</h3>
+          <p>টিউশন, সাবজেক্ট ও শিক্ষক প্রোফাইল খুঁজে পাওয়ার সুবিধা।</p>
+        </article>
+        <article class="service-card">
+          <i class="orange"><svg><use href="#icon-truck"></use></svg></i>
+          <h3>পিকআপ সার্ভিস</h3>
+          <p>নির্ভরযোগ্য ট্রান্সপোর্ট ও সার্ভিস বুকিংয়ের জন্য পরিষ্কার flow।</p>
+        </article>
+        <article class="service-card">
+          <i class="red"><svg><use href="#icon-shield"></use></svg></i>
+          <h3>সেফটি ও SOS</h3>
+          <p>জরুরি অবস্থায় দ্রুত যোগাযোগ, লোকেশন শেয়ার ও নিরাপত্তা সাপোর্ট।</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="highlight-section" id="highlights">
+      <div class="section-heading">
+        <span>Campaign Highlights</span>
+        <h2>আরও বেশি লিড, আরও সুন্দর প্রেজেন্টেশন</h2>
+      </div>
+
+      <div class="highlight-grid">
+        <article class="highlight-card lead-card">
+          <span>01</span>
+          <h3>কাস্টমার রিকোয়েস্ট সংগ্রহ</h3>
+          <p>আগ্রহী ইউজার নাম, মোবাইল নম্বর ও প্রয়োজনীয় সার্ভিস দিয়ে সরাসরি যোগাযোগের রিকোয়েস্ট পাঠাবে। এতে সম্ভাব্য কাস্টমারের তথ্য সহজে পাওয়া যাবে।</p>
+        </article>
+        <article class="highlight-card spotlight-card">
+          <span>02</span>
+          <h3>সার্ভিসগুলো সুন্দরভাবে দেখানো</h3>
+          <p>ফ্ল্যাট ভাড়া, বিক্রি, বাসা খোঁজা, শিক্ষক, SOS ও সিকিউর ডিল আলাদা কার্ডে সাজানো থাকবে। ভিজিটর দ্রুত বুঝতে পারবে কোন সার্ভিস কোথায় আছে।</p>
+        </article>
+        <article class="highlight-card trust-card">
+          <span>03</span>
+          <h3>বিশ্বাসযোগ্য প্রেজেন্টেশন</h3>
+          <p>লোগো, ড্যাশবোর্ড preview, verified service, secure deal ও support highlight করে প্ল্যাটফর্মকে professional দেখাবে এবং ইউজারের আস্থা বাড়াবে।</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="contact-section" id="contact">
+      <div class="contact-copy">
+        <span>যোগাযোগ</span>
+        <h2>আপনার সার্ভিস promote করতে এখনই রিকোয়েস্ট পাঠান।</h2>
+        <p>নাম, মোবাইল নম্বর ও প্রয়োজনীয় সার্ভিস দিন। আমরা আপনার প্রমোশনাল পেজ বা ক্যাম্পেইন সেটআপ করতে যোগাযোগ করব।</p>
+      </div>
+
+      <form class="lead-form">
+        <label>
+          নাম
+          <input type="text" name="name" placeholder="আপনার নাম" required>
+        </label>
+        <label>
+          মোবাইল নম্বর
+          <input type="tel" name="phone" placeholder="01XXXXXXXXX" required>
+        </label>
+        <label>
+          সার্ভিস
+          <select name="service" required>
+            <option value="">সার্ভিস নির্বাচন করুন</option>
+            <option>ফ্ল্যাট ভাড়া</option>
+            <option>ফ্ল্যাট বিক্রি</option>
+            <option>বাসা খোঁজা</option>
+            <option>শিক্ষক সার্ভিস</option>
+            <option>পিকআপ সার্ভিস</option>
+            <option>সেফটি ও SOS</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">রিকোয়েস্ট পাঠান</button>
+        <p class="form-message" role="status"></p>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <strong>AmarThikanaa</strong>
+    <span>One Platform, All Digital Services</span>
+  </footer>
+
+  <div class="live-chat" aria-live="polite">
+    <button class="chat-launcher" type="button" aria-label="লাইভ চ্যাট খুলুন" aria-expanded="false">
+      <span>লাইভ চ্যাট</span>
+      <strong>?</strong>
+    </button>
+
+    <section class="chat-panel" aria-label="Live chat support">
+      <div class="chat-header">
+        <div>
+          <strong>AmarThikanaa Support</strong>
+          <small>সাধারণত কয়েক মিনিটের মধ্যে রিপ্লাই</small>
+        </div>
+        <button class="chat-close" type="button" aria-label="লাইভ চ্যাট বন্ধ করুন">×</button>
+      </div>
+
+      <div class="chat-messages">
+        <div class="chat-bubble support">
+          আসসালামু আলাইকুম। কোন সার্ভিস সম্পর্কে জানতে চান?
+        </div>
+      </div>
+
+      <div class="chat-quick">
+        <button type="button">ফ্ল্যাট ভাড়া</button>
+        <button type="button">প্রমোশন চাই</button>
+        <button type="button">সাপোর্ট দরকার</button>
+      </div>
+
+      <form class="chat-form">
+        <input type="text" name="message" placeholder="আপনার মেসেজ লিখুন..." autocomplete="off" required>
+        <button type="submit">পাঠান</button>
+      </form>
+    </section>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="script.js"></script>
+  <script src="/js/bn-ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+@model FieldOfficerShopsViewModel
+@using System.Globalization
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Registered Shops";
+    var successMessage = TempData["SuccessMessage"] as string;
+    var errorMessage = TempData["ErrorMessage"] as string;
+    var categories = Model.Products.Select(product => product.Category).Distinct().OrderBy(value => value).ToList();
+    var pricingDataJson = JsonSerializer.Serialize(new
+    {
+        shops = Model.Shops.Select(shop => new
+        {
+            shop.Id,
+            shop.ShopName,
+            shop.ShopCode,
+            shop.ShopType,
+            shop.DivisionId,
+            shop.DivisionName,
+            shop.DistrictId,
+            shop.DistrictName,
+            shop.ThanaId,
+            shop.ThanaName
+        }),
+        products = Model.Products.Select(product => new
+        {
+            product.Id,
+            product.ProductCode,
+            product.Name,
+            product.Category,
+            product.UnitPrice
+        }),
+        assignments = Model.Assignments
+    });
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css" />
+    <style>
+        .shop-edit-form { min-width: 760px; padding: 1rem 0; }
+        .shop-edit-grid { display: grid; grid-template-columns: repeat(3, minmax(170px, 1fr)); gap: .75rem; }
+        .shop-edit-grid label { display: grid; gap: .3rem; font-size: .82rem; }
+        .shop-edit-grid input, .shop-edit-grid select { width: 100%; }
+        .shop-products-editor { margin-top: 1rem; border: 1px solid #dbe5f1; border-radius: 10px; overflow: hidden; }
+        .shop-product-row { display: grid; grid-template-columns: minmax(230px, 1fr) 150px 150px; gap: .75rem; align-items: end; padding: .75rem; border-bottom: 1px solid #eef2f7; }
+        .shop-product-row:last-child { border-bottom: 0; }
+        .shop-product-row > label { display: grid; gap: .3rem; font-size: .8rem; }
+        .product-toggle { display: flex !important; align-items: center; gap: .5rem !important; font-size: .9rem !important; }
+        .product-toggle input { width: auto; }
+        .price-manager { margin: 1.25rem 0; }
+        .location-filter-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: .9rem; }
+        .location-filter-grid label { display: grid; gap: .35rem; font-weight: 600; }
+        .location-filter-grid select { width: 100%; }
+        .price-manager-status { margin: 1rem 0; padding: .8rem 1rem; border-radius: 8px; background: #f1f5f9; color: #475569; }
+        .price-manager-status.ready { background: #ecfdf5; color: #047857; }
+        .bulk-product-list { display: grid; gap: .65rem; margin-top: 1rem; }
+        .bulk-product-card { display: grid; grid-template-columns: minmax(240px, 1fr) 170px 170px; gap: .8rem; align-items: end; padding: .9rem; border: 1px solid #dbe5f1; border-radius: 10px; background: #fff; }
+        .bulk-product-card > label { display: grid; gap: .3rem; }
+        .bulk-product-card .product-toggle { align-self: center; }
+        @@media (max-width: 900px) {
+            .location-filter-grid { grid-template-columns: repeat(2, 1fr); }
+            .bulk-product-card { grid-template-columns: 1fr 1fr; }
+            .bulk-product-card .product-toggle { grid-column: 1 / -1; }
+        }
+        @@media (max-width: 560px) {
+            .location-filter-grid, .bulk-product-card { grid-template-columns: 1fr; }
+            .bulk-product-card .product-toggle { grid-column: auto; }
+        }
+    </style>
+}
+
+<main class="app-page shop-theme shop-portal-page officer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model='new FieldOfficerDashboardViewModel { Shops = Model.Shops, OfficerName = Model.OfficerName }' view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Shops" } }' />
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>FIELD FORCE APP</span>
+                    <h1>Registered shops</h1>
+                    <p>Edit shopkeeper details, select or deselect products, and set shop-specific purchase and sales prices.</p>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(successMessage))
+            {
+                <div class="alert-success">@successMessage</div>
+            }
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="validation-summary-errors">@errorMessage</div>
+            }
+
+            <section class="registered-shop-summary">
+                <article><span>Total shops</span><strong>@Model.Shops.Count</strong></article>
+                <article><span>Areas</span><strong>@Model.Shops.Select(shop => shop.Area).Distinct().Count()</strong></article>
+                <article><span>Types</span><strong>@Model.Shops.Select(shop => shop.ShopType).Distinct().Count()</strong></article>
+                <article><span>Assigned products</span><strong>@Model.Assignments.Count</strong></article>
+            </section>
+
+            <section class="panel registered-shops-panel">
+                <div class="table-scroll">
+                    <table id="registered-shops-table" class="display registered-shops-table">
+                        <thead><tr><th>Code</th><th>Shop</th><th>Owner</th><th>Phone</th><th>Type</th><th>Area</th><th>Registered</th><th>Edit</th></tr></thead>
+                        <tbody>
+                        @foreach (var shop in Model.Shops)
+                        {
+                            var shopAssignments = Model.Assignments
+                                .Where(item => item.ShopkeeperId == shop.Id)
+                                .ToDictionary(item => item.CompanyProductId);
+                            <tr>
+                                <td>@shop.ShopCode</td>
+                                <td><strong>@shop.ShopName</strong><small>@shop.Address</small></td>
+                                <td>@shop.OwnerName</td>
+                                <td><a href="tel:@shop.Phone">@shop.Phone</a></td>
+                                <td><span class="table-chip">@shop.ShopType</span></td>
+                                <td>@shop.Area</td>
+                                <td>@shop.RegisteredAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <details>
+                                        <summary class="btn-light">Edit</summary>
+                                        <form action="/FieldForce/Shops/Edit" method="post" class="shop-edit-form">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="ShopkeeperId" value="@shop.Id" />
+                                            <div class="shop-edit-grid">
+                                                <label>Shop name<input name="ShopName" value="@shop.ShopName" required maxlength="150" /></label>
+                                                <label>Owner name<input name="OwnerName" value="@shop.OwnerName" required maxlength="150" /></label>
+                                                <label>Mobile<input name="Phone" value="@shop.Phone" required maxlength="20" /></label>
+                                                <label>NID<input name="NidNumber" value="@shop.NidNumber" maxlength="30" /></label>
+                                                <label>Division<select name="DivisionId" required>@foreach (var item in Model.Locations.Divisions) { <option value="@item.Id" selected="@(item.Id == shop.DivisionId)">@item.Name</option> }</select></label>
+                                                <label>District<select name="DistrictId" required>@foreach (var item in Model.Locations.Districts) { <option value="@item.Id" selected="@(item.Id == shop.DistrictId)">@item.Name</option> }</select></label>
+                                                <label>Thana<select name="ThanaId" required>@foreach (var item in Model.Locations.Thanas) { <option value="@item.Id" selected="@(item.Id == shop.ThanaId)">@item.Name</option> }</select></label>
+                                                <label>Area<input name="Area" value="@shop.Area" required maxlength="150" /></label>
+                                                <label>Address<input name="Address" value="@shop.Address" required maxlength="250" /></label>
+                                                <label>Latitude<input name="Latitude" type="number" min="-90" max="90" step="0.000001" value="@shop.Latitude.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                <label>Longitude<input name="Longitude" type="number" min="-180" max="180" step="0.000001" value="@shop.Longitude.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                <label>Shop type
+                                                    <select name="ShopType" class="shop-type-select" required>
+                                                        @foreach (var category in categories.Union(new[] { shop.ShopType }).Distinct())
+                                                        {
+                                                            <option value="@category" selected="@(category == shop.ShopType)">@category</option>
+                                                        }
+                                                    </select>
+                                                </label>
+                                                <label>New password (optional)<input name="NewPassword" type="password" minlength="4" /></label>
+                                            </div>
+
+                                            <div class="shop-products-editor">
+                                                @for (var index = 0; index < Model.Products.Count; index++)
+                                                {
+                                                    var product = Model.Products[index];
+                                                    var isSelected = shopAssignments.TryGetValue(product.Id, out var assignment);
+                                                    var purchasePrice = isSelected ? assignment!.PurchasePrice : product.UnitPrice;
+                                                    var salesPrice = isSelected ? assignment!.SalesPrice : product.UnitPrice;
+                                                    <div class="shop-product-row" data-category="@product.Category" hidden="@(product.Category != shop.ShopType)">
+                                                        <label class="product-toggle">
+                                                            <input type="checkbox" name="SelectedProductIds" value="@product.Id" checked="@isSelected" />
+                                                            <span><strong>@product.Name</strong><small>@product.ProductCode · @product.Category</small></span>
+                                                        </label>
+                                                        <input type="hidden" name="ProductPrices[@index].CompanyProductId" value="@product.Id" />
+                                                        <label>Purchase price<input name="ProductPrices[@index].PurchasePrice" type="number" min="0" step="0.01" value="@purchasePrice.ToString(CultureInfo.InvariantCulture)" /></label>
+                                                        <label>Sales price<input name="ProductPrices[@index].SalesPrice" type="number" min="0.01" step="0.01" value="@salesPrice.ToString(CultureInfo.InvariantCulture)" /></label>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <button type="submit" class="btn-primary" style="margin-top:1rem">Save shop changes</button>
+                                        </form>
+                                    </details>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(function () {
+            const pricingData = @Html.Raw(pricingDataJson);
+            const divisionSelect = document.getElementById('pricing-division');
+            const districtSelect = document.getElementById('pricing-district');
+            const thanaSelect = document.getElementById('pricing-thana');
+            const shopSelect = document.getElementById('pricing-shop');
+            const pricingForm = document.getElementById('pricing-form');
+            const shopIdInput = document.getElementById('pricing-shop-id');
+            const productContainer = document.getElementById('pricing-products');
+            const pricingStatus = document.getElementById('pricing-status');
+
+            if (divisionSelect && districtSelect && thanaSelect && shopSelect && pricingForm && shopIdInput && productContainer && pricingStatus) {
+                const escapeHtml = value => String(value ?? '')
+                    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+                const uniqueById = items => [...new Map(items.map(item => [item.id, item])).values()];
+                const setOptions = (select, placeholder, items, label) => {
+                    select.innerHTML = `<option value="">${placeholder}</option>` + items
+                        .map(item => `<option value="${item.id}">${escapeHtml(label(item))}</option>`).join('');
+                    select.disabled = items.length === 0;
+                };
+                const resetAfter = level => {
+                    if (level <= 1) setOptions(districtSelect, 'Select district', [], item => item.name);
+                    if (level <= 2) setOptions(thanaSelect, 'Select thana', [], item => item.name);
+                    if (level <= 3) setOptions(shopSelect, 'Select shopkeeper', [], item => item.name);
+                    pricingForm.hidden = true;
+                    productContainer.innerHTML = '';
+                };
+
+            const divisions = uniqueById(pricingData.shops.map(shop => ({ id: shop.DivisionId, name: shop.DivisionName })));
+            setOptions(divisionSelect, 'Select division', divisions, item => item.name);
+
+            divisionSelect.addEventListener('change', () => {
+                resetAfter(1);
+                const divisionId = Number(divisionSelect.value);
+                const districts = uniqueById(pricingData.shops
+                    .filter(shop => shop.DivisionId === divisionId)
+                    .map(shop => ({ id: shop.DistrictId, name: shop.DistrictName })));
+                setOptions(districtSelect, 'Select district', districts, item => item.name);
+                pricingStatus.textContent = divisionId ? 'এখন District নির্বাচন করুন।' : 'প্রথমে Division নির্বাচন করুন।';
+                pricingStatus.classList.remove('ready');
+            });
+
+            districtSelect.addEventListener('change', () => {
+                resetAfter(2);
+                const districtId = Number(districtSelect.value);
+                const thanas = uniqueById(pricingData.shops
+                    .filter(shop => shop.DistrictId === districtId)
+                    .map(shop => ({ id: shop.ThanaId, name: shop.ThanaName })));
+                setOptions(thanaSelect, 'Select thana', thanas, item => item.name);
+                pricingStatus.textContent = districtId ? 'এখন Thana নির্বাচন করুন।' : 'District নির্বাচন করুন।';
+                pricingStatus.classList.remove('ready');
+            });
+
+            thanaSelect.addEventListener('change', () => {
+                resetAfter(3);
+                const thanaId = Number(thanaSelect.value);
+                const shops = pricingData.shops
+                    .filter(shop => shop.ThanaId === thanaId)
+                    .map(shop => ({ id: shop.Id, name: `${shop.ShopName} (${shop.ShopCode})` }));
+                setOptions(shopSelect, 'Select shopkeeper', shops, item => item.name);
+                pricingStatus.textContent = thanaId ? 'এখন Shopkeeper নির্বাচন করুন।' : 'Thana নির্বাচন করুন।';
+                pricingStatus.classList.remove('ready');
+            });
+
+            shopSelect.addEventListener('change', () => {
+                const shop = pricingData.shops.find(item => item.Id === Number(shopSelect.value));
+                pricingForm.hidden = !shop;
+                productContainer.innerHTML = '';
+                pricingStatus.classList.toggle('ready', Boolean(shop));
+                if (!shop) {
+                    pricingStatus.textContent = 'Shopkeeper নির্বাচন করুন।';
+                    return;
+                }
+
+                shopIdInput.value = shop.Id;
+                const assignments = new Map(pricingData.assignments
+                    .filter(item => item.ShopkeeperId === shop.Id)
+                    .map(item => [item.CompanyProductId, item]));
+                const products = pricingData.products.filter(product => product.Category === shop.ShopType);
+                pricingStatus.textContent = `${shop.ShopName} · ${shop.ShopType} · ${products.length} products`;
+                productContainer.innerHTML = products.map((product, index) => {
+                    const assignment = assignments.get(product.Id);
+                    const purchasePrice = assignment?.PurchasePrice ?? product.UnitPrice;
+                    const salesPrice = assignment?.SalesPrice ?? product.UnitPrice;
+                    return `<div class="bulk-product-card">
+                        <label class="product-toggle">
+                            <input type="checkbox" name="SelectedProductIds" value="${product.Id}" ${assignment ? 'checked' : ''}>
+                            <span><strong>${escapeHtml(product.Name)}</strong><small>${escapeHtml(product.ProductCode)}</small></span>
+                        </label>
+                        <input type="hidden" name="ProductPrices[${index}].CompanyProductId" value="${product.Id}">
+                        <label>Purchase price<input type="number" name="ProductPrices[${index}].PurchasePrice" min="0" step="0.01" value="${Number(purchasePrice).toFixed(2)}"></label>
+                        <label>Sales price<input type="number" name="ProductPrices[${index}].SalesPrice" min="0.01" step="0.01" value="${Number(salesPrice).toFixed(2)}"></label>
+                    </div>`;
+                }).join('') || '<p class="empty-state">এই shop category-এর কোনো product নেই।</p>';
+            });
+
+                pricingForm.addEventListener('submit', event => {
+                    const selected = [...pricingForm.querySelectorAll('input[name="SelectedProductIds"]:checked')];
+                    for (const checkbox of selected) {
+                        const card = checkbox.closest('.bulk-product-card');
+                        const purchase = Number(card.querySelector('input[name$=".PurchasePrice"]').value);
+                        const sales = Number(card.querySelector('input[name$=".SalesPrice"]').value);
+                        if (purchase < 0 || sales <= 0 || sales < purchase) {
+                            event.preventDefault();
+                            pricingStatus.textContent = 'Sales price অবশ্যই purchase price-এর সমান বা বেশি হতে হবে।';
+                            pricingStatus.classList.remove('ready');
+                            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
+                    }
+                });
+            }
+
+            $('#registered-shops-table').DataTable({ pageLength: 10, order: [[6, 'desc']], scrollX: true, columnDefs: [{ orderable: false, targets: 7 }] });
+
+            document.querySelectorAll('.shop-edit-form').forEach(form => {
+                const typeSelect = form.querySelector('.shop-type-select');
+                const filterProducts = () => {
+                    form.querySelectorAll('.shop-product-row').forEach(row => {
+                        const visible = row.dataset.category === typeSelect.value;
+                        row.hidden = !visible;
+                        if (!visible) row.querySelector('input[type="checkbox"]').checked = false;
+                    });
+                };
+                typeSelect.addEventListener('change', filterProducts);
+                filterProducts();
+            });
+        });
+    </script>
+}

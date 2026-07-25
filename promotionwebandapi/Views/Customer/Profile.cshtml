@@ -1,0 +1,93 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "ক্রেতার প্রোফাইল";
+    ViewData["ActivePage"] = "Profile";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>PROFILE</span>
+                    <h1>ক্রেতার প্রোফাইল</h1>
+                    <p>আপনার account এবং order activity-এর সংক্ষিপ্ত তথ্য।</p>
+                </div>
+                <span class="table-chip">ক্রেতা</span>
+            </header>
+
+            @if (TempData["SuccessMessage"] is string success)
+            {
+                <div class="order-message success">@success</div>
+            }
+            @if (TempData["ErrorMessage"] is string error)
+            {
+                <div class="order-message error">@error</div>
+            }
+
+            <section class="panel">
+                <h2>প্রোফাইল ছবি</h2>
+                <div style="display: flex; align-items: center; gap: 20px; margin-top: 16px;">
+                    <div id="profileImageContainer">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePhotoPath))
+                        {
+                            <img id="profileImagePreview" src="@Model.ProfilePhotoPath" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" />
+                            <div id="profileImagePlaceholder" style="display: none; width: 100px; height: 100px; border-radius: 50%; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0; font-size: 2.5rem; font-weight: bold;">
+                                @(string.IsNullOrWhiteSpace(Model.CustomerName) ? "C" : Model.CustomerName.Trim()[..1].ToUpperInvariant())
+                            </div>
+                        }
+                        else
+                        {
+                            <img id="profileImagePreview" src="#" alt="Profile Picture" style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" />
+                            <div id="profileImagePlaceholder" style="display: flex; width: 100px; height: 100px; border-radius: 50%; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0; font-size: 2.5rem; font-weight: bold;">
+                                @(string.IsNullOrWhiteSpace(Model.CustomerName) ? "C" : Model.CustomerName.Trim()[..1].ToUpperInvariant())
+                            </div>
+                        }
+                    </div>
+                    <form asp-action="UpdateProfilePicture" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" name="profilePicture" id="profilePictureInput" accept="image/*" required />
+                        <button class="btn-primary" type="submit" style="align-self: flex-start; padding: 8px 16px;">আপডেট করুন</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="customer-profile-heading">
+                    <span class="customer-avatar">@(string.IsNullOrWhiteSpace(Model.CustomerName) ? "C" : Model.CustomerName.Trim()[..1].ToUpperInvariant())</span>
+                    <div>
+                        <h2>@Model.CustomerName</h2>
+                        <p>Registered customer account</p>
+                    </div>
+                </div>
+
+                <div class="profile-grid customer-profile-grid">
+                    <div><span>Customer name</span><strong>@Model.CustomerName</strong></div>
+                    <div><span>Mobile number</span><strong>@Model.CustomerPhone</strong></div>
+                    <div><span>মোট অর্ডার</span><strong>@Model.TotalOrders</strong></div>
+                    <div><span>Reward points</span><strong>@Model.RewardPoints</strong></div>
+                    <div><span>Delivered orders</span><strong>@Model.CompletedOrders</strong></div>
+                    <div><span>Total purchased</span><strong>৳ @Model.TotalPurchaseAmount.ToString("N2")</strong></div>
+                </div>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        document.getElementById('profilePictureInput').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    document.getElementById('profileImagePreview').src = e.target.result;
+                    document.getElementById('profileImagePreview').style.display = 'block';
+                    document.getElementById('profileImagePlaceholder').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    </script>
+}

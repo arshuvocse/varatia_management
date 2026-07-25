@@ -1,0 +1,12 @@
+@model DeliveryDashboardViewModel
+@{
+    ViewData["Title"] = "ডেলিভারি ইতিহাস";
+    ViewData["ActivePage"] = "History";
+    var history = Model.Assignments.Where(x => x.Status is DeliveryStatus.Delivered or DeliveryStatus.Rejected or DeliveryStatus.Failed or DeliveryStatus.Returned).ToList();
+}
+<main class="app-page shop-theme shop-portal-page"><div class="shop-portal-shell"><partial name="_Sidebar" model="Model" /><section class="shop-page-content">
+<header class="shop-page-header"><div><span>HISTORY</span><h1>Delivery history</h1><p>Completed and closed assignments.</p></div></header>
+<section class="panel"><div class="customer-orders-list">
+@foreach (var item in history) { <article class="customer-order-card"><header><strong>Order #@item.OrderId</strong><span class="status-chip @(item.Status == DeliveryStatus.Delivered ? "paid" : "pending")">@item.Status</span></header><p>@item.CustomerName · ৳ @item.CollectionAmount.ToString("N2")</p><small>@((item.DeliveredAt ?? item.AssignedAt).ToString("dd MMM yyyy, hh:mm tt"))</small></article> }
+@if (history.Count == 0) { <p class="empty-state">No delivery history yet.</p> }
+</div></section></section></div></main>

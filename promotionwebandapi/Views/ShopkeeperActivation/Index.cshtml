@@ -1,0 +1,70 @@
+@model ShopkeeperActivationViewModel
+@{
+    ViewData["Title"] = "Shopkeeper Activation";
+}
+
+<main class="app-page activation-page">
+    <section class="activation-shell">
+        <div class="activation-brand">
+            <img src="~/images/amar_thikanaa_icon.png" alt="" />
+            <div><strong>SmartBazar</strong><span>দোকানদার অ্যাক্টিভেশন</span></div>
+        </div>
+
+        @if (TempData["ActivationError"] is string error)
+        {
+            <div class="order-message error">@error</div>
+        }
+
+        <section class="activation-card">
+            <span class="activation-label">একবারের পেমেন্ট</span>
+            <h1>দোকানদার অ্যাকাউন্ট সক্রিয় করুন</h1>
+            <p>ড্যাশবোর্ড ও দোকান পরিচালনার সুবিধা ব্যবহার করতে SSLCOMMERZ-এর মাধ্যমে নির্ধারিত পেমেন্ট Delivered করুন।</p>
+
+            <div class="activation-shop">
+                <div>
+                    <small>দোকান</small>
+                    <strong>@Model.Shop.ShopName</strong>
+                    <span>@Model.Shop.ShopCode · @Model.Shop.Phone</span>
+                </div>
+                <div class="activation-amount">
+                    <small>অ্যাক্টিভেশন ফি</small>
+                    <strong>৳ @Model.Amount.ToString("N2")</strong>
+                </div>
+            </div>
+
+            @if (Model.LatestPayment is not null)
+            {
+                <div class="activation-attempt">
+                    <span>সর্বশেষ চেষ্টা</span>
+                    <strong>@Model.LatestPayment.Status</strong>
+                    <small>@Model.LatestPayment.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</small>
+                </div>
+            }
+
+            @if (Model.IsConfigured)
+            {
+                <form asp-action="Pay" method="post">
+                    <button class="btn-primary activation-pay-button" type="submit">
+                        SSLCOMMERZ দিয়ে ৳ @Model.Amount.ToString("N0") পরিশোধ করুন
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="activation-config-warning">
+                    SSLCOMMERZ মার্চেন্ট তথ্য সেট করা হয়নি। কনফিগার করুন:
+                    <code>SslCommerz:StoreId</code> and <code>SslCommerz:StorePassword</code>.
+                </div>
+            }
+
+            <div class="activation-security">
+                <strong>নিরাপদ যাচাই</strong>
+                <span>SSLCOMMERZ লেনদেন, টাকার পরিমাণ ও মুদ্রা যাচাই করার পরই অ্যাকাউন্ট সক্রিয় হবে।</span>
+            </div>
+
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button class="btn-light activation-logout" type="submit">লগআউট</button>
+            </form>
+        </section>
+    </section>
+</main>

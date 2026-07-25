@@ -1,0 +1,59 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Bulletins";
+    ViewData["PageTitle"] = "হোম পেজের ঘোষণা";
+    ViewData["ActivePage"] = "Bulletins";
+}
+
+<section class="company-section">
+    <div class="company-section-heading">
+        <div><span>ঘোষণা</span><h2>হোম পেজের ঘোষণা</h2></div>
+    </div>
+
+    <div class="company-two-column">
+        <div class="company-card">
+            <div class="company-card-title"><h3>প্রকাশিত ঘোষণা</h3><span>@Model.Bulletins.Count total</span></div>
+            <div class="company-bulletin-list">
+                @foreach (var bulletin in Model.Bulletins)
+                {
+                    <article>
+                        <div>
+                            <strong>@bulletin.Message</strong>
+                            @if (!string.IsNullOrWhiteSpace(bulletin.LinkUrl))
+                            {
+                                <a href="@bulletin.LinkUrl" target="_blank" rel="noopener">@bulletin.LinkUrl</a>
+                            }
+                            <small>
+                                @bulletin.StartAt.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")
+                                @if (bulletin.EndAt is not null)
+                                {
+                                    <text> - @bulletin.EndAt.Value.ToLocalTime().ToString("dd MMM yyyy, hh:mm tt")</text>
+                                }
+                            </small>
+                        </div>
+                        <form asp-action="SetBulletinActive" method="post">
+                            <input type="hidden" name="bulletinId" value="@bulletin.Id" />
+                            <input type="hidden" name="isActive" value="@(!bulletin.IsActive)" />
+                            <span class="company-status @(bulletin.IsActive ? "success" : "danger")">@(bulletin.IsActive ? "Active" : "Inactive")</span>
+                            <button class="company-table-action" type="submit">@(bulletin.IsActive ? "Deactivate" : "Activate")</button>
+                        </form>
+                    </article>
+                }
+                @if (Model.Bulletins.Count == 0)
+                {
+                    <p class="company-empty">এখনও কোনো ঘোষণা প্রকাশ হয়নি।</p>
+                }
+            </div>
+        </div>
+
+        <form class="company-card company-form" asp-action="CreateBulletin" method="post">
+            <div class="company-card-title"><h3>ঘোষণা প্রকাশ করুন</h3></div>
+            <label>Message<textarea name="Message" required maxlength="500" rows="5" placeholder="Write the landing page announcement"></textarea></label>
+            <label>লিংক (ঐচ্ছিক)<input name="LinkUrl" type="url" maxlength="500" placeholder="https://example.com/details" /></label>
+            <label>শুরুর সময়<input name="StartAt" type="datetime-local" required value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" /></label>
+            <label>শেষ সময় (ঐচ্ছিক)<input name="EndAt" type="datetime-local" /></label>
+            <button type="submit">ঘোষণা প্রকাশ করুন</button>
+        </form>
+    </div>
+</section>

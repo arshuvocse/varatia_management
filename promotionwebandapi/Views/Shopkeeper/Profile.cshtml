@@ -1,0 +1,148 @@
+@model ShopkeeperDashboardViewModel
+@{
+    ViewData["Title"] = "দোকানের প্রোফাইল";
+    ViewData["ActivePage"] = "Profile";
+}
+
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+        
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>PROFILE</span>
+                    <h1>দোকানের প্রোফাইল</h1>
+                    <p>দোকানের নিবন্ধিত তথ্য এবং location।</p>
+                </div>
+                <span class="table-chip">@Model.Shop.ShopType</span>
+            </header>
+
+            @if (TempData["WalletSuccess"] is string success)
+            {
+                <div class="order-message success">@success</div>
+            }
+            @if (TempData["WalletError"] is string error)
+            {
+                <div class="order-message error">@error</div>
+            }
+            
+            <section class="panel">
+                <h2>প্রোফাইল ছবি</h2>
+                <div style="display: flex; align-items: center; gap: 20px; margin-top: 16px;">
+                    <div>
+                        @if (!string.IsNullOrEmpty(Model.Shop.ProfilePhotoPath))
+                        {
+                            <img id="profileImagePreview" src="@Model.Shop.ProfilePhotoPath" alt="Profile Picture" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" />
+                            <div id="profileImagePlaceholder" style="display: none; width: 100px; height: 100px; border-radius: 50%; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0;">
+                                No Photo
+                            </div>
+                        }
+                        else
+                        {
+                            <img id="profileImagePreview" src="#" alt="Profile Picture" style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #e2e8f0;" />
+                            <div id="profileImagePlaceholder" style="display: flex; width: 100px; height: 100px; border-radius: 50%; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0;">
+                                No Photo
+                            </div>
+                        }
+                    </div>
+                    <form asp-action="UpdateProfilePicture" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="file" name="profilePicture" id="profilePictureInput" accept="image/*" required />
+                        <button class="btn-primary" type="submit" style="align-self: flex-start; padding: 8px 16px;">আপডেট করুন</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>দোকানের ব্যানার (Billboard)</h2>
+                <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 16px;">
+                    <div>
+                        @if (!string.IsNullOrEmpty(Model.Shop.BillboardPhotoPath))
+                        {
+                            <img id="billboardImagePreview" src="@Model.Shop.BillboardPhotoPath" alt="Shop Billboard" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0;" />
+                            <div id="billboardImagePlaceholder" style="display: none; width: 100%; height: 150px; border-radius: 8px; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0;">
+                                No Billboard Image
+                            </div>
+                        }
+                        else
+                        {
+                            <img id="billboardImagePreview" src="#" alt="Shop Billboard" style="display: none; width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0;" />
+                            <div id="billboardImagePlaceholder" style="display: flex; width: 100%; height: 150px; border-radius: 8px; background-color: #f1f5f9; align-items: center; justify-content: center; color: #94a3b8; border: 2px solid #e2e8f0;">
+                                No Billboard Image
+                            </div>
+                        }
+                    </div>
+                    <form asp-action="UpdateBillboardPicture" method="post" enctype="multipart/form-data" style="display: flex; gap: 10px; align-items: center;">
+                        <input type="file" name="billboardPicture" id="billboardPictureInput" accept="image/*" required style="flex-grow: 1; max-width: 300px;" />
+                        <button class="btn-primary" type="submit" style="padding: 8px 16px;">আপডেট করুন</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h2>দোকানের তথ্য</h2>
+                <div class="profile-grid" style="margin-top: 16px;">
+                    <div><span>দোকানের নাম</span><strong>@Model.Shop.ShopName</strong></div>
+                    <div><span>Shop code</span><strong>@Model.Shop.ShopCode</strong></div>
+                    <div><span>Owner phone</span><strong>@Model.Shop.Phone</strong></div>
+                    <div><span>Shop type</span><strong>@Model.Shop.ShopType</strong></div>
+                    <div><span>Area</span><strong>@Model.Shop.Area</strong></div>
+                    <div><span>থানা</span><strong>@Model.Shop.ThanaName</strong></div>
+                    <div class="wide"><span>ঠিকানা</span><strong>@Model.Shop.Address, @Model.Shop.DistrictName</strong></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-title-row">
+                    <div>
+                        <h2>ওয়ালেটে টাকা যোগ করুন</h2>
+                        <p>নিজের দোকানের wallet balance এখান থেকে যোগ করুন।</p>
+                    </div>
+                    <span class="table-chip">বর্তমান ব্যালেন্স ৳ @Model.WalletBalance.ToString("N2")</span>
+                </div>
+                <form class="shop-wallet-funding-form" asp-action="AddWalletBalance" method="post">
+                    <label>
+                        টাকার পরিমাণ
+                        <input name="Amount" type="number" min="0.01" step="0.01" required />
+                    </label>
+                    <label>
+                        Note
+                        <input name="Note" maxlength="250" />
+                    </label>
+                    <button class="btn-primary" type="submit">SSLCommerz দিয়ে টাকা যোগ করুন</button>
+                </form>
+            </section>
+        </section>
+    </div>
+</main>
+
+@section Scripts {
+    <script>
+        function setupPreview(inputId, previewId, placeholderId) {
+            var input = document.getElementById(inputId);
+            if (!input) return;
+            
+            input.addEventListener('change', function (e) {
+                var file = e.target.files[0];
+                if (file) {
+                    var reader = new FileReader();
+                    reader.onload = function (evt) {
+                        var preview = document.getElementById(previewId);
+                        var placeholder = document.getElementById(placeholderId);
+                        if (preview) {
+                            preview.src = evt.target.result;
+                            preview.style.display = 'block';
+                        }
+                        if (placeholder) {
+                            placeholder.style.display = 'none';
+                        }
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        setupPreview('profilePictureInput', 'profileImagePreview', 'profileImagePlaceholder');
+        setupPreview('billboardPictureInput', 'billboardImagePreview', 'billboardImagePlaceholder');
+    </script>
+}

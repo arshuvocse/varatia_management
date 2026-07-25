@@ -1,0 +1,35 @@
+@model LoginViewModel
+@{
+    ViewData["Title"] = "লগইন";
+}
+
+<main class="auth-page">
+    <section class="auth-card">
+        <a class="brand compact" asp-controller="Home" asp-action="Index">
+            <img src="~/images/amar_thikanaa_icon.png" alt="" />
+            <span><strong>আমার ঠিকানা</strong><small>সব ধরনের অ্যাকাউন্টে লগইন</small></span>
+        </a>
+        <h1>লগইন করুন</h1>
+        <p>মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে আপনার অ্যাকাউন্টে প্রবেশ করুন।</p>
+
+        <form asp-action="Login" method="post" class="form-stack">
+            <div asp-validation-summary="ModelOnly" class="validation"></div>
+
+            <label asp-for="Phone">মোবাইল নম্বর</label>
+            <input asp-for="Phone" placeholder="01XXXXXXXXX" />
+            <span asp-validation-for="Phone" class="validation"></span>
+
+            <label asp-for="Password">পাসওয়ার্ড</label>
+            <input asp-for="Password" placeholder="পাসওয়ার্ড" />
+            <span asp-validation-for="Password" class="validation"></span>
+
+            <button class="btn-primary" type="submit">লগইন</button>
+            <a class="btn-light" asp-action="Register">নতুন ক্রেতা অ্যাকাউন্ট খুলুন</a>
+            <small class="login-persistence-note">এই ব্রাউজারে ৩০ দিন লগইন মনে রাখা হবে। লগআউট করলে সংরক্ষিত লগইন মুছে যাবে।</small>
+        </form>
+    </section>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

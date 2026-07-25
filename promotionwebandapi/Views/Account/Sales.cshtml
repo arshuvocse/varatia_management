@@ -1,0 +1,32 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Sale & Revenue";
+    ViewData["PageTitle"] = "Sale & Revenue";
+    ViewData["ActivePage"] = "Sale";
+    var totalCommission = Model.TotalCashbackAmount + Model.TotalSystemCommission;
+}
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>আর্থিক হিসাব</span><h2>Sale ও আয়</h2></div></div>
+    <div class="company-metric-row">
+        <article><span>আজ</span><strong>&#2547; @Model.TodaySalesAmount.ToString("N2")</strong></article>
+        <article><span>এই মাসে</span><strong>&#2547; @Model.MonthSalesAmount.ToString("N2")</strong></article>
+        <article><span>মোট কমিশন</span><strong>&#2547; @totalCommission.ToString("N2")</strong></article>
+        <article><span>অপেক্ষমাণ নিষ্পত্তি</span><strong>&#2547; @Model.WalletPending.ToString("N2")</strong></article>
+    </div>
+    <div class="company-card">
+        <div class="company-card-title"><h3>সাম্প্রতিক Sale</h3><span>@Model.RecentSales.Count invoices</span></div>
+        <div class="company-table-wrap">
+            <table class="company-table">
+                <thead><tr><th>Invoice</th><th>দোকান</th><th>ক্রেতা</th><th>Sale</th><th>কমিশন</th><th>অবস্থা</th></tr></thead>
+                <tbody>
+                @foreach (var sale in Model.RecentSales)
+                {
+                    <tr><td><strong>@sale.InvoiceNo</strong><small>@sale.SoldAt.ToString("dd MMM, hh:mm tt")</small></td><td>@sale.ShopName</td><td>@sale.CustomerName<small>@sale.CustomerPhone</small></td><td>&#2547; @sale.GrossAmount.ToString("N2")</td><td>&#2547; @sale.SystemCommission.ToString("N2")</td><td><span class="company-status success">@sale.Status</span></td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>

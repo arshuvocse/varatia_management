@@ -1,0 +1,118 @@
+@model CustomerDashboardViewModel
+@{
+    ViewData["Title"] = "Customer Dashboard";
+    ViewData["ActivePage"] = "Dashboard";
+    var recentOrders = Model.Orders.Take(5).ToList();
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>CUSTOMER DASHBOARD</span>
+                    <h1>স্বাগতম, @Model.CustomerName</h1>
+                    <p>Place orders, find nearby shops and track your activity from separate pages.</p>
+                </div>
+                <a class="btn-primary" asp-action="PlaceOrder">＋ New Order</a>
+            </header>
+
+            <section class="customer-summary">
+                <article><span>মোট অর্ডার</span><strong>@Model.TotalOrders</strong><small>All submitted orders</small></article>
+                <article><span>অপেক্ষমাণ</span><strong>@Model.PendingOrders</strong><small>Waiting for processing</small></article>
+                <article><span>Delivered</span><strong>@Model.CompletedOrders</strong><small>Completed orders</small></article>
+                <article><span>Reward points</span><strong>@Model.RewardPoints</strong><small>From your purchases</small></article>
+                <article><span>মোট বকেয়া</span><strong style="color: @(Model.TotalDueAmount > 0 ? "#ef4444" : "inherit");">৳ @Model.TotalDueAmount.ToString("N2")</strong><small>Shopkeeper dues</small></article>
+            </section>
+
+            @if (Model.TotalDueAmount > 0)
+            {
+                <div class="alert-success" style="background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>⚠️ আপনার মোট <strong>৳ @Model.TotalDueAmount.ToString("N2")</strong> বকেয়া রয়েছে।</span>
+                    <a asp-action="Dues" style="color: #991b1b; text-decoration: underline; font-weight: 600;">বকেয়া খাতা দেখুন &rarr;</a>
+                </div>
+            }
+
+            <nav class="shopkeeper-actions shop-page-shortcuts" aria-label="Customer quick actions">
+                <a asp-action="PlaceOrder"><span>＋</span><strong>অর্ডার করুন</strong><small>Create a new order</small></a>
+                <a asp-action="Orders"><span>▤</span><strong>আমার অর্ডার</strong><small>Track order status</small></a>
+                <a asp-action="Dues"><span>B</span><strong>বকেয়া খাতা</strong><small>View shopkeeper dues</small></a>
+                <a asp-action="Shops"><span>⌖</span><strong>কাছের দোকান</strong><small>Sort shops by distance</small></a>
+                <a asp-action="Chat"><span>C</span><strong>লাইভ চ্যাট</strong><small>Talk to a shopkeeper</small></a>
+                <a asp-action="Wallet"><span>▣</span><strong>ওয়ালেট</strong><small>Rewards and benefits</small></a>
+            </nav>
+
+            <section class="panel customer-orders">
+                <div class="panel-title-row">
+                    <div>
+                        <h2>Recent Orders</h2>
+                        <p>Your latest order activity.</p>
+                    </div>
+                    <a asp-action="Orders">সব দেখুন</a>
+                </div>
+                @if (recentOrders.Count == 0)
+                {
+                    <p class="empty">No order submitted yet.</p>
+                }
+                else
+                {
+                    <div class="transaction-table customer-order-table">
+                        <article><span>অর্ডার</span><span>Shopkeeper</span><span>Product</span><span>মোট</span><span>অবস্থা</span></article>
+                        @foreach (var order in recentOrders)
+                        {
+                            <article>
+                                <strong>#@order.Id<br /><small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small></strong>
+                                <span>@order.ShopkeeperName</span>
+                                <span>@string.Join(", ", order.Details.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
+                                <strong>৳ @order.NetAmount.ToString("N2")</strong>
+                                <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
+                            </article>
+                        }
+                    </div>
+                }
+        </section>
+        
+        <section class="panel customer-orders">
+            <div class="panel-title-row">
+                <div>
+                    <h2>Available Products</h2>
+                    <p>Products added by shopkeepers and company.</p>
+                </div>
+                <a asp-action="PlaceOrder">অর্ডার করুন</a>
+            </div>
+            @if (Model.Products == null || !Model.Products.Any())
+            {
+                <p class="empty">No products available.</p>
+            }
+            else
+            {
+                <div class="transaction-table customer-order-table" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                    @foreach (var product in Model.Products.Take(12))
+                    {
+                        var fallbackImage = product.Category switch
+                        {
+                            "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+                            "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
+                            "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
+                            "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80",
+                            _ => null
+                        };
+                        var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
+                        <article style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 15px; display: flex; flex-direction: column; gap: 8px;">
+                            @if (!string.IsNullOrWhiteSpace(imageUrl))
+                            {
+                                <img src="@imageUrl" alt="@product.Name" loading="lazy" style="width:100%;height:130px;object-fit:cover;border-radius:10px;" />
+                            }
+                            <strong>@product.Name</strong>
+                            <small>@product.Category</small>
+                            <span style="color: var(--primary); font-weight: 700;">৳ @product.UnitPrice.ToString("N2")</span>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    </section>
+    </div>
+</main>
