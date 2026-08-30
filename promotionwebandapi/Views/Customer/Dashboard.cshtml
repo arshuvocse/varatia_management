@@ -1,118 +1,848 @@
 @model CustomerDashboardViewModel
 @{
-    ViewData["Title"] = "Customer Dashboard";
+    ViewData["Title"] = "Smart Bazar - ক্রেতা ড্যাশবোর্ড";
     ViewData["ActivePage"] = "Dashboard";
-    var recentOrders = Model.Orders.Take(5).ToList();
+
+    var customerName = string.IsNullOrWhiteSpace(Model.CustomerName) ? "গ্রাহক" : Model.CustomerName;
 }
 
-<main class="app-page shop-theme shop-portal-page customer-portal-page">
-    <div class="shop-portal-shell">
-        <partial name="_Sidebar" model="Model" />
+<div class="sb-cust-layout">
+    <!-- Desktop Sidebar -->
+    <partial name="_Sidebar" model="Model" />
 
-        <section class="shop-page-content">
-            <header class="shop-page-header">
-                <div>
-                    <span>CUSTOMER DASHBOARD</span>
-                    <h1>স্বাগতম, @Model.CustomerName</h1>
-                    <p>Place orders, find nearby shops and track your activity from separate pages.</p>
+    <!-- Main Content -->
+    <main class="sb-cust-main">
+        <!-- Top Green Hero Header -->
+        <header class="sb-cust-hero-header">
+            <div class="sb-cust-status-bar">
+                <span class="sb-time">9:41</span>
+                <div class="sb-status-icons">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 4h-3V2h-4v2H7v18h10V4z"/></svg>
                 </div>
-                <a class="btn-primary" asp-action="PlaceOrder">＋ New Order</a>
-            </header>
+            </div>
 
-            <section class="customer-summary">
-                <article><span>মোট অর্ডার</span><strong>@Model.TotalOrders</strong><small>All submitted orders</small></article>
-                <article><span>অপেক্ষমাণ</span><strong>@Model.PendingOrders</strong><small>Waiting for processing</small></article>
-                <article><span>Delivered</span><strong>@Model.CompletedOrders</strong><small>Completed orders</small></article>
-                <article><span>Reward points</span><strong>@Model.RewardPoints</strong><small>From your purchases</small></article>
-                <article><span>মোট বকেয়া</span><strong style="color: @(Model.TotalDueAmount > 0 ? "#ef4444" : "inherit");">৳ @Model.TotalDueAmount.ToString("N2")</strong><small>Shopkeeper dues</small></article>
+            <div class="sb-cust-topbar-content">
+                <div class="sb-cust-brand-title-wrap">
+                    <h1 class="sb-cust-brand-title">Smart Bazar</h1>
+                    <div class="sb-cust-location-picker" onclick="openLocationModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10b981"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        <span id="currentLocationText">পল্লী, কুমিল্লা</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                </div>
+
+                <a href="#notifications" class="sb-cust-bell-btn" aria-label="Notifications">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <span class="sb-cust-bell-dot"></span>
+                </a>
+            </div>
+
+            <!-- Search & Cart Row -->
+            <div class="sb-cust-search-row">
+                <div class="sb-cust-search-input-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input type="text" placeholder="কি পণ্য খুঁজছেন?" id="productSearchInput" oninput="filterStorefrontProducts()" />
+                </div>
+
+                <a href="/Customer/PlaceOrder" class="sb-cust-cart-btn" aria-label="Cart">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span class="sb-cust-cart-badge" id="cartBadgeCount">৩</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Storefront Body Container -->
+        <div class="sb-cust-container">
+            <!-- 1. Hero Promo Banner Card -->
+            <div class="sb-promo-banner-card">
+                <div class="sb-promo-text">
+                    <h2>আপনার আশেপাশের দোকানে যা যা আছে, এখনই কিনুন</h2>
+                    <span class="sb-promo-sub">Smart Bazar</span>
+                </div>
+                <div class="sb-promo-img-wrap">
+                    <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=240&q=80" alt="Grocery Basket" class="sb-promo-img" />
+                </div>
+            </div>
+
+            <!-- 2. Category Circle Icons Grid -->
+            <!-- 2. 8 Core Category Circle Icons Grid -->
+            <section class="sb-category-section">
+                <div class="sb-category-grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                    <!-- 1. মুদি দোকান -->
+                    <div class="sb-cat-item" onclick="filterByCategory('মুদির দোকান')">
+                        <div class="sb-cat-circle" style="background: #ecfdf5; color: #059669;">
+                            <span class="sb-cat-emoji">🛒</span>
+                        </div>
+                        <span class="sb-cat-name">মুদি দোকান</span>
+                    </div>
+
+                    <!-- 2. কসমেটিক্স -->
+                    <div class="sb-cat-item" onclick="filterByCategory('কসমেটিক্স')">
+                        <div class="sb-cat-circle" style="background: #fdf2f8; color: #db2777;">
+                            <span class="sb-cat-emoji">💄</span>
+                        </div>
+                        <span class="sb-cat-name">কসমেটিক্স</span>
+                    </div>
+
+                    <!-- 3. ফার্মেসি -->
+                    <div class="sb-cat-item" onclick="filterByCategory('ফার্মেসি')">
+                        <div class="sb-cat-circle" style="background: #eff6ff; color: #2563eb;">
+                            <span class="sb-cat-emoji">💊</span>
+                        </div>
+                        <span class="sb-cat-name">ফার্মেসি</span>
+                    </div>
+
+                    <!-- 4. জামা কাপড় -->
+                    <div class="sb-cat-item" onclick="filterByCategory('জামা কাপড়')">
+                        <div class="sb-cat-circle" style="background: #faf5ff; color: #9333ea;">
+                            <span class="sb-cat-emoji">👕</span>
+                        </div>
+                        <span class="sb-cat-name">জামা কাপড়</span>
+                    </div>
+
+                    <!-- 5. জুতার দোকান -->
+                    <div class="sb-cat-item" onclick="filterByCategory('জুতার দোকান')">
+                        <div class="sb-cat-circle" style="background: #fefce8; color: #ca8a04;">
+                            <span class="sb-cat-emoji">👟</span>
+                        </div>
+                        <span class="sb-cat-name">জুতার দোকান</span>
+                    </div>
+
+                    <!-- 6. কাঁচা বাজার -->
+                    <div class="sb-cat-item" onclick="filterByCategory('কাঁচা বাজার')">
+                        <div class="sb-cat-circle" style="background: #f0fdf4; color: #16a34a;">
+                            <span class="sb-cat-emoji">🥬</span>
+                        </div>
+                        <span class="sb-cat-name">কাঁচা বাজার</span>
+                    </div>
+
+                    <!-- 7. ইলেকট্রনিক্স শপ -->
+                    <div class="sb-cat-item" onclick="filterByCategory('ইলেকট্রনিক্স শপ')">
+                        <div class="sb-cat-circle" style="background: #fff7ed; color: #ea580c;">
+                            <span class="sb-cat-emoji">⚡</span>
+                        </div>
+                        <span class="sb-cat-name">ইলেকট্রনিক্স</span>
+                    </div>
+
+                    <!-- 8. মোবাইল ফোনের দোকান -->
+                    <div class="sb-cat-item" onclick="filterByCategory('মোবাইল ফোনের দোকান')">
+                        <div class="sb-cat-circle" style="background: #f0fdfa; color: #0d9488;">
+                            <span class="sb-cat-emoji">📱</span>
+                        </div>
+                        <span class="sb-cat-name">মোবাইল শপ</span>
+                    </div>
+                </div>
             </section>
 
-            @if (Model.TotalDueAmount > 0)
-            {
-                <div class="alert-success" style="background-color: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>⚠️ আপনার মোট <strong>৳ @Model.TotalDueAmount.ToString("N2")</strong> বকেয়া রয়েছে।</span>
-                    <a asp-action="Dues" style="color: #991b1b; text-decoration: underline; font-weight: 600;">বকেয়া খাতা দেখুন &rarr;</a>
-                </div>
-            }
-
-            <nav class="shopkeeper-actions shop-page-shortcuts" aria-label="Customer quick actions">
-                <a asp-action="PlaceOrder"><span>＋</span><strong>অর্ডার করুন</strong><small>Create a new order</small></a>
-                <a asp-action="Orders"><span>▤</span><strong>আমার অর্ডার</strong><small>Track order status</small></a>
-                <a asp-action="Dues"><span>B</span><strong>বকেয়া খাতা</strong><small>View shopkeeper dues</small></a>
-                <a asp-action="Shops"><span>⌖</span><strong>কাছের দোকান</strong><small>Sort shops by distance</small></a>
-                <a asp-action="Chat"><span>C</span><strong>লাইভ চ্যাট</strong><small>Talk to a shopkeeper</small></a>
-                <a asp-action="Wallet"><span>▣</span><strong>ওয়ালেট</strong><small>Rewards and benefits</small></a>
-            </nav>
-
-            <section class="panel customer-orders">
-                <div class="panel-title-row">
-                    <div>
-                        <h2>Recent Orders</h2>
-                        <p>Your latest order activity.</p>
-                    </div>
-                    <a asp-action="Orders">সব দেখুন</a>
-                </div>
-                @if (recentOrders.Count == 0)
-                {
-                    <p class="empty">No order submitted yet.</p>
-                }
-                else
-                {
-                    <div class="transaction-table customer-order-table">
-                        <article><span>অর্ডার</span><span>Shopkeeper</span><span>Product</span><span>মোট</span><span>অবস্থা</span></article>
-                        @foreach (var order in recentOrders)
-                        {
-                            <article>
-                                <strong>#@order.Id<br /><small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small></strong>
-                                <span>@order.ShopkeeperName</span>
-                                <span>@string.Join(", ", order.Details.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
-                                <strong>৳ @order.NetAmount.ToString("N2")</strong>
-                                <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
-                            </article>
-                        }
-                    </div>
-                }
-        </section>
-        
-        <section class="panel customer-orders">
-            <div class="panel-title-row">
+            <!-- 2.1 bKash-style Digital Nano Loan Quick Banner -->
+            <div style="background: linear-gradient(135deg, #be123c, #e11d48); border-radius: 16px; padding: 18px 20px; color: #fff; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 20px -4px rgba(225,29,72,0.35);">
                 <div>
-                    <h2>Available Products</h2>
-                    <p>Products added by shopkeepers and company.</p>
+                    <span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 800; text-transform: uppercase;">
+                        ⚡ বিকাশ স্টাইল ডিজিটাল লোন
+                    </span>
+                    <h3 style="font-size: 16px; font-weight: 900; margin: 6px 0 2px; color: #fff;">
+                        জরুরি প্রয়োজনে ৳৫,০০০ - ৳৫০,০০০ লোন নিন
+                    </h3>
+                    <small style="color: rgba(255,255,255,0.85); font-size: 12px;">কোনো জামানত ছাড়া ৩-১২ মাসের সহজ কিস্তিতে ঋণ</small>
                 </div>
-                <a asp-action="PlaceOrder">অর্ডার করুন</a>
+                <a href="/Customer/Loan" style="background: #fff; color: #be123c; font-weight: 800; font-size: 13px; padding: 10px 18px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 10px rgba(0,0,0,0.15); flex-shrink: 0;">
+                    আবেদন করুন →
+                </a>
             </div>
-            @if (Model.Products == null || !Model.Products.Any())
-            {
-                <p class="empty">No products available.</p>
-            }
-            else
-            {
-                <div class="transaction-table customer-order-table" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
-                    @foreach (var product in Model.Products.Take(12))
+
+            <!-- 2.2 Area Agent Office Quick Card -->
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; padding: 16px 18px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="width: 42px; height: 42px; border-radius: 10px; background: #2563eb; color: #fff; display: grid; place-items: center; font-size: 20px;">
+                        📍
+                    </div>
+                    <div>
+                        <strong style="font-size: 14px; color: #0f172a; display: block;">আপনার এরিয়া এজেন্ট অফিস</strong>
+                        <small style="color: #475569; font-size: 12px;">অফিসিয়াল সহায়তা কেন্দ্র ও গ্রাহক সেবা</small>
+                    </div>
+                </div>
+                <a href="/Customer/AgentLocation" style="background: #2563eb; color: #fff; font-weight: 700; font-size: 12px; padding: 8px 14px; border-radius: 10px; text-decoration: none;">
+                    অফিস লোকেশন দেখুন
+                </a>
+            </div>
+
+            <!-- 3. কাছাকাছি দোকান (Nearby Shops) -->
+            <section class="sb-nearby-section">
+                <div class="sb-section-header">
+                    <h3 class="sb-section-title">কাছাকাছি দোকান (@Model.Shopkeepers.Count টি দোকান)</h3>
+                    <a href="/Customer/Shops" class="sb-section-link">সব দেখুন</a>
+                </div>
+
+                <div class="sb-shops-card-stack" id="nearbyShopsList">
+                    @foreach (var shop in Model.Shopkeepers.Take(4))
                     {
-                        var fallbackImage = product.Category switch
-                        {
-                            "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
-                            "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
-                            "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
-                            "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80",
-                            _ => null
-                        };
-                        var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
-                        <article style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 15px; display: flex; flex-direction: column; gap: 8px;">
-                            @if (!string.IsNullOrWhiteSpace(imageUrl))
-                            {
-                                <img src="@imageUrl" alt="@product.Name" loading="lazy" style="width:100%;height:130px;object-fit:cover;border-radius:10px;" />
-                            }
-                            <strong>@product.Name</strong>
-                            <small>@product.Category</small>
-                            <span style="color: var(--primary); font-weight: 700;">৳ @product.UnitPrice.ToString("N2")</span>
-                        </article>
+                        <div class="sb-shop-nearby-card" onclick="location.href='/Customer/PlaceOrder?shopkeeperId=@shop.Id'" style="cursor: pointer;">
+                            <div class="sb-shop-thumb" style="background: #eff6ff; display: grid; place-items: center; font-size: 24px;">
+                                🏬
+                            </div>
+                            <div class="sb-shop-nearby-details">
+                                <div class="sb-shop-top-row">
+                                    <h4 class="sb-shop-name-txt">@shop.ShopName</h4>
+                                    <span class="sb-shop-dist" style="color: #059669; font-weight: 700;">@(shop.Area ?? "কাছাকাছি")</span>
+                                </div>
+                                <div class="sb-shop-sub-row">
+                                    <span class="sb-shop-tag">@shop.ShopType</span>
+                                    <span class="sb-shop-rating">⭐ ৫.০</span>
+                                    <span class="sb-shop-timing">@shop.ThanaName, @shop.DistrictName</span>
+                                </div>
+                            </div>
+                        </div>
                     }
                 </div>
-            }
-        </section>
-    </section>
+            </section>
+        </div>
+
+        <!-- Sticky Mobile Bottom Navigation Bar -->
+        <nav class="sb-cust-bottom-nav">
+            <a href="/Customer/Dashboard" class="sb-cbnav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>হোম</span>
+            </a>
+
+            <a href="/Customer/PlaceOrder" class="sb-cbnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span>বাজার</span>
+            </a>
+
+            <a href="/Customer/Loan" class="sb-cbnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M7 15h.01M11 15h2"/></svg>
+                <span style="color: #e11d48; font-weight: 800;">লোন</span>
+            </a>
+
+            <a href="/Customer/Orders" class="sb-cbnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <span>অর্ডার</span>
+            </a>
+
+            <a href="/Customer/AgentLocation" class="sb-cbnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>এজেন্ট</span>
+            </a>
+        </nav>
+    </main>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL: লোকেশন পরিবর্তন (Location Picker Modal)            -->
+<!-- ======================================================== -->
+<div class="sb-modal-backdrop" id="locationModal" style="display: none;">
+    <div class="sb-modal-box" style="max-width: 420px;">
+        <div class="sb-modal-header">
+            <h4 style="margin:0; font-size:16px; font-weight:800;">আপনার এলাকা নির্বাচন করুন</h4>
+            <button type="button" class="sb-modal-close-btn" onclick="closeLocationModal()">&times;</button>
+        </div>
+        <div class="sb-modal-body">
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button type="button" class="sb-loc-select-btn active" onclick="selectLocation('পল্লী, কুমিল্লা')">
+                    <strong>পল্লী, কুমিল্লা</strong> (আপনার বর্তমান এলাকা)
+                </button>
+                <button type="button" class="sb-loc-select-btn" onclick="selectLocation('বীরগঞ্জ, দিনাজপুর')">
+                    <strong>বীরগঞ্জ, দিনাজপুর</strong>
+                </button>
+                <button type="button" class="sb-loc-select-btn" onclick="selectLocation('কোটবাড়ী রোড, যশোর')">
+                    <strong>কোটবাড়ী রোড, যশোর</strong>
+                </button>
+                <button type="button" class="sb-loc-select-btn" onclick="selectLocation('ধানমন্ডি, ঢাকা')">
+                    <strong>ধানমন্ডি, ঢাকা</strong>
+                </button>
+            </div>
+        </div>
     </div>
-</main>
+</div>
+
+@section Styles {
+<style>
+    /* ========================================================== */
+    /* CUSTOMER SMART BAZAR STOREFRONT THEME                     */
+    /* ========================================================== */
+    :root {
+        --sb-primary: #059669;
+        --sb-primary-dark: #064e3b;
+        --sb-accent: #10b981;
+        --sb-border: #e2e8f0;
+        --sb-radius-md: 14px;
+        --sb-radius-lg: 20px;
+    }
+
+    body {
+        background-color: #f1f5f9;
+        font-family: 'Anek Bangla', 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .sb-cust-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+    }
+
+    /* SIDEBAR */
+    .sb-cust-sidebar {
+        width: 250px;
+        background: #ffffff;
+        border-right: 1px solid var(--sb-border);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        z-index: 40;
+    }
+
+    .sb-cust-brand {
+        padding: 20px 18px 14px;
+    }
+
+    .sb-cust-brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sb-brand-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-accent { color: var(--sb-primary); }
+
+    .sb-cust-role-pill {
+        display: block;
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .sb-cust-nav {
+        flex: 1;
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        overflow-y: auto;
+    }
+
+    .sb-cust-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--sb-radius-md);
+        color: #475569;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .sb-cust-nav-item:hover {
+        background: #f8fafc;
+        color: var(--sb-primary);
+    }
+
+    .sb-cust-nav-item.active {
+        background: var(--sb-primary);
+        color: #ffffff;
+    }
+
+    .sb-badge-alert {
+        margin-left: auto;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 12px;
+    }
+
+    .sb-cust-sidebar-footer {
+        padding: 14px;
+        border-top: 1px solid var(--sb-border);
+    }
+
+    .sb-cust-logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 9px 12px;
+        border: none;
+        background: transparent;
+        color: #ef4444;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: var(--sb-radius-md);
+    }
+
+    .sb-cust-logout-btn:hover { background: #fee2e2; }
+
+    /* MAIN STOREFRONT */
+    .sb-cust-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #f8fafc;
+        padding-bottom: 75px;
+    }
+
+    /* TOP GREEN HERO HEADER */
+    .sb-cust-hero-header {
+        background: #064e3b;
+        color: #ffffff;
+        padding: 12px 20px 20px;
+        border-bottom-left-radius: 24px;
+        border-bottom-right-radius: 24px;
+        box-shadow: 0 10px 30px rgba(6, 78, 59, 0.2);
+    }
+
+    .sb-cust-status-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        opacity: 0.85;
+    }
+
+    .sb-status-icons {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sb-cust-topbar-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .sb-cust-brand-title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .sb-cust-brand-title {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+    }
+
+    .sb-cust-location-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12.5px;
+        color: #d1fae5;
+        font-weight: 600;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sb-cust-bell-btn {
+        position: relative;
+        background: rgba(255, 255, 255, 0.12);
+        color: #ffffff;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+    }
+
+    .sb-cust-bell-dot {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+        border: 2px solid #064e3b;
+    }
+
+    /* SEARCH & CART ROW */
+    .sb-cust-search-row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .sb-cust-search-input-box {
+        flex: 1;
+        background: #ffffff;
+        border-radius: 25px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .sb-cust-search-input-box input {
+        border: none;
+        outline: none;
+        width: 100%;
+        font-size: 14px;
+        color: #1e293b;
+        background: transparent;
+        font-family: inherit;
+    }
+
+    .sb-cust-cart-btn {
+        position: relative;
+        background: var(--sb-primary);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+    }
+
+    .sb-cust-cart-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 10.5px;
+        font-weight: 800;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #064e3b;
+    }
+
+    /* STOREFRONT CONTAINER */
+    .sb-cust-container {
+        padding: 18px 20px 40px;
+        max-width: 620px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    /* PROMO BANNER */
+    .sb-promo-banner-card {
+        background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+        border-radius: var(--sb-radius-lg);
+        padding: 18px 20px;
+        color: #ffffff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 22px;
+        box-shadow: 0 10px 25px -3px rgba(4, 120, 87, 0.25);
+        overflow: hidden;
+        position: relative;
+    }
+
+    .sb-promo-text {
+        flex: 1;
+        z-index: 2;
+    }
+
+    .sb-promo-text h2 {
+        margin: 0;
+        font-size: 15.5px;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .sb-promo-sub {
+        font-size: 18px;
+        font-weight: 800;
+        color: #a7f3d0;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .sb-promo-img-wrap {
+        width: 90px;
+        height: 90px;
+        flex-shrink: 0;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .sb-promo-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* CATEGORIES GRID */
+    .sb-category-section {
+        margin-bottom: 24px;
+    }
+
+    .sb-category-grid {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+    }
+
+    .sb-cat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sb-cat-circle {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--sb-border);
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .sb-cat-item:hover .sb-cat-circle {
+        transform: translateY(-2px);
+        background: #ecfdf5;
+        border-color: #a7f3d0;
+    }
+
+    .sb-cat-emoji {
+        font-size: 22px;
+    }
+
+    .sb-cat-name {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    /* NEARBY SHOPS */
+    .sb-nearby-section {
+        margin-bottom: 24px;
+    }
+
+    .sb-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .sb-section-title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-section-link {
+        color: var(--sb-primary);
+        font-size: 13.5px;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .sb-shops-card-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .sb-shop-nearby-card {
+        background: #ffffff;
+        border-radius: var(--sb-radius-md);
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--sb-border);
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .sb-shop-nearby-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .sb-shop-thumb {
+        width: 58px;
+        height: 58px;
+        border-radius: 10px;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+    }
+
+    .sb-shop-nearby-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .sb-shop-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sb-shop-name-txt {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-shop-dist {
+        font-size: 11.5px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .sb-shop-rating-row {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 12.5px;
+        color: #1e293b;
+    }
+
+    .sb-star-icon {
+        color: #f59e0b;
+    }
+
+    .sb-shop-price-preview {
+        font-size: 12.5px;
+        color: #475569;
+        margin-top: 2px;
+    }
+
+    .sb-shop-price-preview strong {
+        color: var(--sb-primary);
+    }
+
+    /* BOTTOM NAV */
+    .sb-cust-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        border-top: 1px solid var(--sb-border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 8px 12px;
+        z-index: 100;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .sb-cbnav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+    }
+
+    .sb-cbnav-item.active {
+        color: var(--sb-primary);
+    }
+
+    /* LOCATION MODAL */
+    .sb-loc-select-btn {
+        padding: 12px 14px;
+        border-radius: var(--sb-radius-md);
+        border: 1px solid var(--sb-border);
+        background: #f8fafc;
+        text-align: left;
+        font-size: 14px;
+        cursor: pointer;
+        color: #1e293b;
+        transition: all 0.2s;
+    }
+
+    .sb-loc-select-btn.active {
+        background: #ecfdf5;
+        border-color: #059669;
+        color: #065f46;
+    }
+
+    @@media (min-width: 901px) {
+        .sb-cust-bottom-nav { display: none; }
+        .sb-cust-main { padding: 24px 32px; }
+        .sb-cust-hero-header { max-width: 900px; margin: 0 auto; width: 100%; }
+        .sb-cust-container { max-width: 900px; }
+    }
+
+    @@media (max-width: 900px) {
+        .sb-cust-sidebar { display: none; }
+    }
+</style>
+}
+
+@section Scripts {
+<script>
+    function openLocationModal() {
+        document.getElementById('locationModal').style.display = 'flex';
+    }
+    function closeLocationModal() {
+        document.getElementById('locationModal').style.display = 'none';
+    }
+    function selectLocation(loc) {
+        document.getElementById('currentLocationText').textContent = loc;
+        closeLocationModal();
+    }
+
+    function filterByCategory(category) {
+        alert(category + ' ক্যাটাগরির পণ্য লোড করা হচ্ছে...');
+    }
+
+    function filterStorefrontProducts() {
+        const q = document.getElementById('productSearchInput').value.toLowerCase();
+        const cards = document.querySelectorAll('.sb-shop-nearby-card');
+        cards.forEach(card => {
+            const text = card.textContent.toLowerCase();
+            card.style.display = text.includes(q) ? 'flex' : 'none';
+        });
+    }
+</script>
+}

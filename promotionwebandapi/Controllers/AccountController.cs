@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using PromotionWeb.Hubs;
 using PromotionWeb.Models;
 using PromotionWeb.Services;
+using OrderProcessAPI.Services;
 using System.Security.Claims;
 using System.Text;
 
@@ -27,6 +28,53 @@ public sealed class AccountController(
         }
 
         return View(new LoginViewModel());
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RequestPasswordResetOtp([FromBody] ForgotPasswordInput input, [FromServices] ISmsOtpService smsService)
+    {
+        if (string.IsNullOrWhiteSpace(input.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(input.Phone.Trim(), @"^01\d{9}$"))
+        {
+            return Json(new { success = false, message = "দয়া করে ১১ সংখ্যার সঠিক মোবাইল নম্বর দিন।" });
+        }
+
+        var user = store.GetUserByPhone(input.Phone.Trim());
+        if (user is null)
+        {
+            return Json(new { success = false, message = "এই মোবাইল নম্বর দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি।" });
+        }
+
+        var random = new Random();
+        var otp = random.Next(100000, 999999).ToString();
+        HttpContext.Session.SetString($"ResetOtp_{input.Phone.Trim()}", otp);
+
+        await smsService.SendOtpAsync(input.Phone.Trim(), otp, CancellationToken.None);
+        return Json(new { success = true, message = $"OTP কোড পাঠানো হয়েছে। (Demo OTP: {otp})" });
+    }
+
+    [HttpPost]
+    public IActionResult ResetPasswordWithOtp([FromBody] ResetPasswordInput input)
+    {
+        var savedOtp = HttpContext.Session.GetString($"ResetOtp_{input.Phone?.Trim()}");
+        if (string.IsNullOrEmpty(savedOtp) || savedOtp != input.Otp?.Trim())
+        {
+            return Json(new { success = false, message = "ভুল বা মেয়াদউত্তীর্ণ OTP কোড।" });
+        }
+
+        if (string.IsNullOrWhiteSpace(input.NewPassword) || input.NewPassword.Length < 4)
+        {
+            return Json(new { success = false, message = "পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।" });
+        }
+
+        var user = store.GetUserByPhone(input.Phone.Trim());
+        if (user is null)
+        {
+            return Json(new { success = false, message = "ব্যবহারকারী পাওয়া যায়নি।" });
+        }
+
+        store.ResetUserPassword(user.Id, input.NewPassword.Trim());
+        HttpContext.Session.Remove($"ResetOtp_{input.Phone.Trim()}");
+        return Json(new { success = true, message = "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে! নতুন পাসওয়ার্ড দিয়ে লগইন করুন।" });
     }
 
     [HttpGet]
@@ -191,6 +239,50 @@ public sealed class AccountController(
 
     [HttpGet]
     public IActionResult Shopkeepers() => CompanyPage(nameof(Shopkeepers));
+
+    [HttpGet]
+    public IActionResult Prices() => CompanyPage(nameof(Prices), includeShopsModel: true);
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateShopPrices(FieldOfficerShopPricingInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        try
+        {
+            var selectedShopIds = input.ShopkeeperIds.Count > 0
+                ? input.ShopkeeperIds.Where(id => id > 0).Distinct().ToArray()
+                : input.ShopkeeperId > 0 ? [input.ShopkeeperId] : [];
+            if (selectedShopIds.Length == 0)
+            {
+                throw new InvalidOperationException("কমপক্ষে একটি দোকানদার নির্বাচন করুন।");
+            }
+
+            var shops = store.GetShopkeepers()
+                .Where(item => selectedShopIds.Contains(item.Id))
+                .ToList();
+            if (shops.Count != selectedShopIds.Length)
+            {
+                throw new InvalidOperationException("সঠিক দোকানদার নির্বাচন করুন।");
+            }
+
+            foreach (var shop in shops)
+            {
+                distributionStore.UpdateShopProductAssignments(
+                    0,
+                    shop.Id,
+                    shop.ShopType,
+                    input.SelectedProductIds,
+                    input.ProductPrices);
+            }
+            TempData["CompanyMessage"] = $"{shops.Count} টি দোকানদারের পণ্যের ক্রয় ও বিক্রি মূল্য সফলভাবে আপডেট করা হয়েছে।";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Prices));
+    }
 
     [HttpGet]
     public IActionResult Delivery() => CompanyPage(nameof(Delivery));
@@ -505,6 +597,18 @@ public sealed class AccountController(
 
     private bool IsCompanyOrFieldOfficer() => IsCompany() || IsFieldOfficer();
 
+    private FieldOfficerShopsViewModel BuildCompanyShopsModel()
+    {
+        return new FieldOfficerShopsViewModel
+        {
+            OfficerName = HttpContext.Session.GetString("UserName") ?? "কোম্পানি পরিচালনা",
+            Shops = store.GetShopkeepers(),
+            Locations = store.GetLocationCatalog(),
+            Products = distributionStore.GetProducts(0).Where(product => product.IsActive).ToList(),
+            Assignments = distributionStore.GetShopProductAssignments(0)
+        };
+    }
+
     private CompanyDashboardViewModel BuildProductDistributionPage()
     {
         deliveryStore.EnsureSchema();
@@ -523,7 +627,8 @@ public sealed class AccountController(
         bool includeBulletins = false,
         bool includeNetwork = false,
         bool includeActivationPayments = false,
-        bool includeDistribution = false)
+        bool includeDistribution = false,
+        bool includeShopsModel = false)
     {
         if (!IsCompany()) return RedirectToAction(nameof(Login));
 
@@ -556,6 +661,10 @@ public sealed class AccountController(
                     HttpContext.Session.GetInt32("UserId") ?? 0),
                 Locations = store.GetLocationCatalog()
             };
+        }
+        if (includeShopsModel)
+        {
+            model = model with { ShopsModel = BuildCompanyShopsModel() };
         }
 
         return View(viewName, model);

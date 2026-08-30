@@ -11,6 +11,7 @@ public sealed class CustomerController(
     DeliveryStore deliveryStore,
     ProductDistributionStore distributionStore,
     ShopkeeperSaleStore saleStore,
+    LoanStore loanStore,
     IWebHostEnvironment environment) : Controller
 {
     [HttpGet]
@@ -26,6 +27,89 @@ public sealed class CustomerController(
     public IActionResult Dues()
     {
         return CustomerView();
+    }
+
+    [HttpGet]
+    public IActionResult Loan()
+    {
+        if (!IsCustomer()) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+        var phone = HttpContext.Session.GetString("UserPhone") ?? "";
+        var name = HttpContext.Session.GetString("UserName") ?? "Customer";
+
+        var vm = new CustomerLoanDashboardViewModel
+        {
+            CustomerName = name,
+            CustomerPhone = phone,
+            WalletBalance = distributionStore.GetUserWalletBalance(userId),
+            Eligibility = loanStore.GetEligibility(userId, Roles.Customer, phone),
+            ActiveLoan = loanStore.GetActiveLoan(userId),
+            LoanHistory = loanStore.GetUserLoans(userId),
+            SuccessMessage = TempData["SuccessMessage"] as string,
+            ErrorMessage = TempData["ErrorMessage"] as string
+        };
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ApplyLoan([FromForm] LoanApplicationInputModel input)
+    {
+        if (!IsCustomer()) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+        var phone = HttpContext.Session.GetString("UserPhone") ?? "";
+        var name = HttpContext.Session.GetString("UserName") ?? "Customer";
+
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "সঠিক তথ্য দিয়ে লোনের ফরম পূরণ করুন।";
+            return RedirectToAction(nameof(Loan));
+        }
+
+        try
+        {
+            var loan = loanStore.ApplyLoan(userId, Roles.Customer, name, phone, input);
+            TempData["SuccessMessage"] = $"অভিনন্দন! আপনার ৳{loan.LoanAmount:N0} টাকার লোন তাৎক্ষণিক অনুমোদন ও ওয়ালেটে জমা হয়েছে।";
+            return RedirectToAction(nameof(Loan));
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Loan));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult PayLoanInstallment(int installmentId, string paymentMethod = "Wallet")
+    {
+        if (!IsCustomer()) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+        try
+        {
+            var success = loanStore.PayInstallment(installmentId, userId, paymentMethod);
+            if (success)
+            {
+                TempData["SuccessMessage"] = "কিস্তি সফলভাবে পরিশোধ করা হয়েছে।";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "কিস্তি পরিশোধ করা যায়নি।";
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Loan));
+    }
+
+    [HttpGet]
+    public IActionResult AgentLocation()
+    {
+        if (!IsCustomer()) return RedirectToAction("Login", "Account");
+        var agent = loanStore.GetAgentOfficeForDistrict("ঢাকা");
+        return View(agent);
     }
 
     [HttpGet]

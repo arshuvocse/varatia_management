@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Amar Thikanaa - Smart Marketplace ও Local Service Platform</title>
   <meta name="description" content="আমার ঠিকানা দিয়ে ফ্ল্যাট ভাড়া বা বিক্রি, বাসা খোঁজা, শিক্ষক, পিকআপ, জরুরি সহায়তা ও নিরাপদ লেনদেনের সেবা এক জায়গায় পান।">
+  <meta property="og:title" content="Amar Thikanaa - Smart Marketplace ও Local Service Platform">
+  <meta property="og:description" content="আমার ঠিকানা দিয়ে ফ্ল্যাট ভাড়া বা বিক্রি, বাসা খোঁজা, শিক্ষক, পিকআপ, জরুরি সহায়তা ও নিরাপদ লেনদেনের সেবা এক জায়গায় পান।">
+  <meta property="og:image" content="amar_thikanaa_icon.png">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anek+Bangla:wght@400;500;600;700;800&family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
@@ -512,6 +517,365 @@
 
     @media (max-width: 900px) {
       .leaderboard-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Team & Field Network Section */
+    .team-network-section {
+      position: relative;
+      padding: 30px 0 0;
+    }
+    .team-panel {
+      position: relative;
+      padding: 36px 30px;
+      border: 1px solid rgba(37, 99, 235, 0.14);
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--soft-shadow);
+    }
+    .team-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 26px;
+    }
+    .team-header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+    .team-header h2 {
+      margin: 8px 0 6px;
+      color: var(--dark);
+      font-size: clamp(26px, 3.2vw, 38px);
+      font-weight: 900;
+      line-height: 1.18;
+    }
+    .team-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15.5px;
+      max-width: 640px;
+    }
+    .team-controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 20px;
+      margin-bottom: 26px;
+      background: #f8faff;
+      border: 1px solid rgba(37, 99, 235, 0.1);
+      border-radius: 18px;
+    }
+    .team-role-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .team-tab-btn {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(23, 39, 64, 0.12);
+      background: #fff;
+      color: var(--text);
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all .22s ease;
+    }
+    .team-tab-btn:hover {
+      background: #eff6ff;
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    .team-tab-btn.active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+    }
+    .team-filter-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+    .team-search-input {
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-size: 14px;
+      min-width: 220px;
+      outline: none;
+      transition: border-color .2s ease;
+    }
+    .team-search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    .team-district-select {
+      padding: 10px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--dark);
+      font-weight: 700;
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .team-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid rgba(23, 39, 64, 0.08);
+      border-radius: 20px;
+      padding: 22px 20px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+    .team-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+      border-color: rgba(37, 99, 235, 0.3);
+    }
+    .team-card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .team-avatar-box {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+    .team-avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #fff;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+    }
+    .team-avatar-fallback {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+    }
+    .team-avatar-fallback.agent {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+    }
+    .team-avatar-fallback.field {
+      background: linear-gradient(135deg, #10b981, #0f766e);
+    }
+    .team-verified-badge {
+      position: absolute;
+      bottom: -2px;
+      right: -2px;
+      width: 22px;
+      height: 22px;
+      background: #10b981;
+      color: #fff;
+      border: 2.5px solid #fff;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 900;
+    }
+    .team-info-header {
+      flex: 1;
+      min-width: 0;
+    }
+    .team-role-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      margin-bottom: 4px;
+    }
+    .team-role-tag.agent {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+    .team-role-tag.field {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .team-name {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .team-location {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .team-location svg {
+      width: 14px;
+      height: 14px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .team-meta-box {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin: 10px 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .team-meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .team-meta-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .team-meta-value {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--dark);
+    }
+    .team-meta-rating {
+      color: #f59e0b;
+      font-weight: 900;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .team-card-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .team-btn-call {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: #eff6ff;
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 13px;
+      border: 1px solid rgba(37, 99, 235, 0.18);
+      transition: all .2s ease;
+      text-decoration: none;
+    }
+    .team-btn-call:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+    .team-btn-whatsapp {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 800;
+      font-size: 13px;
+      border: 1px solid rgba(16, 185, 129, 0.22);
+      transition: all .2s ease;
+      text-decoration: none;
+    }
+    .team-btn-whatsapp:hover {
+      background: #10b981;
+      color: #fff;
+    }
+    .team-join-cta {
+      margin-top: 32px;
+      background: linear-gradient(135deg, #071629 0%, #1e3a8a 100%);
+      border-radius: 20px;
+      padding: 24px 28px;
+      color: #fff;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .team-join-cta-text h4 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .team-join-cta-text p {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 14.5px;
+    }
+    .team-join-cta-btn {
+      padding: 12px 24px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: 0 10px 24px rgba(16, 185, 129, 0.35);
+      border: 0;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .2s ease;
+      white-space: nowrap;
+    }
+    .team-join-cta-btn:hover {
+      transform: translateY(-2px);
     }
 
     .section { padding: 86px 0 0; }
@@ -2702,16 +3066,15 @@
       </button>
 
       <div class="nav-links">
-        <a href="#services">সার্ভিস</a>
-        <a href="#grocery-products">Smart Bazar</a>
-        <a href="#how-it-works">কীভাবে কাজ করে</a>
-        <a href="#audience">কার জন্য</a>
-        <a href="#faq">সাধারণ প্রশ্ন</a>
-        <a href="#contact">যোগাযোগ</a>
+        <a href="#services" data-bn="সার্ভিস" data-en="Services">সার্ভিস</a>
+        <a href="#grocery-products" data-bn="Smart Bazar" data-en="Smart Bazar">Smart Bazar</a>
+        <a href="#team-network" data-bn="টিম ও এজেন্ট" data-en="Team & Agents">টিম ও এজেন্ট</a>
+        <a href="/track-order" style="color: var(--primary); font-weight: 800;" data-bn="📦 ট্র্যাকিং" data-en="📦 Track Order">📦 ট্র্যাকিং</a>
       </div>
 
       <div class="top-actions">
-        <a class="top-login-btn" href="/Account/Login">লগইন</a>
+        <button id="lang-toggle-btn" type="button" style="padding: 7px 14px; border-radius: 999px; border: 1px solid var(--border); background: #fff; font-weight: 800; cursor: pointer; color: var(--primary);">🌐 EN</button>
+        <a class="top-login-btn" href="/Account/Login" data-bn="লগইন" data-en="Login">লগইন</a>
       </div>
     </nav>
   </header>
@@ -2874,6 +3237,49 @@
                 <li class="leaderboard-empty">লোড হচ্ছে...</li>
               </ul>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="team-network-section" id="team-network">
+      <div class="container">
+        <div class="team-panel">
+          <div class="team-header">
+            <div>
+              <span class="badge">👥 আমাদের মাঠপর্যায়ের প্রতিনিধি</span>
+              <h2 data-bn="বিশ্বস্ত লোকাল এজেন্ট ও ফিল্ড টিম" data-en="Trusted Local Agents & Field Force">বিশ্বস্ত লোকাল এজেন্ট ও ফিল্ড টিম</h2>
+              <p data-bn="আপনার এলাকায় সরাসরি সেবা, শপ অনবোর্ডিং বা জরুরি সহায়তার জন্য আমাদের সার্টিফাইড এজেন্ট ও ফিল্ড অফিসারদের সাথে যোগাযোগ করুন।" data-en="Connect directly with our certified agents and field officers for onboarding, services, and local support.">আপনার এলাকায় সরাসরি সেবা, শপ অনবোর্ডিং বা জরুরি সহায়তার জন্য আমাদের সার্টিফাইড এজেন্ট ও ফিল্ড অফিসারদের সাথে যোগাযোগ করুন।</p>
+            </div>
+          </div>
+
+          <div class="team-controls-bar">
+            <div class="team-role-tabs">
+              <button type="button" class="team-tab-btn active" data-role="all" data-bn="⭐ সকল প্রতিনিধি" data-en="⭐ All Members">⭐ সকল প্রতিনিধি</button>
+              <button type="button" class="team-tab-btn" data-role="Agent" data-bn="👑 এরিয়া এজেন্ট" data-en="👑 Area Agents">👑 এরিয়া এজেন্ট</button>
+              <button type="button" class="team-tab-btn" data-role="FieldOfficer" data-bn="🛡️ ফিল্ড অফিসার" data-en="🛡️ Field Officers">🛡️ ফিল্ড অফিসার</button>
+            </div>
+
+            <div class="team-filter-inputs">
+              <input type="text" id="teamSearchInput" class="team-search-input" placeholder="🔍 নাম, ফোন বা এলাকা খুঁজুন..." aria-label="Search members">
+              <select id="teamDistrictFilter" class="team-district-select" aria-label="জেলা অনুযায়ী ফিল্টার">
+                <option value="">সকল জেলা (All Districts)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="team-grid" id="teamDirectoryGrid">
+            <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--muted);">
+              তথ্য লোড হচ্ছে...
+            </div>
+          </div>
+
+          <div class="team-join-cta">
+            <div class="team-join-cta-text">
+              <h4 data-bn="আপনি কি আপনার এলাকার এজেন্ট বা ফিল্ড পার্টনার হতে চান?" data-en="Want to become an Area Agent or Field Partner?">আপনি কি আপনার এলাকার এজেন্ট বা ফিল্ড পার্টনার হতে চান?</h4>
+              <p data-bn="আমার ঠিকানা পরিবারের অংশ হয়ে নিজের ক্যারিয়ার ও উপার্জনের নতুন দিগন্ত উন্মোচন করুন।" data-en="Join the Amar Thikanaa network and unlock new career and earning opportunities in your locality.">আমার ঠিকানা পরিবারের অংশ হয়ে নিজের ক্যারিয়ার ও উপার্জনের নতুন দিগন্ত উন্মোচন করুন।</p>
+            </div>
+            <a href="#contact" class="team-join-cta-btn" data-bn="আবেদন করুন / যোগাযোগ" data-en="Apply Now / Contact">আবেদন করুন / যোগাযোগ</a>
           </div>
         </div>
       </div>
@@ -4106,6 +4512,13 @@
               <div>প্রয়োজন অনুযায়ী প্রমোশন সেটআপ করা যাবে</div>
             </div>
             <div class="contact-direct">
+              <div class="corporate-office-card" style="width: 100%; margin-bottom: 14px; font-weight: 600; color: #1e293b; background: rgba(255,255,255,0.85); padding: 14px 18px; border-radius: 14px; border: 1px solid rgba(0,0,0,0.08); display: flex; align-items: flex-start; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                <span style="font-size: 1.5rem; line-height: 1;">🏢</span>
+                <div>
+                  <strong style="color: #0f172a; display: block; font-size: 1.05rem; margin-bottom: 3px;">কর্পোরেট অফিস :</strong>
+                  <span style="color: #334155; font-size: 0.98rem; line-height: 1.5;">জহির স্মার্ট টাওয়ার, শেওড়াপাড়া, ঢাকা ১২১৬</span>
+                </div>
+              </div>
               <a class="email" href="mailto:amarthikanaa.info@gmail.com">✉️ amarthikanaa.info@gmail.com</a>
               <a class="whatsapp" href="https://wa.me/8801323351028" target="_blank" rel="noopener">💬 WhatsApp: 01323351028</a>
               <a class="whatsapp" href="tel:+8801323351028">📞 01323351028</a>
@@ -4195,8 +4608,9 @@
       <div class="footer-column">
         <h3>দ্রুত লিংক</h3>
         <div class="footer-links">
-          <a href="#grocery-products">Smart Bazar</a>
           <a href="#services">সকল সার্ভিস</a>
+          <a href="#grocery-products">Smart Bazar</a>
+          <a href="#team-network">টিম ও এজেন্ট নেটওয়ার্ক</a>
           <a href="#how-it-works">কীভাবে কাজ করে</a>
           <a href="#faq">সাধারণ প্রশ্ন</a>
           <a href="#contact">যোগাযোগ</a>
@@ -4206,17 +4620,24 @@
       <div class="footer-column">
         <h3>আমাদের সঙ্গে যোগাযোগ</h3>
         <div class="footer-contact">
+          <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; color: rgba(255,255,255,0.95);">
+            <span class="footer-contact-icon" aria-hidden="true" style="font-size: 1.2rem;">🏢</span>
+            <span class="footer-contact-text">
+              <small style="display: block; color: rgba(255,255,255,0.65); font-size: 0.8rem;">কর্পোরেট অফিস</small>
+              <strong style="font-size: 0.95rem; line-height: 1.4;">জহির স্মার্ট টাওয়ার, শেওড়াপাড়া, ঢাকা ১২১৬</strong>
+            </span>
+          </div>
           <a href="mailto:amarthikanaa.info@gmail.com" aria-label="Email Amar Thikanaa">
             <span class="footer-contact-icon" aria-hidden="true">✉</span>
             <span class="footer-contact-text"><small>Email address</small><strong>amarthikanaa.info@gmail.com</strong></span>
           </a>
           <a class="whatsapp" href="https://wa.me/8801323351028" target="_blank" rel="noopener" aria-label="Chat with Amar Thikanaa on WhatsApp">
             <span class="footer-contact-icon" aria-hidden="true">◉</span>
-            <span class="footer-contact-text"><small>WhatsApp</small><strong>01323351028</strong></span>
+            <span class="footer-contact-text"><small>Helpline</small><strong>01323351028</strong></span>
           </a>
           <a class="whatsapp" href="https://wa.me/8801956476661" target="_blank" rel="noopener" aria-label="Chat with Amar Thikanaa on WhatsApp">
             <span class="footer-contact-icon" aria-hidden="true">◉</span>
-            <span class="footer-contact-text"><small>WhatsApp</small><strong>01956476661</strong></span>
+            <span class="footer-contact-text"><small>Helpline</small><strong>01956476661</strong></span>
           </a>
           <a href="tel:+8809658825461" aria-label="Call Amar Thikanaa">
             <span class="footer-contact-icon" aria-hidden="true">📞</span>
@@ -4801,6 +5222,260 @@
         bulletinBar.classList.add('is-visible');
       })
       .catch(() => {});
+
+    // Team & Field Network Directory
+    (function initTeamDirectory() {
+      const grid = document.getElementById('teamDirectoryGrid');
+      const districtSelect = document.getElementById('teamDistrictFilter');
+      const searchInput = document.getElementById('teamSearchInput');
+      const tabButtons = document.querySelectorAll('.team-tab-btn');
+      if (!grid) return;
+
+      let allMembers = [];
+      let currentRole = 'all';
+      let currentDistrict = '';
+      let currentSearch = '';
+
+      const fallbackMembers = [
+        {
+          id: 1,
+          name: 'মোঃ রফিকুল ইসলাম',
+          phone: '01711000001',
+          role: 'Agent',
+          roleTitle: 'এরিয়া এজেন্ট',
+          districtId: 1,
+          districtName: 'ঢাকা (মিরপুর ও উত্তরা)',
+          connectedCount: 45,
+          connectedLabel: '৪৫+ ভেরিফাইড শপ',
+          rating: 4.9,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 2,
+          name: 'তানভীর আহমেদ',
+          phone: '01812000002',
+          role: 'FieldOfficer',
+          roleTitle: 'ফিল্ড অফিসার',
+          districtId: 1,
+          districtName: 'ঢাকা (মিরপুর)',
+          parentName: 'এজেন্ট: মোঃ রফিকুল ইসলাম',
+          connectedCount: 22,
+          connectedLabel: '২২+ সক্রিয় শপ',
+          rating: 4.8,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 3,
+          name: 'আব্দুল কাদের',
+          phone: '01913000003',
+          role: 'Agent',
+          roleTitle: 'এরিয়া এজেন্ট',
+          districtId: 4,
+          districtName: 'চট্টগ্রাম (কোতোয়ালি ও আগ্রাবাদ)',
+          connectedCount: 38,
+          connectedLabel: '৩৮+ ভেরিফাইড শপ',
+          rating: 5.0,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 4,
+          name: 'মাহমুদুল হাসান',
+          phone: '01714000004',
+          role: 'FieldOfficer',
+          roleTitle: 'ফিল্ড অফিসার',
+          districtId: 4,
+          districtName: 'চট্টগ্রাম (আগ্রাবাদ)',
+          parentName: 'এজেন্ট: আব্দুল কাদের',
+          connectedCount: 16,
+          connectedLabel: '১৬+ সক্রিয় শপ',
+          rating: 4.9,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 5,
+          name: 'সাইফুল ইসলাম',
+          phone: '01515000005',
+          role: 'Agent',
+          roleTitle: 'এরিয়া এজেন্ট',
+          districtId: 12,
+          districtName: 'সিলেট (সদর ও শাহজালাল উপশহর)',
+          connectedCount: 30,
+          connectedLabel: '৩০+ ভেরিফাইড শপ',
+          rating: 4.9,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80'
+        },
+        {
+          id: 6,
+          name: 'মেহেদী হাসান রনি',
+          phone: '01616000006',
+          role: 'FieldOfficer',
+          roleTitle: 'ফিল্ড অফিসার',
+          districtId: 12,
+          districtName: 'সিলেট (উপশহর)',
+          parentName: 'এজেন্ট: সাইফুল ইসলাম',
+          connectedCount: 14,
+          connectedLabel: '১৪+ সক্রিয় শপ',
+          rating: 4.7,
+          profilePictureUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&auto=format&fit=crop&q=80'
+        }
+      ];
+
+      function renderMembers() {
+        let filtered = allMembers.filter(m => {
+          const matchRole = currentRole === 'all' || m.role.toLowerCase() === currentRole.toLowerCase();
+          const matchDistrict = !currentDistrict || String(m.districtId) === String(currentDistrict) || (m.districtName && m.districtName.toLowerCase().includes(currentDistrict.toLowerCase()));
+          const s = currentSearch.toLowerCase().trim();
+          const matchSearch = !s || (m.name && m.name.toLowerCase().includes(s)) ||
+                                     (m.phone && m.phone.includes(s)) ||
+                                     (m.districtName && m.districtName.toLowerCase().includes(s)) ||
+                                     (m.roleTitle && m.roleTitle.toLowerCase().includes(s));
+          return matchRole && matchDistrict && matchSearch;
+        });
+
+        if (filtered.length === 0) {
+          grid.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; background: #f8fafc; border-radius: 16px; color: var(--muted);">
+              <p style="font-size: 16px; font-weight: 700; margin: 0 0 6px; color: var(--dark);">কোনো প্রতিনিধি পাওয়া যায়নি</p>
+              <small>অনুগ্রহ করে ভিন্ন জেলা বা ফিল্টার নির্বাচন করে পুনরায় চেষ্টা করুন।</small>
+            </div>
+          `;
+          return;
+        }
+
+        grid.innerHTML = filtered.map(m => {
+          const isAgent = m.role.toLowerCase() === 'agent';
+          const avatarHtml = m.profilePictureUrl
+            ? `<img class="team-avatar-img" src="${m.profilePictureUrl}" alt="${m.name}" onerror="this.outerHTML='<div class=\\'team-avatar-fallback ${isAgent ? 'agent' : 'field'}\\'>${m.name ? m.name.charAt(0) : 'A'}</div>'">`
+            : `<div class="team-avatar-fallback ${isAgent ? 'agent' : 'field'}">${m.name ? m.name.charAt(0) : 'A'}</div>`;
+
+          const cleanPhone = m.phone ? m.phone.replace(/[^0-9+]/g, '') : '';
+          const waPhone = cleanPhone.startsWith('0') ? '88' + cleanPhone : cleanPhone;
+
+          return `
+            <div class="team-card">
+              <div class="team-card-top">
+                <div class="team-avatar-box">
+                  ${avatarHtml}
+                  <span class="team-verified-badge" title="ভেরিফাইড অফিশিয়াল প্রতিনিধি">✓</span>
+                </div>
+                <div class="team-info-header">
+                  <span class="team-role-tag ${isAgent ? 'agent' : 'field'}">
+                    ${isAgent ? '👑 এরিয়া এজেন্ট' : '🛡️ ফিল্ড অফিসার'}
+                  </span>
+                  <h3 class="team-name" title="${m.name}">${m.name}</h3>
+                  <div class="team-location">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>${m.districtName || 'বাংলাদেশ'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="team-meta-box">
+                <div class="team-meta-item">
+                  <span class="team-meta-label">${isAgent ? 'নেটওয়ার্ক পরিধি' : 'মাঠ কার্যক্রম'}</span>
+                  <span class="team-meta-value">${m.connectedLabel || (isAgent ? 'এরিয়া ইনচার্জ' : 'সক্রিয় প্রতিনিধি')}</span>
+                </div>
+                <div class="team-meta-rating">
+                  ⭐ <span>${m.rating ? m.rating.toFixed(1) : '4.9'}</span>
+                </div>
+              </div>
+
+              ${m.parentName ? `<div style="font-size: 11.5px; color: var(--muted); margin-bottom: 12px; font-weight: 600;">🔗 ${m.parentName}</div>` : ''}
+
+              <div class="team-card-actions">
+                <a class="team-btn-call" href="tel:${cleanPhone}">
+                  📞 কল করুন
+                </a>
+                <a class="team-btn-whatsapp" href="https://wa.me/${waPhone}" target="_blank" rel="noopener">
+                  💬 WhatsApp
+                </a>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function loadData() {
+        fetch('/Home/TeamDirectory')
+          .then(res => res.ok ? res.json() : [])
+          .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+              allMembers = data;
+            } else {
+              allMembers = fallbackMembers;
+            }
+            renderMembers();
+          })
+          .catch(() => {
+            allMembers = fallbackMembers;
+            renderMembers();
+          });
+      }
+
+      fetch('/Home/Districts')
+        .then(res => res.ok ? res.json() : [])
+        .then(districts => {
+          if (districtSelect && Array.isArray(districts) && districts.length > 0) {
+            districts.forEach(d => {
+              const opt = document.createElement('option');
+              opt.value = d.id;
+              opt.textContent = d.name;
+              districtSelect.appendChild(opt);
+            });
+          }
+        })
+        .catch(() => {});
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          tabButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentRole = btn.getAttribute('data-role') || 'all';
+          renderMembers();
+        });
+      });
+
+      if (districtSelect) {
+        districtSelect.addEventListener('change', () => {
+          currentDistrict = districtSelect.value;
+          renderMembers();
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          currentSearch = e.target.value;
+          renderMembers();
+        });
+      }
+
+      loadData();
+    })();
+
+    // Language Switcher (BN / EN)
+    (function initLanguageSwitcher() {
+      const btn = document.getElementById('lang-toggle-btn');
+      if (!btn) return;
+      let currentLang = localStorage.getItem('amar_thikanaa_lang') || 'bn';
+
+      function updateLanguage(lang) {
+        currentLang = lang;
+        localStorage.setItem('amar_thikanaa_lang', lang);
+        btn.textContent = lang === 'bn' ? '🌐 EN' : '🌐 BN';
+
+        document.querySelectorAll('[data-bn][data-en]').forEach(el => {
+          el.textContent = lang === 'bn' ? el.getAttribute('data-bn') : el.getAttribute('data-en');
+        });
+      }
+
+      btn.addEventListener('click', () => {
+        updateLanguage(currentLang === 'bn' ? 'en' : 'bn');
+      });
+
+      if (currentLang === 'en') {
+        updateLanguage('en');
+      }
+    })();
 
     // Typing Animation
     const typingText = "খুঁজুন, কিনুন, বিক্রি করুন, সেবা নিন—সব এক ঠিকানায়, Amar Thikanaa.";

@@ -1,0 +1,498 @@
+@model FieldOfficerDashboardViewModel
+@{
+    ViewData["Title"] = "ফিল্ড অফিসার মেসেজিং ও চ্যাট - Smart Bazar";
+    ViewData["ActivePage"] = "Messages";
+}
+
+<div class="sb-app-layout">
+    <!-- Sidebar -->
+    <partial name="_Sidebar" model="Model" view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Messages" } }' />
+
+    <!-- Main Content -->
+    <main class="sb-main-content">
+        <!-- Top Navigation Bar -->
+        <header class="sb-topbar">
+            <div class="sb-topbar-left">
+                <a href="/FieldForce" class="sb-menu-toggle" style="text-decoration:none; display:flex; align-items:center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <div class="sb-user-greeting">
+                    <div class="sb-greeting-title">
+                        মেসেজ ও যোগাযোগ কেন্দ্র
+                    </div>
+                    <span class="sb-user-role">দোকানদার ও হেড অফিসের সাথে লাইভ যোগাযোগ</span>
+                </div>
+            </div>
+
+            <div class="sb-topbar-right">
+                <span class="sb-date-badge">
+                    <span class="sb-date-text">সক্রিয় দোকান: @Model.Shops.Count টি</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <div class="sb-dashboard-body">
+            <div class="sb-chat-container">
+                <!-- Left Sidebar: Shopkeeper & Channel List -->
+                <div class="sb-chat-sidebar">
+                    <div class="sb-chat-search-wrap">
+                        <input type="text" id="shopSearchInput" placeholder="দোকান বা মালিক খুঁজুন..." class="sb-chat-search-input" onkeyup="filterShopList()" />
+                    </div>
+
+                    <!-- Channel: Admin Announcement -->
+                    <div class="sb-channel-header">সিস্টেম ব্রডকাস্ট</div>
+                    <div class="sb-chat-item active" onclick="selectChat(this, 'HQ Admin / প্রধান কার্যালয়', 'অনলাইন', '🏢')">
+                        <div class="sb-chat-avatar sb-avatar-hq">🏢</div>
+                        <div class="sb-chat-meta">
+                            <div class="sb-chat-name">Smart Bazar HQ</div>
+                            <div class="sb-chat-preview">নতুন কমিশন রেট কার্যকর হয়েছে...</div>
+                        </div>
+                        <span class="sb-chat-time">১০:৩০ AM</span>
+                    </div>
+
+                    <div class="sb-channel-header" style="margin-top: 14px;">আপনার এলাকার দোকানদারগণ (@Model.Shops.Count)</div>
+                    <div class="sb-chat-list" id="shopChatList">
+                        @if (Model.Shops.Count > 0)
+                        {
+                            @foreach (var shop in Model.Shops)
+                            {
+                                <div class="sb-chat-item" onclick="selectChat(this, '@shop.ShopName (@shop.OwnerName)', '@shop.Phone · @shop.Area', '🏪')">
+                                    <div class="sb-chat-avatar">🏪</div>
+                                    <div class="sb-chat-meta">
+                                        <div class="sb-chat-name">@shop.ShopName</div>
+                                        <div class="sb-chat-preview">@shop.OwnerName · @shop.Phone</div>
+                                    </div>
+                                    <span class="sb-badge-online"></span>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <!-- Sample Territory Shops -->
+                            <div class="sb-chat-item" onclick="selectChat(this, 'রহমান স্টোর (মোঃ রহমান)', '01711223344 · মিরপুর-১০', '🏪')">
+                                <div class="sb-chat-avatar">🏪</div>
+                                <div class="sb-chat-meta">
+                                    <div class="sb-chat-name">রহমান স্টোর</div>
+                                    <div class="sb-chat-preview">ভাই, তেলের নতুন স্টক কবে আসবে?</div>
+                                </div>
+                                <span class="sb-chat-time">০৯:৪৫ AM</span>
+                            </div>
+
+                            <div class="sb-chat-item" onclick="selectChat(this, 'বিসমিল্লাহ জেনারেল স্টোর (আলী আকবর)', '01822334455 · মিরপুর-১১', '🏪')">
+                                <div class="sb-chat-avatar">🏪</div>
+                                <div class="sb-chat-meta">
+                                    <div class="sb-chat-name">বিসমিল্লাহ জেনারেল স্টোর</div>
+                                    <div class="sb-chat-preview">বকেয়া কালেকশনের রসিদ পেয়েছি।</div>
+                                </div>
+                                <span class="sb-chat-time">গতকাল</span>
+                            </div>
+
+                            <div class="sb-chat-item" onclick="selectChat(this, 'জনতা ফার্মেসি (ডাঃ কবির)', '01933445566 · পল্লবী', '💊')">
+                                <div class="sb-chat-avatar">💊</div>
+                                <div class="sb-chat-meta">
+                                    <div class="sb-chat-name">জনতা ফার্মেসি</div>
+                                    <div class="sb-chat-preview">আমার সাইন আপ ভেরিফিকেশন কি সম্পন্ন হয়েছে?</div>
+                                </div>
+                                <span class="sb-chat-time">১৫ আগস্ট</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Right Pane: Active Message Thread -->
+                <div class="sb-chat-thread">
+                    <!-- Thread Header -->
+                    <div class="sb-thread-header">
+                        <div class="sb-thread-info">
+                            <span class="sb-thread-avatar" id="activeAvatar">🏢</span>
+                            <div>
+                                <h4 id="activeChatName" style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 800;">Smart Bazar HQ</h4>
+                                <small id="activeChatSub" style="color: #059669; font-weight: 600;">অনলাইন · প্রধান কার্যালয় ব্রডকাস্ট</small>
+                            </div>
+                        </div>
+                        <div class="sb-thread-actions">
+                            <button type="button" class="sb-btn-icon" title="কল করুন" onclick="alert('ভয়েস কল ফিচার শীঘ্রই আসছে!')">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Messages Body -->
+                    <div class="sb-messages-list" id="messagesContainer">
+                        <div class="sb-msg sb-msg-system">
+                            <span>আজ, ১৬ আগস্ট ২০২৬</span>
+                        </div>
+
+                        <div class="sb-msg sb-msg-in">
+                            <div class="sb-msg-bubble">
+                                <strong>Smart Bazar HQ:</strong> সকল ফিল্ড অফিসারদের অবগতির জন্য জানানো যাচ্ছে, এই সপ্তাহের মধ্যে আপনার এরিয়ার সকল নিবন্ধিত দোকানের প্রাইসিং ও প্রোডাক্ট ক্যাটালগ ভেরিফাই করুন।
+                                <span class="sb-msg-time">১০:১৫ AM</span>
+                            </div>
+                        </div>
+
+                        <div class="sb-msg sb-msg-out">
+                            <div class="sb-msg-bubble">
+                                জি স্যার, আমার এরিয়ার অধিকাংশ দোকানের প্রোডাক্ট আপডেট ও প্রাইসিং সম্পন্ন হয়েছে। বাকিগুলো আজ বিকেলের মধ্যে ফাইনাল করে ফেলব।
+                                <span class="sb-msg-time">১০:২২ AM</span>
+                            </div>
+                        </div>
+
+                        <div class="sb-msg sb-msg-in">
+                            <div class="sb-msg-bubble">
+                                চমৎকার! নতুন ৫টি কাঁচাবাজারের দোকান অনবোর্ড করার জন্য বিশেষ বোনাস যুক্ত হয়েছে আপনার অ্যাকাউন্টে।
+                                <span class="sb-msg-time">১০:৩০ AM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Message Input Box -->
+                    <div class="sb-chat-input-area">
+                        <input type="text" id="newMsgInput" placeholder="মেসেজ লিখুন..." class="sb-input-msg" onkeypress="handleMsgKeyPress(event)" />
+                        <button type="button" class="sb-btn-send" onclick="sendMessage()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            <span>পাঠান</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Styles {
+<style>
+    .sb-chat-container {
+        display: grid;
+        grid-template-columns: 320px minmax(0, 1fr);
+        gap: 0;
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+        height: calc(100vh - 140px);
+        min-height: 550px;
+        overflow: hidden;
+    }
+
+    .sb-chat-sidebar {
+        border-right: 1px solid #e2e8f0;
+        background: #f8fafc;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .sb-chat-search-wrap {
+        padding: 14px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    .sb-chat-search-input {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 13px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        outline: none;
+        box-sizing: border-box;
+    }
+
+    .sb-chat-search-input:focus {
+        border-color: #059669;
+    }
+
+    .sb-channel-header {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        color: #64748b;
+        padding: 8px 14px 4px;
+        letter-spacing: 0.5px;
+    }
+
+    .sb-chat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        cursor: pointer;
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.15s;
+    }
+
+    .sb-chat-item:hover {
+        background: #f1f5f9;
+    }
+
+    .sb-chat-item.active {
+        background: #ecfdf5;
+        border-left: 3px solid #059669;
+    }
+
+    .sb-chat-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .sb-avatar-hq {
+        background: #eff6ff;
+    }
+
+    .sb-chat-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .sb-chat-name {
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .sb-chat-preview {
+        font-size: 11.5px;
+        color: #64748b;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 2px;
+    }
+
+    .sb-chat-time {
+        font-size: 10px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    .sb-badge-online {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+    }
+
+    /* RIGHT THREAD */
+    .sb-chat-thread {
+        display: flex;
+        flex-direction: column;
+        background: #ffffff;
+    }
+
+    .sb-thread-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    .sb-thread-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sb-thread-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+
+    .sb-btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #475569;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sb-btn-icon:hover {
+        background: #f8fafc;
+        color: #059669;
+    }
+
+    .sb-messages-list {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        background: #f8fafc;
+    }
+
+    .sb-msg {
+        display: flex;
+    }
+
+    .sb-msg-system {
+        justify-content: center;
+    }
+
+    .sb-msg-system span {
+        font-size: 11px;
+        color: #94a3b8;
+        background: #e2e8f0;
+        padding: 3px 10px;
+        border-radius: 12px;
+    }
+
+    .sb-msg-in {
+        justify-content: flex-start;
+    }
+
+    .sb-msg-in .sb-msg-bubble {
+        background: #ffffff;
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+        border-bottom-left-radius: 4px;
+    }
+
+    .sb-msg-out {
+        justify-content: flex-end;
+    }
+
+    .sb-msg-out .sb-msg-bubble {
+        background: #059669;
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+    }
+
+    .sb-msg-bubble {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        font-size: 13.5px;
+        line-height: 1.45;
+        position: relative;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    .sb-msg-time {
+        display: block;
+        font-size: 10px;
+        margin-top: 4px;
+        opacity: 0.75;
+        text-align: right;
+    }
+
+    .sb-chat-input-area {
+        display: flex;
+        gap: 10px;
+        padding: 14px 20px;
+        border-top: 1px solid #e2e8f0;
+        background: #ffffff;
+    }
+
+    .sb-input-msg {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 13.5px;
+        outline: none;
+    }
+
+    .sb-input-msg:focus {
+        border-color: #059669;
+    }
+
+    .sb-btn-send {
+        background: #059669;
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        padding: 0 18px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .sb-btn-send:hover {
+        background: #047857;
+    }
+
+    @@media (max-width: 768px) {
+        .sb-chat-container {
+            grid-template-columns: 1fr;
+        }
+        .sb-chat-sidebar {
+            display: none;
+        }
+    }
+</style>
+}
+
+@section Scripts {
+<script>
+    function selectChat(el, name, sub, avatar) {
+        document.querySelectorAll('.sb-chat-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('activeChatName').innerText = name;
+        document.getElementById('activeChatSub').innerText = sub;
+        document.getElementById('activeAvatar').innerText = avatar;
+    }
+
+    function filterShopList() {
+        const query = document.getElementById('shopSearchInput').value.toLowerCase();
+        const items = document.querySelectorAll('#shopChatList .sb-chat-item');
+        items.forEach(item => {
+            const text = item.innerText.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function handleMsgKeyPress(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('newMsgInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const container = document.getElementById('messagesContainer');
+        const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'sb-msg sb-msg-out';
+        msgDiv.innerHTML = `
+            <div class="sb-msg-bubble">
+                ${text}
+                <span class="sb-msg-time">${timeNow}</span>
+            </div>
+        `;
+        container.appendChild(msgDiv);
+        input.value = '';
+        container.scrollTop = container.scrollHeight;
+    }
+</script>
+}

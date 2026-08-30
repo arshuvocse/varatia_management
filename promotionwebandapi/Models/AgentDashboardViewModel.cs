@@ -4,6 +4,7 @@ public sealed class AgentDashboardViewModel
 {
     public string AgentName { get; init; } = "";
     public string AgentPhone { get; init; } = "";
+    public string? ProfilePictureUrl { get; init; }
     public AgentDistrictInfo? District { get; init; }
     public LocationCatalog Locations { get; init; } = new();
     public FieldOfficerRegistrationInput FieldOfficerRegistration { get; init; } = new();

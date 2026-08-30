@@ -46,6 +46,7 @@ public sealed record CompanyDashboardViewModel
     public LocationCatalog Locations { get; init; } = new();
     public CompanyNetworkViewModel Network { get; init; } = new();
     public CompanySettingsViewModel Settings { get; init; } = new();
+    public FieldOfficerShopsViewModel ShopsModel { get; init; } = new();
 }
 
 public sealed class CompanyDistributionProductViewModel

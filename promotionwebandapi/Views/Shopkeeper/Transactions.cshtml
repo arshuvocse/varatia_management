@@ -60,7 +60,7 @@
                     </select>
                 </label>
                 <button class="btn-light" type="button" onclick="window.print()">Print</button>
-                <button class="btn-light" type="button" disabled>Export later</button>
+                <a class="btn-light" href="@Url.Action("ExportTransactionsCsv")" style="text-decoration: none;">CSV এক্সপোর্ট</a>
             </div>
 
             <table id="shopkeeper-transactions-table" class="display registered-shops-table">
@@ -74,6 +74,7 @@
                         <th>পেমেন্ট</th>
                         <th>Date/time</th>
                         <th>অবস্থা</th>
+                        <th>অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -90,6 +91,9 @@
                                 @transaction.TransactionAt.ToString("dd MMM yyyy, hh:mm tt")
                             </td>
                             <td><span class="status-chip @(transaction.Status == "Paid" ? "paid" : "pending")">@transaction.Status</span></td>
+                            <td>
+                                <a class="btn-light" href="@Url.Action("PrintInvoice", new { saleId = transaction.Id })" target="_blank" style="padding: 4px 10px; font-size: 12px; text-decoration: none;">🖨️ ইনভয়েস</a>
+                            </td>
                         </tr>
                     }
                 </tbody>

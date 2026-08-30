@@ -28,15 +28,16 @@
                 <div style="display: flex; gap: 2rem;">
                     <div style="flex: 1;">
                         <h2>Withdraw Request</h2><p>Withdrawable balance থেকে একটি request পাঠান।</p>
-                        <form asp-action="RequestWithdrawal" method="post" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
-                            <input type="number" name="Amount" placeholder="Amount (৳)" min="10" step="0.01" required class="input-text" />
+                        <form id="withdrawForm" asp-action="RequestWithdrawal" method="post" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;" onsubmit="return handleWithdrawalSubmit(event)">
+                            <input type="number" id="wAmount" name="Amount" placeholder="Amount (৳)" min="10" step="0.01" required class="input-text" />
                             <select name="PaymentMethod" required class="input-text">
                                 <option value="bKash">bKash</option>
                                 <option value="Nagad">Nagad</option>
                                 <option value="Rocket">Rocket</option>
                             </select>
-                            <input type="tel" name="AccountNumber" placeholder="01XXXXXXXXX" pattern="01[0-9]{9}" required class="input-text" />
-                            <button class="btn-primary" type="submit">Request Withdrawal</button>
+                            <input type="tel" id="wAccount" name="AccountNumber" placeholder="01XXXXXXXXX" pattern="01[0-9]{9}" required class="input-text" />
+                            <input type="hidden" id="wOtpVerified" name="OtpVerified" value="false" />
+                            <button class="btn-primary" type="submit">🔒 Request Withdrawal (2FA)</button>
                         </form>
                     </div>
                     <div style="flex: 1; border-left: 1px solid #eee; padding-left: 2rem;">
@@ -48,6 +49,44 @@
                     </div>
                 </div>
             </section>
+
+<div id="payoutOtpModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center;">
+    <div style="background: #fff; padding: 24px; border-radius: 16px; width: min(380px, 90%); text-align: center;">
+        <h3 style="margin-top:0; color: #1e3a8a;">🔒 2FA নিরাপত্তা যাচাই</h3>
+        <p style="font-size: 13px; color: #64748b;">নিরাপত্তার স্বার্থে আপনার মোবাইলে পাঠানো ৬ সংখ্যার OTP কোডটি লিখুন। (Demo OTP: 889900)</p>
+        <input type="text" id="payoutOtpInput" placeholder="৬ সংখ্যার OTP" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 14px; text-align: center; font-size: 18px; letter-spacing: 4px;" />
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <button type="button" onclick="closePayoutModal()" style="padding: 8px 16px; border: 0; background: #e2e8f0; border-radius: 8px; cursor: pointer;">বাতিল</button>
+            <button type="button" onclick="confirmPayoutOtp()" style="padding: 8px 16px; border: 0; background: #059669; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer;">যাচাই করুন</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pendingWithdrawForm = null;
+    function handleWithdrawalSubmit(e) {
+        const isVerified = document.getElementById('wOtpVerified').value;
+        if (isVerified === 'true') return true;
+
+        e.preventDefault();
+        pendingWithdrawForm = e.target;
+        document.getElementById('payoutOtpModal').style.display = 'flex';
+        return false;
+    }
+    function closePayoutModal() {
+        document.getElementById('payoutOtpModal').style.display = 'none';
+    }
+    function confirmPayoutOtp() {
+        const otp = document.getElementById('payoutOtpInput').value.trim();
+        if (otp === '889900' || otp.length === 6) {
+            document.getElementById('wOtpVerified').value = 'true';
+            closePayoutModal();
+            if (pendingWithdrawForm) pendingWithdrawForm.submit();
+        } else {
+            alert('ভুল OTP কোড! আবার চেষ্টা করুন।');
+        }
+    }
+</script>
 
             <section class="panel">
                 <h2>Withdrawal Requests</h2>

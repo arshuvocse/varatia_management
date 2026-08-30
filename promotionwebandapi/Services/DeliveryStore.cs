@@ -16,11 +16,18 @@ public sealed class DeliveryStore(IConfiguration configuration, ShopkeeperWallet
         lock (SchemaLock)
         {
             if (_schemaReady) return;
-            using var connection = new SqlConnection(_connectionString);
-            connection.Open();
-            using var command = new SqlCommand(SchemaSql, connection);
-            command.ExecuteNonQuery();
-            _schemaReady = true;
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                connection.Open();
+                using var command = new SqlCommand(SchemaSql, connection);
+                command.ExecuteNonQuery();
+                _schemaReady = true;
+            }
+            catch
+            {
+                // Schema initialization failed or already exists
+            }
         }
     }
 

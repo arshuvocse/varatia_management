@@ -310,22 +310,24 @@ public sealed class AppStore(IConfiguration configuration)
         return command.ExecuteNonQuery() == 1;
     }
 
-    public AppUser RegisterFieldOfficer(int agentUserId, FieldOfficerRegistrationInput input)
+    public AppUser RegisterFieldOfficer(int agentUserId, FieldOfficerRegistrationInput input, string? profilePhotoUrl = null)
     {
         EnsureAgentSchema();
+        EnsureUserProfilePictureSchema();
         using var connection = CreateConnection();
         connection.Open();
         using var transaction = connection.BeginTransaction();
         using var command = new SqlCommand("""
-            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, ParentUserId)
-            VALUES (@Name, @Phone, @Password, N'FieldOfficer', @AgentUserId);
-            SELECT Id, Name, Phone, PasswordHash AS [Password], Role, ShopCode, ParentUserId, CreatedAt
+            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, ParentUserId, ProfilePictureUrl)
+            VALUES (@Name, @Phone, @Password, N'FieldOfficer', @AgentUserId, @ProfilePictureUrl);
+            SELECT Id, Name, Phone, PasswordHash AS [Password], Role, ShopCode, ParentUserId, CreatedAt, ProfilePictureUrl
             FROM dbo.tbl_Users WHERE Id = CONVERT(INT, SCOPE_IDENTITY());
             """, connection, transaction) { CommandType = CommandType.Text };
         command.Parameters.AddWithValue("@Name", input.Name.Trim());
         command.Parameters.AddWithValue("@Phone", input.Phone.Trim());
         command.Parameters.AddWithValue("@Password", input.Password);
         command.Parameters.AddWithValue("@AgentUserId", agentUserId);
+        command.Parameters.AddWithValue("@ProfilePictureUrl", (object?)profilePhotoUrl ?? DBNull.Value);
 
         try
         {
@@ -1408,7 +1410,10 @@ public sealed class AppStore(IConfiguration configuration)
             IsActive = !HasColumn(reader, "IsActive") || reader.GetBoolean(reader.GetOrdinal("IsActive")),
             CreatedAt = HasColumn(reader, "CreatedAt") && !reader.IsDBNull(reader.GetOrdinal("CreatedAt"))
                 ? reader.GetDateTime(reader.GetOrdinal("CreatedAt"))
-                : DateTime.Now
+                : DateTime.Now,
+            ProfilePictureUrl = HasColumn(reader, "ProfilePictureUrl") && !reader.IsDBNull(reader.GetOrdinal("ProfilePictureUrl"))
+                ? reader.GetString(reader.GetOrdinal("ProfilePictureUrl"))
+                : null
         };
     }
 
@@ -1483,6 +1488,52 @@ public sealed class AppStore(IConfiguration configuration)
         return locations;
     }
 
+    public AppUser? GetUserByPhone(string phone)
+    {
+        EnsureUserProfilePictureSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("SELECT TOP (1) Id, Name, Phone, PasswordHash AS Password, Role, ShopCode, ParentUserId, IsActive, CreatedAt, ProfilePictureUrl FROM dbo.tbl_Users WHERE Phone = @Phone;", connection);
+        command.Parameters.AddWithValue("@Phone", phone.Trim());
+
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapUser(reader) : null;
+    }
+
+    public AppUser? GetUserById(int id)
+    {
+        EnsureUserProfilePictureSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("SELECT TOP (1) Id, Name, Phone, PasswordHash AS Password, Role, ShopCode, ParentUserId, IsActive, CreatedAt, ProfilePictureUrl FROM dbo.tbl_Users WHERE Id = @Id;", connection);
+        command.Parameters.AddWithValue("@Id", id);
+
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? MapUser(reader) : null;
+    }
+
+    public void UpdateUserProfilePicture(int userId, string photoPath)
+    {
+        EnsureUserProfilePictureSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("UPDATE dbo.tbl_Users SET ProfilePictureUrl = @PhotoPath WHERE Id = @UserId;", connection);
+        command.Parameters.AddWithValue("@UserId", userId);
+        command.Parameters.AddWithValue("@PhotoPath", photoPath);
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
+    public void ResetUserPassword(int userId, string newPassword)
+    {
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("UPDATE dbo.tbl_Users SET PasswordHash = @Password WHERE Id = @UserId;", connection);
+        command.Parameters.AddWithValue("@UserId", userId);
+        command.Parameters.AddWithValue("@Password", newPassword.Trim());
+
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
     public bool ChangePassword(int userId, string oldPassword, string newPassword)
     {
         using var connection = CreateConnection();
@@ -1507,5 +1558,173 @@ public sealed class AppStore(IConfiguration configuration)
             updateCmd.ExecuteNonQuery();
         }
         return true;
+    }
+
+    private static bool _userProfileSchemaReady;
+    private static readonly object UserProfileSchemaLock = new();
+
+    public void EnsureUserProfilePictureSchema()
+    {
+        if (_userProfileSchemaReady) return;
+        lock (UserProfileSchemaLock)
+        {
+            if (_userProfileSchemaReady) return;
+            try
+            {
+                using var connection = CreateConnection();
+                using var command = new SqlCommand("""
+                    IF COL_LENGTH(N'dbo.tbl_Users', N'ProfilePictureUrl') IS NULL
+                        ALTER TABLE dbo.tbl_Users ADD ProfilePictureUrl NVARCHAR(500) NULL;
+                """, connection);
+                connection.Open();
+                command.ExecuteNonQuery();
+                _userProfileSchemaReady = true;
+            }
+            catch
+            {
+                // Ignore if schema already updated
+            }
+        }
+    }
+
+    public IReadOnlyList<TeamMemberDirectoryItem> GetTeamDirectory(int? districtId = null, string? role = null)
+    {
+        EnsureShopkeeperRegistrationSchema();
+        EnsureUserProfilePictureSchema();
+        var list = new List<TeamMemberDirectoryItem>();
+
+        try
+        {
+            using var connection = CreateConnection();
+            using var command = new SqlCommand("""
+                -- 1. Agents
+                SELECT 
+                    u.Id,
+                    u.Name,
+                    u.Phone,
+                    u.ProfilePictureUrl,
+                    u.IsActive,
+                    u.CreatedAt,
+                    d.Id AS DistrictId,
+                    COALESCE(d.Name, N'সারাদেশ / অল ডিস্ট্রিক্ট') AS DistrictName,
+                    (SELECT COUNT(1) FROM dbo.tbl_Users fo WHERE fo.ParentUserId = u.Id AND fo.Role = N'FieldOfficer' AND fo.IsActive = 1) AS FieldOfficerCount,
+                    (SELECT COUNT(1) FROM dbo.tbl_Shopkeepers s INNER JOIN dbo.tbl_Users fo ON fo.Id = s.FieldOfficerUserId WHERE fo.ParentUserId = u.Id) AS ShopCount
+                FROM dbo.tbl_Users u
+                LEFT JOIN dbo.tbl_AgentDistricts ad ON ad.AgentUserId = u.Id
+                LEFT JOIN dbo.tbl_Districts d ON d.Id = ad.DistrictId
+                WHERE u.Role = N'Agent' AND u.IsActive = 1;
+
+                -- 2. Field Officers
+                SELECT 
+                    fo.Id,
+                    fo.Name,
+                    fo.Phone,
+                    fo.ProfilePictureUrl,
+                    fo.IsActive,
+                    fo.CreatedAt,
+                    fo.ParentUserId,
+                    parent.Name AS ParentAgentName,
+                    COALESCE(d.Id, parentDist.Id) AS DistrictId,
+                    COALESCE(d.Name, parentDist.Name, N'এলাকা নির্ধারিত') AS DistrictName,
+                    (SELECT COUNT(1) FROM dbo.tbl_Shopkeepers s WHERE s.FieldOfficerUserId = fo.Id) AS ShopCount
+                FROM dbo.tbl_Users fo
+                LEFT JOIN dbo.tbl_Users parent ON parent.Id = fo.ParentUserId
+                LEFT JOIN dbo.tbl_AgentDistricts parentAd ON parentAd.AgentUserId = parent.Id
+                LEFT JOIN dbo.tbl_Districts parentDist ON parentDist.Id = parentAd.DistrictId
+                OUTER APPLY (
+                    SELECT TOP (1) s.DistrictId, dist.Name
+                    FROM dbo.tbl_Shopkeepers s
+                    INNER JOIN dbo.tbl_Districts dist ON dist.Id = s.DistrictId
+                    WHERE s.FieldOfficerUserId = fo.Id
+                    ORDER BY s.Id DESC
+                ) d
+                WHERE fo.Role = N'FieldOfficer' AND fo.IsActive = 1;
+            """, connection);
+
+            connection.Open();
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                var id = reader.GetInt32(0);
+                var name = reader.GetString(1);
+                var phone = reader.GetString(2);
+                var pic = reader.IsDBNull(3) ? null : reader.GetString(3);
+                var isActive = reader.GetBoolean(4);
+                var createdAt = reader.GetDateTime(5);
+                var distId = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6);
+                var distName = reader.GetString(7);
+                var foCount = reader.GetInt32(8);
+                var shopCount = reader.GetInt32(9);
+
+                list.Add(new TeamMemberDirectoryItem
+                {
+                    Id = id,
+                    Name = name,
+                    Phone = phone,
+                    Role = "Agent",
+                    RoleTitle = "এরিয়া এজেন্ট",
+                    ProfilePictureUrl = pic,
+                    DistrictId = distId,
+                    DistrictName = distName,
+                    ConnectedCount = shopCount > 0 ? shopCount : foCount,
+                    ConnectedLabel = foCount > 0 ? $"{foCount} জন ফিল্ড কর্মী" : (shopCount > 0 ? $"{shopCount}+ টি শপ কানেক্টেড" : "সক্রিয় এরিয়া লিডার"),
+                    IsActive = isActive,
+                    Rating = 4.9,
+                    CreatedAt = createdAt
+                });
+            }
+
+            if (reader.NextResult())
+            {
+                while (reader.Read())
+                {
+                    var id = reader.GetInt32(0);
+                    var name = reader.GetString(1);
+                    var phone = reader.GetString(2);
+                    var pic = reader.IsDBNull(3) ? null : reader.GetString(3);
+                    var isActive = reader.GetBoolean(4);
+                    var createdAt = reader.GetDateTime(5);
+                    var parentName = reader.IsDBNull(7) ? null : reader.GetString(7);
+                    var distId = reader.IsDBNull(8) ? (int?)null : reader.GetInt32(8);
+                    var distName = reader.GetString(9);
+                    var shopCount = reader.GetInt32(10);
+
+                    list.Add(new TeamMemberDirectoryItem
+                    {
+                        Id = id,
+                        Name = name,
+                        Phone = phone,
+                        Role = "FieldOfficer",
+                        RoleTitle = "ফিল্ড অফিসার",
+                        ProfilePictureUrl = pic,
+                        DistrictId = distId,
+                        DistrictName = distName,
+                        ConnectedCount = shopCount,
+                        ConnectedLabel = shopCount > 0 ? $"{shopCount}+ টি ভেরিফাইড শপ" : "মাঠ প্রতিনিধি",
+                        ParentName = !string.IsNullOrWhiteSpace(parentName) ? $"এজেন্ট: {parentName}" : null,
+                        IsActive = isActive,
+                        Rating = 4.8,
+                        CreatedAt = createdAt
+                    });
+                }
+            }
+        }
+        catch
+        {
+            // Fallback gracefully on exception
+        }
+
+        var query = list.AsEnumerable();
+        if (districtId.HasValue && districtId.Value > 0)
+        {
+            query = query.Where(x => x.DistrictId == districtId.Value);
+        }
+        if (!string.IsNullOrWhiteSpace(role) && !string.Equals(role, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => string.Equals(x.Role, role, StringComparison.OrdinalIgnoreCase));
+        }
+
+        return query.ToList();
     }
 }

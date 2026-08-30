@@ -15,6 +15,7 @@ public sealed class ShopkeeperController(
     DeliveryStore deliveryStore,
     ProductDistributionStore distributionStore,
     SslCommerzService sslCommerz,
+    LoanStore loanStore,
     IWebHostEnvironment environment) : Controller
 {
     [HttpGet]
@@ -22,6 +23,82 @@ public sealed class ShopkeeperController(
     {
         var model = BuildDashboard();
         return model is null ? RedirectToAction("Login", "Account") : View(model);
+    }
+
+    [HttpGet]
+    public IActionResult Loan()
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+
+        var vm = new ShopkeeperLoanDashboardViewModel
+        {
+            ShopName = shop.ShopName,
+            OwnerName = shop.OwnerName,
+            Phone = shop.Phone,
+            WalletBalance = distributionStore.GetUserWalletBalance(userId),
+            Eligibility = loanStore.GetEligibility(userId, Roles.Shopkeeper, shop.Phone),
+            ActiveLoan = loanStore.GetActiveLoan(userId),
+            LoanHistory = loanStore.GetUserLoans(userId),
+            SuccessMessage = TempData["SuccessMessage"] as string,
+            ErrorMessage = TempData["ErrorMessage"] as string
+        };
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ApplyLoan([FromForm] LoanApplicationInputModel input)
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "সঠিক তথ্য দিয়ে লোনের ফরম পূরণ করুন।";
+            return RedirectToAction(nameof(Loan));
+        }
+
+        try
+        {
+            var loan = loanStore.ApplyLoan(userId, Roles.Shopkeeper, shop.OwnerName, shop.Phone, input);
+            TempData["SuccessMessage"] = $"অভিনন্দন! আপনার ব্যবসার জন্য ৳{loan.LoanAmount:N0} টাকার ডিজিটাল লোন অনুমোদন হয়েছে।";
+            return RedirectToAction(nameof(Loan));
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Loan));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult PayLoanInstallment(int installmentId, string paymentMethod = "Wallet")
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+
+        try
+        {
+            var success = loanStore.PayInstallment(installmentId, userId, paymentMethod);
+            if (success)
+            {
+                TempData["SuccessMessage"] = "কিস্তি সফলভাবে পরিশোধ করা হয়েছে।";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "কিস্তি পরিশোধ করা যায়নি।";
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Loan));
     }
 
     [HttpGet]
@@ -35,37 +112,95 @@ public sealed class ShopkeeperController(
     public IActionResult Orders() => ShopkeeperView();
 
     [HttpGet]
-    public IActionResult DeliveryMen() => ShopkeeperView();
+    public IActionResult ExportTransactionsCsv()
+    {
+        var model = BuildDashboard();
+        if (model is null) return RedirectToAction("Login", "Account");
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [RequestSizeLimit(20 * 1024 * 1024)]
-    public async Task<IActionResult> RegisterDeliveryMan(DeliveryManRegistrationInput input)
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine("Customer,Phone,Product,SaleAmount,CashbackAmount,PaymentMethod,DateTime,Status");
+
+        foreach (var txn in model.Transactions)
+        {
+            var items = string.Join(" | ", txn.Items.Select(item => $"{item.ProductName} x{item.Quantity}"));
+            builder.AppendLine($"\"{txn.CustomerName}\",\"{txn.CustomerPhone}\",\"{items}\",{txn.SaleAmount},{txn.CashbackAmount},\"{txn.PaymentMethod}\",\"{txn.TransactionAt:yyyy-MM-dd HH:mm:ss}\",\"{txn.Status}\"");
+        }
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(builder.ToString());
+        return File(bytes, "text/csv", $"Shopkeeper_Transactions_{DateTime.Now:yyyyMMdd}.csv");
+    }
+
+    [HttpGet]
+    public IActionResult PrintInvoice(int? saleId, int? orderId)
     {
         var shop = GetCurrentShop();
         if (shop is null) return RedirectToAction("Login", "Account");
-        if (!ModelState.IsValid)
+
+        var model = BuildDashboard();
+        if (model is null) return RedirectToAction("Login", "Account");
+
+        if (saleId.HasValue)
         {
-            TempData["DeliveryError"] = string.Join(" ", ModelState.Values
-                .SelectMany(x => x.Errors).Select(x => x.ErrorMessage));
-            return RedirectToAction(nameof(DeliveryMen));
+            ViewBag.Sale = model.Transactions.FirstOrDefault(x => x.Id == saleId.Value);
+        }
+        else if (orderId.HasValue)
+        {
+            ViewBag.Order = model.CustomerOrders.FirstOrDefault(x => x.Id == orderId.Value);
+        }
+
+        ViewBag.Shop = shop;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BulkUploadProducts(IFormFile? csvFile)
+    {
+        var shop = GetCurrentShop();
+        if (shop is null) return RedirectToAction("Login", "Account");
+
+        if (csvFile is null || csvFile.Length == 0 || !csvFile.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["ProductError"] = "অনুগ্রহ করে একটি সঠিক CSV ফাইল নির্বাচন করুন।";
+            return RedirectToAction("Products");
         }
 
         try
         {
-            var profile = await SaveDeliveryFile(input.ProfilePhoto, "profile");
-            var nidFront = await SaveDeliveryFile(input.NidFrontPhoto, "nid-front");
-            var nidBack = await SaveDeliveryFile(input.NidBackPhoto, "nid-back");
-            var license = await SaveDeliveryFile(input.DrivingLicensePhoto, "license");
-            deliveryStore.Register(shop.Id, input, profile, nidFront, nidBack, license);
-            TempData["DeliverySuccess"] = $"{input.Name} has been registered as a delivery man.";
+            using var reader = new System.IO.StreamReader(csvFile.OpenReadStream(), System.Text.Encoding.UTF8);
+            var headerLine = await reader.ReadLineAsync();
+            var successCount = 0;
+
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                var parts = line.Split(',');
+                if (parts.Length < 3) continue;
+
+                var name = parts[0].Trim('"').Trim();
+                var category = parts.Length > 1 ? parts[1].Trim('"').Trim() : "General";
+                var price = decimal.TryParse(parts[2].Trim('"').Trim(), out var p) ? p : 0m;
+                var stock = parts.Length > 3 && int.TryParse(parts[3].Trim('"').Trim(), out var s) ? s : 10;
+
+                if (string.IsNullOrWhiteSpace(name) || price <= 0) continue;
+
+                distributionStore.AddCustomProduct(shop.Id, name, category, price, stock);
+                successCount++;
+            }
+
+            TempData["ProductSuccess"] = $"{successCount} টি পণ্য সফলভাবে বাল্ক আপলোড করা হয়েছে।";
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            TempData["DeliveryError"] = ex.Message;
+            TempData["ProductError"] = $"বাল্ক আপলোডে ত্রুটি: {ex.Message}";
         }
-        return RedirectToAction(nameof(DeliveryMen));
+
+        return RedirectToAction("Products");
     }
+
+    [HttpGet]
+    public IActionResult DeliveryMen() => ShopkeeperView();
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -1018,4 +1153,6 @@ public sealed class ShopkeeperController(
         await file.CopyToAsync(stream);
         return $"/uploads/delivery/{category}/{fileName}";
     }
+
+    private int GetUserId() => HttpContext.Session.GetInt32("UserId") ?? 0;
 }

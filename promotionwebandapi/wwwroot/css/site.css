@@ -3471,3 +3471,250 @@ button, input, select { font: inherit; }
   border-radius: 20px;
   outline: none;
 }
+
+/* ========================================================== */
+/* GLOBAL SMART BAZAR ALL PORTAL SIDEBARS (SHOP, CUST, OFFICER)*/
+/* ========================================================== */
+.shop-portal-shell,
+.sb-shop-layout,
+.customer-portal-shell,
+.sb-cust-layout,
+.sb-app-layout,
+.officer-portal-page {
+  display: flex !important;
+  min-height: 100vh;
+  background: #f8fafc;
+  width: 100%;
+}
+
+.sb-shop-sidebar,
+.shop-sidebar,
+.sb-cust-sidebar,
+.customer-sidebar,
+.sb-sidebar,
+.officer-sidebar {
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+  background: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 24px 16px !important;
+  flex-shrink: 0 !important;
+  min-height: 100vh !important;
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  overflow-y: auto !important;
+  box-sizing: border-box !important;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* BRAND LOGO */
+.sb-shop-brand,
+.shop-sidebar-brand,
+.sb-cust-brand,
+.customer-sidebar-brand,
+.sb-brand {
+  margin-bottom: 24px !important;
+  padding-bottom: 16px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sb-shop-brand-logo,
+.sb-cust-brand-logo,
+.sb-brand-logo {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.sb-cart-icon {
+  color: #059669 !important;
+  flex-shrink: 0 !important;
+}
+
+.sb-shop-brand-text,
+.sb-cust-brand-text,
+.sb-brand-text {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sb-brand-title {
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.5px !important;
+}
+
+.sb-accent {
+  color: #059669 !important;
+}
+
+.sb-shop-code-pill,
+.sb-cust-role-pill,
+.sb-officer-role-pill {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #059669 !important;
+  background: #ecfdf5 !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  display: inline-block !important;
+  width: fit-content !important;
+  margin-top: 2px !important;
+}
+
+/* NAVIGATION ITEMS */
+.sb-shop-nav,
+.shop-sidebar nav,
+.sb-cust-nav,
+.customer-sidebar nav,
+.sb-nav {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  flex: 1 !important;
+}
+
+.sb-shop-nav-item,
+.shop-sidebar nav a,
+.sb-cust-nav-item,
+.customer-sidebar nav a,
+.sb-nav-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  color: #475569 !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  background: transparent !important;
+  border: none !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+}
+
+.sb-shop-nav-item:hover,
+.shop-sidebar nav a:hover,
+.sb-cust-nav-item:hover,
+.customer-sidebar nav a:hover,
+.sb-nav-item:hover {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.sb-shop-nav-item.active,
+.shop-sidebar nav a.active,
+.sb-cust-nav-item.active,
+.customer-sidebar nav a.active,
+.sb-nav-item.active {
+  background: #ecfdf5 !important;
+  color: #059669 !important;
+  font-weight: 800 !important;
+}
+
+.sb-nav-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  height: 20px !important;
+  flex-shrink: 0 !important;
+}
+
+.sb-nav-label {
+  display: inline-block !important;
+  white-space: nowrap !important;
+}
+
+.sb-badge-alert,
+.sb-badge-count {
+  margin-left: auto !important;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 2px 7px !important;
+  border-radius: 10px !important;
+}
+
+/* FOOTER & LOGOUT */
+.sb-shop-sidebar-footer,
+.sb-cust-sidebar-footer,
+.sb-sidebar-footer,
+.shop-sidebar > form,
+.customer-sidebar > form {
+  margin-top: auto !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #f1f5f9 !important;
+}
+
+.sb-shop-logout-btn,
+.sb-cust-logout-btn,
+.sb-logout-btn,
+.shop-sidebar-logout,
+.customer-sidebar-logout {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  border-radius: 10px !important;
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fee2e2 !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-decoration: none !important;
+}
+
+.sb-shop-logout-btn:hover,
+.sb-cust-logout-btn:hover,
+.sb-logout-btn:hover,
+.shop-sidebar-logout:hover,
+.customer-sidebar-logout:hover {
+  background: #fee2e2 !important;
+}
+
+/* CONTENT AREAS */
+.shop-page-content,
+.customer-page-content,
+.shop-content,
+.sb-main-content {
+  flex: 1 !important;
+  padding: 24px 32px !important;
+  max-width: 1200px !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+@media (max-width: 900px) {
+  .sb-shop-sidebar,
+  .shop-sidebar,
+  .sb-cust-sidebar,
+  .customer-sidebar,
+  .sb-sidebar,
+  .officer-sidebar {
+    display: none !important;
+  }
+  .shop-page-content,
+  .customer-page-content,
+  .shop-content,
+  .sb-main-content {
+    padding: 16px !important;
+  }
+}
+

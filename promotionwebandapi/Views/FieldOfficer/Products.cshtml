@@ -1,209 +1,581 @@
 @model FieldOfficerProductsViewModel
 @using System.Globalization
 @{
-    ViewData["Title"] = "প্রোডাক্ট এন্ট্রি";
+    ViewData["Title"] = "প্রোডাক্ট এন্ট্রি ও ব্যবস্থাপনা - Smart Bazar";
+    ViewData["ActivePage"] = "Products";
     var successMessage = TempData["SuccessMessage"] as string;
     var errorMessage = TempData["ErrorMessage"] as string;
 }
 
-@section Styles {
-    <style>
-        .product-entry-container {
-            max-width: 600px;
-            margin: 2rem auto;
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .products-table-container {
-            margin: 2rem auto;
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .products-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .products-table th, .products-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        .products-table th {
-            font-weight: 600;
-            color: #666;
-            background: #f9f9f9;
-        }
-        .products-table td strong {
-            display: block;
-            color: #333;
-        }
-        .products-table td small {
-            color: #777;
-        }
-        .product-edit-form { min-width: 520px; padding: 1rem 0; }
-        .product-edit-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: .75rem; }
-        .product-edit-grid label { display: grid; gap: .3rem; font-size: .82rem; }
-        .product-edit-grid input { width: 100%; }
-        .percentage-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: .5rem; }
-    </style>
-}
+<div class="sb-app-layout">
+    <!-- Sidebar -->
+    <partial name="_Sidebar" model='new FieldOfficerDashboardViewModel { OfficerName = Model.OfficerName }' view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Products" } }' />
 
-<main class="app-page shop-theme shop-portal-page officer-portal-page">
-    <div class="shop-portal-shell">
-        <partial name="_Sidebar" model='new FieldOfficerDashboardViewModel { OfficerName = Model.OfficerName }' view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Products" } }' />
-        <section class="shop-page-content">
-            <header class="shop-page-header">
-                <div>
-                    <span>FIELD FORCE APP</span>
-                    <h1>নতুন প্রোডাক্ট এন্ট্রি</h1>
-                    <p>দোকানদারের ক্যাটাগরি অনুযায়ী নতুন প্রোডাক্ট এন্ট্রি করুন এবং তালিকা দেখুন।</p>
+    <!-- Main Content -->
+    <main class="sb-main-content">
+        <!-- Top Navigation Bar -->
+        <header class="sb-topbar">
+            <div class="sb-topbar-left">
+                <a href="/FieldForce" class="sb-menu-toggle" style="text-decoration:none; display:flex; align-items:center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <div class="sb-user-greeting">
+                    <div class="sb-greeting-title">
+                        নতুন প্রোডাক্ট এন্ট্রি ও ক্যাটালগ
+                    </div>
+                    <span class="sb-user-role">Field Force App · Smart Bazar</span>
                 </div>
-            </header>
+            </div>
 
+            <div class="sb-topbar-right">
+                <span class="sb-date-badge">
+                    <span class="sb-date-text">মোট @Model.Products.Count টি প্রোডাক্ট</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <div class="sb-dashboard-body">
             @if (!string.IsNullOrEmpty(successMessage))
             {
-                <div class="alert-success" style="margin: 1rem 2rem;">@successMessage</div>
+                <div class="sb-alert sb-alert-success" style="margin-bottom: 20px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>@successMessage</span>
+                </div>
             }
             @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <div class="validation-summary-errors" style="margin: 1rem 2rem;">@errorMessage</div>
+                <div class="sb-alert sb-alert-danger" style="margin-bottom: 20px; background:#fef2f2; border:1px solid #fee2e2; color:#dc2626; padding:12px 16px; border-radius:10px; display:flex; align-items:center; gap:8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    <span>@errorMessage</span>
+                </div>
             }
 
-            <div class="product-entry-container">
-                <form asp-action="AddProduct" asp-controller="FieldOfficer" method="post" enctype="multipart/form-data" class="form-stack">
-                    <div asp-validation-summary="ModelOnly" class="validation"></div>
-                    
-                    <label asp-for="Input.Name">প্রোডাক্টের নাম</label>
-                    <input asp-for="Input.Name" placeholder="যেমন: মিনিকেট চাল ৫ কেজি" required />
-                    <span asp-validation-for="Input.Name" class="validation"></span>
-
-                    <label asp-for="Input.Category">ক্যাটাগরি (দোকানের ধরন)</label>
-                    <select asp-for="Input.Category" required>
-                        <option value="">নির্বাচন করুন</option>
-                        <option>মুদির দোকান</option>
-                        <option>ফার্মেসি</option>
-                        <option>কসমেটিকস</option>
-                        <option>ইলেকট্রনিক্স</option>
-                    </select>
-                    <span asp-validation-for="Input.Category" class="validation"></span>
-
-                    <label asp-for="Input.Uom">একক (Unit of Measure)</label>
-                    <input asp-for="Input.Uom" placeholder="পিস / কেজি / লিটার" required />
-                    <span asp-validation-for="Input.Uom" class="validation"></span>
-
-                    <label asp-for="Input.UnitPrice">ইউনিট প্রাইস (৳)</label>
-                    <input asp-for="Input.UnitPrice" type="number" step="0.01" min="0.01" required />
-                    <span asp-validation-for="Input.UnitPrice" class="validation"></span>
-
-                    <label asp-for="Input.OpeningStock">প্রারম্ভিক স্টক (পরিমাণ)</label>
-                    <input asp-for="Input.OpeningStock" type="number" min="0" value="0" required />
-                    <span asp-validation-for="Input.OpeningStock" class="validation"></span>
-
-                    <label asp-for="Input.ImageFile">প্রোডাক্টের ছবি</label>
-                    <input asp-for="Input.ImageFile" type="file" accept="image/*" onchange="previewImage(event, 'imagePreviewOfficer')" />
-                    <div style="margin-top: 10px;">
-                        <img id="imagePreviewOfficer" src="#" alt="Image Preview" style="display:none; width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;" />
+            <div class="sb-fo-products-grid">
+                <!-- Left Column: Add Product Form Card -->
+                <div class="sb-card sb-product-form-card">
+                    <div class="sb-card-header">
+                        <div class="sb-card-title-wrap">
+                            <span class="sb-badge-pill">ফর্ম</span>
+                            <h3>নতুন প্রোডাক্ট যুক্ত করুন</h3>
+                        </div>
+                        <small style="color: #64748b;">দোকানদারদের জন্য পণ্যের দর ও ক্যাটাগরি সেট করুন</small>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="margin-top:1.5rem">প্রোডাক্ট সেভ করুন</button>
-                </form>
-            </div>
+                    <form asp-action="AddProduct" asp-controller="FieldOfficer" method="post" enctype="multipart/form-data" class="sb-form-stack">
+                        <div asp-validation-summary="ModelOnly" class="validation"></div>
+                        
+                        <div class="sb-form-group">
+                            <label asp-for="Input.Name" class="sb-label">প্রোডাক্টের নাম <span class="sb-req">*</span></label>
+                            <input asp-for="Input.Name" class="sb-input" placeholder="যেমন: মিনিকেট চাল ৫ কেজি, তীর সয়াবিন তেল ২ লিটার" required />
+                            <span asp-validation-for="Input.Name" class="validation"></span>
+                        </div>
 
-            <div class="products-table-container">
-                <div style="margin-bottom: 1.5rem;">
-                    <h2>এন্ট্রি করা প্রোডাক্টের তালিকা</h2>
-                    <span>মোট @Model.Products.Count প্রোডাক্ট</span>
+                        <div class="sb-form-row-2">
+                            <div class="sb-form-group">
+                                <label asp-for="Input.Category" class="sb-label">ক্যাটাগরি (দোকানের ধরন) <span class="sb-req">*</span></label>
+                                <select asp-for="Input.Category" class="sb-select" required>
+                                    <option value="">নির্বাচন করুন</option>
+                                    <option>মুদির দোকান</option>
+                                    <option>ফার্মেসি</option>
+                                    <option>কসমেটিকস</option>
+                                    <option>ইলেকট্রনিক্স</option>
+                                    <option>কাঁচাবাজার</option>
+                                </select>
+                                <span asp-validation-for="Input.Category" class="validation"></span>
+                            </div>
+
+                            <div class="sb-form-group">
+                                <label asp-for="Input.Uom" class="sb-label">একক (UOM) <span class="sb-req">*</span></label>
+                                <input asp-for="Input.Uom" class="sb-input" placeholder="পিস / কেজি / লিটার / প্যাকেট" required />
+                                <span asp-validation-for="Input.Uom" class="validation"></span>
+                            </div>
+                        </div>
+
+                        <div class="sb-form-row-2">
+                            <div class="sb-form-group">
+                                <label asp-for="Input.UnitPrice" class="sb-label">ইউনিট বিক্রয় মূল্য (৳) <span class="sb-req">*</span></label>
+                                <input asp-for="Input.UnitPrice" type="number" step="0.01" min="0.01" class="sb-input" placeholder="0.00" required />
+                                <span asp-validation-for="Input.UnitPrice" class="validation"></span>
+                            </div>
+
+                            <div class="sb-form-group">
+                                <label asp-for="Input.OpeningStock" class="sb-label">প্রারম্ভিক স্টক (পরিমাণ) <span class="sb-req">*</span></label>
+                                <input asp-for="Input.OpeningStock" type="number" min="0" value="0" class="sb-input" required />
+                                <span asp-validation-for="Input.OpeningStock" class="validation"></span>
+                            </div>
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label asp-for="Input.ImageFile" class="sb-label">প্রোডাক্টের ছবি</label>
+                            <div class="sb-file-upload-box">
+                                <input asp-for="Input.ImageFile" type="file" accept="image/*" id="foProductImgInput" onchange="previewImage(event, 'imagePreviewOfficer')" style="display:none;" />
+                                <label for="foProductImgInput" class="sb-upload-trigger">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    <span>ছবি নির্বাচন করতে ক্লিক করুন</span>
+                                </label>
+                                <img id="imagePreviewOfficer" src="#" alt="Image Preview" style="display:none; width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; margin-left: 12px;" />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="sb-btn-primary-block">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            <span>প্রোডাক্ট সংরক্ষণ করুন</span>
+                        </button>
+                    </form>
                 </div>
-                
-                <div style="overflow-x: auto;">
-                    <table class="products-table">
-                        <thead>
-                            <tr>
-                                <th>ছবি</th>
-                                <th>কোড</th>
-                                <th>প্রোডাক্ট</th>
-                                <th>একক</th>
-                                <th>প্রাইস</th>
-                                <th>Percentage</th>
-                                <th>Edit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var product in Model.Products)
-                            {
-                                var fallbackImage = product.Category switch
-                                {
-                                    "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
-                                    "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
-                                    "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
-                                    "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80",
-                                    _ => null
-                                };
-                                var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
+
+                <!-- Right Column: Product List Table Card -->
+                <div class="sb-card sb-product-list-card">
+                    <div class="sb-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span class="sb-badge-pill sb-pill-blue">ক্যাটালগ</span>
+                            <h3 style="margin-top: 4px;">বর্তমান প্রোডাক্টের তালিকা</h3>
+                        </div>
+                        <span class="sb-chip-count">মোট @Model.Products.Count টি আইটেম</span>
+                    </div>
+
+                    <div class="sb-table-responsive" style="margin-top: 14px;">
+                        <table class="sb-modern-table">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        @if (!string.IsNullOrWhiteSpace(imageUrl))
-                                        {
-                                            <img src="@imageUrl" alt="@product.Name" loading="lazy" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0;" />
-                                        }
-                                        else
-                                        {
-                                            <div style="width: 50px; height: 50px; background-color: #f1f5f9; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 10px;">
-                                                No Image
-                                            </div>
-                                        }
-                                    </td>
-                                    <td><strong>@product.ProductCode</strong></td>
-                                    <td>
-                                        <strong>@product.Name</strong>
-                                        <small>@product.Category</small>
-                                    </td>
-                                    <td>@product.Uom</td>
-                                    <td>৳ @product.UnitPrice.ToString("N2")</td>
-                                    <td>@product.Percentage.ToString("0.####")%</td>
-                                    <td>
-                                        <details>
-                                            <summary class="btn-light">Edit product</summary>
-                                            <form action="/FieldForce/Products/Edit" method="post" enctype="multipart/form-data" class="product-edit-form">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="ProductId" value="@product.Id" />
-                                                <div class="product-edit-grid">
-                                                    <label>Name<input name="Name" value="@product.Name" required maxlength="150" /></label>
-                                                    <label>Category<input name="Category" value="@product.Category" required maxlength="100" /></label>
-                                                    <label>UOM<input name="Uom" value="@product.Uom" required maxlength="30" /></label>
-                                                    <label>Default price<input name="UnitPrice" type="number" min="0.01" step="0.01" value="@product.UnitPrice.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                    <label>Opening stock<input name="OpeningStock" type="number" min="0" value="@product.OpeningStock" required /></label>
-                                                    <label>Replace image<input name="ImageFile" type="file" accept="image/jpeg,image/png,image/webp" /></label>
-                                                    <div class="percentage-grid">
-                                                        <label>Shopkeeper %<input name="ShopkeeperPercentage" type="number" min="0" max="100" step="0.0001" value="@product.ShopkeeperPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                        <label>Company %<input name="CompanyPercentage" type="number" min="0" max="100" step="0.0001" value="@product.CompanyPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                        <label>Agent %<input name="AgentPercentage" type="number" min="0" max="100" step="0.0001" value="@product.AgentPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                        <label>Field Force %<input name="FieldForcePercentage" type="number" min="0" max="100" step="0.0001" value="@product.FieldForcePercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                        <label>Customer %<input name="CustomerPercentage" type="number" min="0" max="100" step="0.0001" value="@product.CustomerPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                                    </div>
-                                                </div>
-                                                <small>All percentages together must be exactly 100% of profit.</small>
-                                                <button type="submit" class="btn-primary" style="margin-top:.75rem">Save changes</button>
-                                            </form>
-                                        </details>
-                                    </td>
+                                    <th>ছবি</th>
+                                    <th>কোড</th>
+                                    <th>পণ্যের বিবরণ</th>
+                                    <th>একক</th>
+                                    <th>বিক্রয় মূল্য</th>
+                                    <th>লাভ বণ্টন (%)</th>
+                                    <th style="text-align: right;">অ্যাকশন</th>
                                 </tr>
-                            }
-                            @if (Model.Products.Count == 0)
-                            {
-                                <tr><td colspan="7" style="text-align: center; color: #888;">এখনও কোনো প্রোডাক্ট এন্ট্রি করা হয়নি।</td></tr>
-                            }
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.Products)
+                                {
+                                    var fallbackImage = product.Category switch
+                                    {
+                                        "মুদির দোকান" => "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=150&q=80",
+                                        "ফার্মেসি" => "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=150&q=80",
+                                        "কসমেটিকস" => "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=150&q=80",
+                                        "ইলেকট্রনিক্স" => "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=150&q=80",
+                                        _ => "https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=150&q=80"
+                                    };
+                                    var imageUrl = string.IsNullOrWhiteSpace(product.ImageUrl) ? fallbackImage : product.ImageUrl;
+                                    <tr>
+                                        <td>
+                                            <div class="sb-tbl-thumb">
+                                                <img src="@imageUrl" alt="@product.Name" loading="lazy" />
+                                            </div>
+                                        </td>
+                                        <td><span class="sb-code-pill">@product.ProductCode</span></td>
+                                        <td>
+                                            <strong class="sb-tbl-pname">@product.Name</strong>
+                                            <span class="sb-cat-tag">@product.Category</span>
+                                        </td>
+                                        <td><span class="sb-uom-txt">@product.Uom</span></td>
+                                        <td><strong class="sb-price-txt">৳ @product.UnitPrice.ToString("N2")</strong></td>
+                                        <td><span class="sb-profit-badge">@product.Percentage.ToString("0.##")%</span></td>
+                                        <td style="text-align: right;">
+                                            <details class="sb-edit-dropdown">
+                                                <summary class="sb-btn-sm-edit">এডিট ▾</summary>
+                                                <div class="sb-edit-drawer-content">
+                                                    <form action="/FieldForce/Products/Edit" method="post" enctype="multipart/form-data" class="sb-edit-form-inner">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="ProductId" value="@product.Id" />
+                                                        
+                                                        <h4 style="margin:0 0 10px; font-size:13px; color:#0f172a;">এডিট: @product.Name</h4>
+                                                        
+                                                        <div class="sb-edit-inputs-grid">
+                                                            <div>
+                                                                <label class="sb-lbl-sm">নাম</label>
+                                                                <input name="Name" value="@product.Name" class="sb-input-sm" required maxlength="150" />
+                                                            </div>
+                                                            <div>
+                                                                <label class="sb-lbl-sm">ক্যাটাগরি</label>
+                                                                <input name="Category" value="@product.Category" class="sb-input-sm" required maxlength="100" />
+                                                            </div>
+                                                            <div>
+                                                                <label class="sb-lbl-sm">একক</label>
+                                                                <input name="Uom" value="@product.Uom" class="sb-input-sm" required maxlength="30" />
+                                                            </div>
+                                                            <div>
+                                                                <label class="sb-lbl-sm">মূল্য (৳)</label>
+                                                                <input name="UnitPrice" type="number" min="0.01" step="0.01" value="@product.UnitPrice.ToString(CultureInfo.InvariantCulture)" class="sb-input-sm" required />
+                                                            </div>
+                                                            <div>
+                                                                <label class="sb-lbl-sm">স্টক</label>
+                                                                <input name="OpeningStock" type="number" min="0" value="@product.OpeningStock" class="sb-input-sm" required />
+                                                            </div>
+                                                            <div>
+                                                                <label class="sb-lbl-sm">ছবি বদলান</label>
+                                                                <input name="ImageFile" type="file" accept="image/*" class="sb-input-sm" style="font-size:11px;" />
+                                                            </div>
+                                                        </div>
+
+                                                        <div style="margin-top: 8px;">
+                                                            <span style="font-size: 11px; font-weight: 700; color: #475569; display:block; margin-bottom:4px;">লাভ বণ্টন শতাংশ (মোট ১০০% হতে হবে):</span>
+                                                            <div class="sb-percent-inputs-row">
+                                                                <label>দোকানদার %<input name="ShopkeeperPercentage" type="number" min="0" max="100" step="0.01" value="@product.ShopkeeperPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                                <label>কোম্পানি %<input name="CompanyPercentage" type="number" min="0" max="100" step="0.01" value="@product.CompanyPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                                <label>এজেন্ট %<input name="AgentPercentage" type="number" min="0" max="100" step="0.01" value="@product.AgentPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                                <label>ফিল্ড %<input name="FieldForcePercentage" type="number" min="0" max="100" step="0.01" value="@product.FieldForcePercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                                <label>ক্রেতা %<input name="CustomerPercentage" type="number" min="0" max="100" step="0.01" value="@product.CustomerPercentage.ToString(CultureInfo.InvariantCulture)" required /></label>
+                                                            </div>
+                                                        </div>
+
+                                                        <button type="submit" class="sb-btn-save-sm">পরিবর্তন সেভ করুন</button>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (Model.Products.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">
+                                            এখনও কোনো প্রোডাক্ট এন্ট্রি করা হয়নি।
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </section>
-    </div>
-</main>
+        </div>
+    </main>
+</div>
+
+@section Styles {
+<style>
+    .sb-fo-products-grid {
+        display: grid;
+        grid-template-columns: 380px minmax(0, 1fr);
+        gap: 20px;
+        align-items: start;
+    }
+
+    .sb-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .sb-card-header {
+        margin-bottom: 18px;
+    }
+
+    .sb-card-title-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .sb-card-title-wrap h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-badge-pill {
+        background: #ecfdf5;
+        color: #059669;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 6px;
+    }
+
+    .sb-pill-blue {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .sb-chip-count {
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    .sb-form-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .sb-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .sb-form-row-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .sb-label {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    .sb-req {
+        color: #ef4444;
+    }
+
+    .sb-input, .sb-select {
+        width: 100%;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13.5px;
+        font-family: inherit;
+        outline: none;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+
+    .sb-input:focus, .sb-select:focus {
+        border-color: #059669;
+        background: #ffffff;
+    }
+
+    .sb-file-upload-box {
+        display: flex;
+        align-items: center;
+        background: #f8fafc;
+        border: 1.5px dashed #cbd5e1;
+        border-radius: 10px;
+        padding: 12px;
+    }
+
+    .sb-upload-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #059669;
+        flex: 1;
+    }
+
+    .sb-btn-primary-block {
+        background: #059669;
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        padding: 12px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+        margin-top: 6px;
+        transition: all 0.2s;
+    }
+
+    .sb-btn-primary-block:hover {
+        background: #047857;
+        transform: translateY(-1px);
+    }
+
+    /* MODERN TABLE */
+    .sb-table-responsive {
+        overflow-x: auto;
+    }
+
+    .sb-modern-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .sb-modern-table th {
+        background: #f8fafc;
+        color: #64748b;
+        font-weight: 700;
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1.5px solid #e2e8f0;
+        white-space: nowrap;
+    }
+
+    .sb-modern-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .sb-tbl-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+    }
+
+    .sb-tbl-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .sb-code-pill {
+        background: #f1f5f9;
+        color: #0f172a;
+        font-weight: 800;
+        font-size: 11px;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .sb-tbl-pname {
+        display: block;
+        color: #0f172a;
+        font-size: 13.5px;
+    }
+
+    .sb-cat-tag {
+        font-size: 11px;
+        color: #0284c7;
+        background: #f0f9ff;
+        padding: 1px 6px;
+        border-radius: 4px;
+        display: inline-block;
+        margin-top: 2px;
+    }
+
+    .sb-uom-txt {
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .sb-price-txt {
+        color: #059669;
+        font-size: 14px;
+    }
+
+    .sb-profit-badge {
+        background: #fef3c7;
+        color: #b45309;
+        font-weight: 800;
+        font-size: 11.5px;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+
+    .sb-btn-sm-edit {
+        background: #f1f5f9;
+        color: #334155;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+        list-style: none;
+        display: inline-block;
+    }
+
+    .sb-edit-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+
+    .sb-edit-drawer-content {
+        position: absolute;
+        right: 0;
+        top: 28px;
+        width: 360px;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border: 1px solid #e2e8f0;
+        z-index: 50;
+        text-align: left;
+    }
+
+    .sb-edit-inputs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .sb-lbl-sm {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #64748b;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .sb-input-sm {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+        box-sizing: border-box;
+    }
+
+    .sb-percent-inputs-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+
+    .sb-percent-inputs-row label {
+        font-size: 9.5px;
+        color: #64748b;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sb-percent-inputs-row input {
+        width: 100%;
+        padding: 4px;
+        font-size: 11px;
+        border: 1px solid #cbd5e1;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .sb-btn-save-sm {
+        width: 100%;
+        background: #2563eb;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    @@media (max-width: 1100px) {
+        .sb-fo-products-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

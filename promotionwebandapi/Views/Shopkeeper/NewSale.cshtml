@@ -123,15 +123,30 @@
                 </div>
 
                 <aside class="panel sale-checkout-panel">
-                    <h2>Sale Summary</h2>
-                    <label for="payment-method">পেমেন্ট মাধ্যম</label>
-                    <select id="payment-method" name="PaymentMethod">
-                        <option>ক্যাশ</option>
-                        <option>বকেয়া</option>
-                        <option>বিকাশ</option>
-                        <option>নগদ</option>
-                        <option>কার্ড</option>
-                    </select>
+                    <label style="display:block; margin-bottom: 8px; font-weight: 700; color: #1e293b;">পেমেন্ট মাধ্যম (Payment Option)</label>
+                    <div class="sb-payment-options-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;">
+                        <label class="sb-pay-option-card active" onclick="selectPayOption(this, 'ক্যাশ')">
+                            <input type="radio" name="PaymentMethodRadio" value="ক্যাশ" checked style="display:none;" />
+                            <span style="font-size: 20px;">💵</span>
+                            <strong style="font-size: 12.5px; margin-top: 4px;">Cash</strong>
+                            <small style="font-size: 10px; color: #64748b;">নগদ টাকা</small>
+                        </label>
+
+                        <label class="sb-pay-option-card" onclick="selectPayOption(this, 'অনলাইন পেমেন্ট')">
+                            <input type="radio" name="PaymentMethodRadio" value="অনলাইন পেমেন্ট" style="display:none;" />
+                            <span style="font-size: 20px;">📱</span>
+                            <strong style="font-size: 12.5px; margin-top: 4px;">Online</strong>
+                            <small style="font-size: 10px; color: #64748b;">বিকাশ/নগদ</small>
+                        </label>
+
+                        <label class="sb-pay-option-card" onclick="selectPayOption(this, 'বকেয়া')">
+                            <input type="radio" name="PaymentMethodRadio" value="বকেয়া" style="display:none;" />
+                            <span style="font-size: 20px;">📒</span>
+                            <strong style="font-size: 12.5px; margin-top: 4px;">বাকি</strong>
+                            <small style="font-size: 10px; color: #64748b;">ক্রেডিট খাতা</small>
+                        </label>
+                    </div>
+                    <input type="hidden" id="payment-method" name="PaymentMethod" value="ক্যাশ" />
                     <small class="sale-validation" data-error-for="PaymentMethod"></small>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0;">
@@ -676,7 +691,39 @@
                 categoryFilter.value = shopCategory;
             }
             renderProductGrid();
-            renderCart();
         })();
+
+        function selectPayOption(card, method) {
+            document.querySelectorAll('.sb-pay-option-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            document.getElementById('payment-method').value = method;
+        }
     </script>
+    <style>
+        .sb-pay-option-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .sb-pay-option-card:hover {
+            border-color: #a7f3d0;
+            background: #ecfdf5;
+        }
+        .sb-pay-option-card.active {
+            border-color: #059669;
+            background: #ecfdf5;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+        }
+        .sb-pay-option-card.active strong {
+            color: #059669;
+        }
+    </style>
 }

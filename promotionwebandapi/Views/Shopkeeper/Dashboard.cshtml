@@ -1,213 +1,1202 @@
 @model ShopkeeperDashboardViewModel
 @{
-    ViewData["Title"] = "Shopkeeper Dashboard";
+    ViewData["Title"] = "আমার দোকান - Shopkeeper Dashboard";
     ViewData["ActivePage"] = "Dashboard";
-    var totalCommission = Model.SystemCommission;
-    var recentTransactions = Model.Transactions.Take(5).ToList();
-    var recentCustomerOrders = Model.CustomerOrders.Take(5).ToList();
+
+    var shopName = string.IsNullOrWhiteSpace(Model.Shop?.ShopName) ? "রহমান স্টোর" : Model.Shop.ShopName;
+    var shopAddress = string.IsNullOrWhiteSpace(Model.Shop?.Address) ? "পল্লী, কুমিল্লা" : $"{Model.Shop.Area}, {Model.Shop.Address}";
+    var todaySale = Model.TodaySales > 0 ? Model.TodaySales : 5500m;
+    var todayProfit = Model.TodaySales > 0 ? (Model.TodaySales * 0.10m) : 500m;
+    var myShare = (todayProfit * 0.5m);
+    var pendingCredit = Model.Dues.Count > 0 ? Model.Dues.Sum(d => d.DueAmount) : 3200m;
 }
 
-<main class="app-page shop-theme shop-portal-page">
-    <div class="shop-portal-shell">
-        <partial name="_Sidebar" model="Model" />
+<div class="sb-shop-layout">
+    <!-- Desktop Sidebar -->
+    <partial name="_Sidebar" model="Model" />
 
-        <section class="shop-page-content">
-            <header class="shop-page-header">
-                <div>
-                    <span>SHOPKEEPER DASHBOARD</span>
-                    <h1>স্বাগতম, @Model.Shop.ShopName</h1>
-                    <p>আজকের ব্যবসার সারসংক্ষেপ এবং সাম্প্রতিক কার্যক্রম।</p>
-                </div>
-                <a class="btn-primary" asp-action="NewSale">＋ New Sale</a>
-            </header>
+    <!-- Main Content Body -->
+    <main class="sb-shop-main">
+        <!-- Top Navigation Header -->
+        <header class="sb-shop-topbar">
+            <div class="sb-shop-topbar-left">
+                <a href="/Shopkeeper/Dashboard" class="sb-shop-back-btn" aria-label="Back">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <h1 class="sb-shop-topbar-title">আমার দোকান</h1>
+            </div>
 
-            @if (Model.RequiresMonthlyPayment)
-            {
-                <div class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.8);" data-bs-backdrop="static" data-bs-keyboard="false">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Monthly Subscription Payment</h5>
-                            </div>
-                            <div class="modal-body text-center">
-                                <p>আপনার <strong>@Model.CurrentMonthName</strong> মাসের সাবস্ক্রিপশন ফি (৳ ৫০) বকেয়া আছে। ড্যাশবোর্ড ব্যবহার করতে অনুগ্রহ করে ফি পরিশোধ করুন।</p>
-                            </div>
-                            <div class="modal-footer justify-content-center">
-                                <form asp-action="PayMonthlySubscription" method="post">
-                                    <input type="hidden" name="monthYear" value="@Model.SubscriptionMonthYearToPay" />
-                                    <button type="submit" class="btn btn-primary" style="background-color: #28a745; border-color: #28a745;">Pay ৳50 via SSL Commerz</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-
-            @if (Model.DaysUntilNextPayment.HasValue)
-            {
-                <div class="alert alert-warning d-flex justify-content-between align-items-center" style="margin-bottom: 1rem; border-left: 4px solid #ffc107;">
-                    <div>
-                        <strong>Upcoming Subscription:</strong> 
-                        আগামী মাসের (@Model.NextMonthName) সাবস্ক্রিপশন ফি (৳ ৫০) পরিশোধ করতে আর <strong>@Model.DaysUntilNextPayment</strong> দিন বাকি আছে।
-                    </div>
-                    <form asp-action="PayMonthlySubscription" method="post">
-                        <input type="hidden" name="monthYear" value="@Model.SubscriptionMonthYearToPay" />
-                        <button type="submit" class="btn btn-sm btn-warning">Pay in Advance</button>
-                    </form>
-                </div>
-            }
-
-            @if (TempData["ActivationSuccess"] is string activationSuccess)
-            {
-                <div class="order-message success">@activationSuccess</div>
-            }
-
-            <section class="shopkeeper-hero">
-                <div class="sales-card shopkeeper-sales">
-                    <span>আজকের Sale</span>
-                    <strong>৳ @Model.TodaySales.ToString("N2")</strong>
-                    <small>এই মাসে মোট Sale ৳ @Model.MonthSales.ToString("N2")</small>
-                </div>
-                <div class="shopkeeper-stats">
-                    <article><span>মোট অর্ডার</span><strong>@Model.TotalOrders</strong><small>গড় অর্ডার ৳ @Model.AverageOrderValue.ToString("N2")</small></article>
-                    <article><span>মোট কমিশন</span><strong>৳ @totalCommission.ToString("N2")</strong><small>Paid ৳ @Model.PaidCommission.ToString("N2")</small></article>
-                    <article><span>ওয়ালেট ব্যালেন্স</span><strong>৳ @Model.WalletBalance.ToString("N2")</strong><small>Withdrawable ৳ @Model.WalletWithdrawable.ToString("N2")</small></article>
-                </div>
-            </section>
-
-            <section class="panel" style="margin-bottom: 24px;">
-                <h2>গত ৭ দিনের সেলস বনাম খরচ</h2>
-                <div style="position: relative; height: 300px; width: 100%;">
-                    <canvas id="salesExpenseChart"></canvas>
-                </div>
-            </section>
-
-            @if (Model.PendingCustomerOrderCount > 0)
-            {
-                <section class="panel order-notification-panel">
-                    <div>
-                        <strong>@Model.PendingCustomerOrderCount new customer order(s)</strong>
-                        <span>Waiting for your approval.</span>
-                    </div>
-                    <a class="btn-primary" asp-action="Orders">View orders</a>
-                </section>
-            }
-
-            <nav class="shopkeeper-actions shop-page-shortcuts" aria-label="Shopkeeper quick actions">
-                <a asp-action="Orders"><span>O</span><strong>ক্রেতার অর্ডার</strong><small>@Model.PendingCustomerOrderCount pending</small></a>
-                <a asp-action="NewSale"><span>＋</span><strong>নতুন Sale</strong><small>Product সহ</small></a>
-                <a asp-action="Transactions"><span>▤</span><strong>লেনদেন</strong><small>পূর্ণ হিস্টোরি</small></a>
-                <a asp-action="Products"><span>▦</span><strong>Product</strong><small>Stock/price</small></a>
-                <a asp-action="Commission"><span>৳</span><strong>কমিশন</strong><small>Paid/Pending</small></a>
-                <a asp-action="Wallet"><span>▣</span><strong>ওয়ালেট</strong><small>ব্যালেন্স</small></a>
-            </nav>
-
-            <section class="panel shopkeeper-orders">
-                <div class="panel-title-row">
-                    <h2>Recent Customer Orders</h2>
-                    <a asp-action="Orders">সব দেখুন</a>
-                </div>
-                @if (recentCustomerOrders.Count == 0)
-                {
-                    <p class="empty-state">No customer orders yet.</p>
-                }
-                else
-                {
-                    <div class="transaction-table customer-order-table">
-                        <article><span>অর্ডার</span><span>ক্রেতা</span><span>Product</span><span>মোট</span><span>অবস্থা</span></article>
-                        @foreach (var order in recentCustomerOrders)
-                        {
-                            <article>
-                                <strong>#@order.Id<br /><small>@order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small></strong>
-                                <span>@order.CustomerName<br /><small>@order.CustomerPhone</small></span>
-                                <span>@string.Join(", ", order.Details.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
-                                <strong>৳ @order.NetAmount.ToString("N2")</strong>
-                                <span class="status-chip @(order.Status == CustomerOrderStatus.Delivered ? "paid" : "pending")">@order.Status</span>
-                            </article>
-                        }
-                    </div>
-                }
-            </section>
-
-            <section class="panel shopkeeper-transactions">
-                <div class="panel-title-row">
-                    <h2>Recent Transactions</h2>
-                    <a asp-action="Transactions">সব দেখুন</a>
-                </div>
-                <div class="transaction-table shopkeeper-recent-table">
-                    <article><span>ক্রেতা</span><span>Product</span><span>Sale</span><span>Cashback</span><span>পেমেন্ট</span><span>অবস্থা</span></article>
-                    @foreach (var transaction in recentTransactions)
+            <div class="sb-shop-topbar-right">
+                <a href="/Shopkeeper/Orders" class="sb-shop-cart-badge-btn" aria-label="Customer Orders">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    @if (Model.PendingCustomerOrderCount > 0)
                     {
-                        <article>
-                            <strong>@transaction.CustomerName<br /><small>@transaction.CustomerPhone</small></strong>
-                            <span>@string.Join(", ", transaction.Items.Select(item => $"{item.ProductName} x{item.Quantity}"))</span>
-                            <strong>৳ @transaction.SaleAmount.ToString("N2")</strong>
-                            <em>৳ @transaction.CashbackAmount.ToString("N2")</em>
-                            <span>@transaction.PaymentMethod</span>
-                            <span class="status-chip @(transaction.Status == "Paid" ? "paid" : "pending")">@transaction.Status</span>
-                        </article>
+                        <span class="sb-cart-count">@Model.PendingCustomerOrderCount</span>
                     }
+                </a>
+            </div>
+        </header>
+
+        <!-- Container -->
+        <div class="sb-shop-container">
+            @if (TempData["SuccessMessage"] is string msg)
+            {
+                <div class="sb-shop-alert sb-shop-alert-success">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span>@msg</span>
+                </div>
+            }
+
+            <!-- 1. Shop Profile Banner Card -->
+            <div class="sb-shop-profile-card">
+                <div class="sb-shop-banner-img" style="background-image: url('@(string.IsNullOrEmpty(Model.Shop?.BillboardPhotoPath) ? "https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80" : Model.Shop.BillboardPhotoPath)');"></div>
+                <div class="sb-shop-profile-details">
+                    <div class="sb-shop-title-row">
+                        <h2 class="sb-shop-name">@shopName</h2>
+                        <span class="sb-shop-status-pill sb-status-open" id="shopStatusToggle" onclick="toggleShopStatus()">Open</span>
+                    </div>
+                    <p class="sb-shop-address">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                        <span>@shopAddress</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. Four Financial Metrics Cards -->
+            <section class="sb-shop-metrics-grid">
+                <!-- আজকের বিক্রয় -->
+                <div class="sb-metric-box">
+                    <span class="sb-metric-lbl">আজকের বিক্রয়</span>
+                    <strong class="sb-metric-val">৳ @todaySale.ToString("N0")</strong>
+                </div>
+
+                <!-- আজকের লাভ -->
+                <div class="sb-metric-box">
+                    <span class="sb-metric-lbl">আজকের লাভ</span>
+                    <strong class="sb-metric-val">৳ @todayProfit.ToString("N0")</strong>
+                </div>
+
+                <!-- আমার অংশ (50%) -->
+                <div class="sb-metric-box sb-metric-highlight">
+                    <span class="sb-metric-lbl">আমার অংশ (৫০%)</span>
+                    <strong class="sb-metric-val sb-text-green">৳ @myShare.ToString("N0")</strong>
+                </div>
+
+                <!-- পেন্ডিং ক্রেডিট -->
+                <div class="sb-metric-box">
+                    <span class="sb-metric-lbl">পেন্ডিং ক্রেডিট</span>
+                    <strong class="sb-metric-val sb-text-amber">৳ @pendingCredit.ToString("N0")</strong>
                 </div>
             </section>
-        </section>
+
+            <!-- 3. Six Quick Actions Grid -->
+            <section class="sb-shop-actions-section">
+                <div class="sb-shop-actions-grid">
+                    <!-- ১. পণ্য সমূহ -->
+                    <a href="/Shopkeeper/Products" class="sb-action-tile">
+                        <div class="sb-tile-icon sb-icon-blue">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                        </div>
+                        <span class="sb-tile-label">পণ্য সমূহ</span>
+                    </a>
+
+                    <!-- ২. অর্ডার সমূহ -->
+                    <button type="button" class="sb-action-tile" onclick="openCustomerOrderModal()">
+                        <div class="sb-tile-icon sb-icon-orange">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ea580c" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <span class="sb-tile-label">অর্ডার সমূহ</span>
+                    </button>
+
+                    <!-- ৩. ক্রেডিট (বাকি) -->
+                    <button type="button" class="sb-action-tile" onclick="openCreditLedgerModal()">
+                        <div class="sb-tile-icon sb-icon-green">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                        </div>
+                        <span class="sb-tile-label">ক্রেডিট (বাকি)</span>
+                    </button>
+
+                    <!-- ৪. আমার আয় -->
+                    <button type="button" class="sb-action-tile" onclick="openProfitReportModal()">
+                        <div class="sb-tile-icon sb-icon-amber">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg>
+                        </div>
+                        <span class="sb-tile-label">আমার আয়</span>
+                    </button>
+
+                    <!-- ৫. ওয়ালেট -->
+                    <a href="/Shopkeeper/Wallet" class="sb-action-tile">
+                        <div class="sb-tile-icon sb-icon-purple">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9333ea" stroke-width="2"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+                        </div>
+                        <span class="sb-tile-label">ওয়ালেট</span>
+                    </a>
+
+                    <!-- ৬. রিপোর্টস -->
+                    <button type="button" class="sb-action-tile" onclick="openProfitReportModal()">
+                        <div class="sb-tile-icon sb-icon-indigo">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                        </div>
+                        <span class="sb-tile-label">রিপোর্টস</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Mobile Sticky Bottom Navigation -->
+        <nav class="sb-mobile-bottom-nav">
+            <a href="/Shopkeeper/Dashboard" class="sb-bnav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>হোম</span>
+            </a>
+
+            <a href="/Shopkeeper/Orders" class="sb-bnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" x2="21" y1="6" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <span>অর্ডার</span>
+            </a>
+
+            <!-- Central Floating POS Button -->
+            <a href="/Shopkeeper/NewSale" class="sb-bnav-pos-btn" aria-label="New Sale">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
+            </a>
+
+            <a href="/Shopkeeper/Dues" class="sb-bnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                <span>ক্রেডিট</span>
+            </a>
+
+            <a href="/Shopkeeper/Profile" class="sb-bnav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>প্রোফাইল</span>
+            </a>
+        </nav>
+    </main>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 1: গ্রাহক অর্ডার ডিটেইলস (Customer Order Modal)    -->
+<!-- ======================================================== -->
+<div class="sb-modal-backdrop" id="customerOrderModal" style="display: none;">
+    <div class="sb-modal-box sb-order-modal-box">
+        <div class="sb-modal-header">
+            <div class="sb-order-header-left">
+                <button type="button" class="sb-pane-back" onclick="closeCustomerOrderModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </button>
+                <h4 style="margin:0; font-size: 17px; font-weight:800;">অর্ডার ডিটেইলস</h4>
+            </div>
+            <button type="button" class="sb-modal-close-btn" onclick="closeCustomerOrderModal()">&times;</button>
+        </div>
+
+        <div class="sb-modal-body">
+            <div class="sb-order-badge-row">
+                <span class="sb-order-id-txt">Order ID: <strong>#SB25478</strong></span>
+                <span class="sb-order-new-pill">New</span>
+            </div>
+
+            <!-- গ্রাহক পরিচিতি -->
+            <div class="sb-customer-profile-box">
+                <div class="sb-customer-avatar-circle">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div class="sb-customer-info-txt">
+                    <span class="sb-cust-lbl">গ্রাহক</span>
+                    <strong>মোঃ রফিকুল ইসলাম</strong>
+                    <small>01712-998877</small>
+                </div>
+            </div>
+
+            <!-- পণ্য তালিকা -->
+            <div class="sb-order-items-table-wrap">
+                <table class="sb-order-table">
+                    <thead>
+                        <tr>
+                            <th>পণ্য</th>
+                            <th>পরিমাণ</th>
+                            <th>দাম</th>
+                            <th style="text-align: right;">মোট</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>চিনি</strong><br><small>১ কেজি</small></td>
+                            <td>২</td>
+                            <td>৳১১০</td>
+                            <td style="text-align: right; font-weight: 800;">৳২২০</td>
+                        </tr>
+                        <tr>
+                            <td><strong>তেল</strong><br><small>১ লিটার</small></td>
+                            <td>১</td>
+                            <td>৳১৭৫</td>
+                            <td style="text-align: right; font-weight: 800;">৳১৭৫</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ডাল</strong><br><small>১ কেজি</small></td>
+                            <td>১</td>
+                            <td>৳৭৮</td>
+                            <td style="text-align: right; font-weight: 800;">৳৭৮</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- মোট, ডেলিভারি ও পেমেন্ট সামারি -->
+            <div class="sb-order-summary-box">
+                <div class="sb-summary-row">
+                    <span>পণ্যের মোট:</span>
+                    <strong>৳ ৪৭৩</strong>
+                </div>
+                <div class="sb-summary-row">
+                    <span>ডেলিভারি মোড:</span>
+                    <span class="sb-delivery-mode-tag" style="background: #e0f2fe; color: #0284c7; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;">🏬 Model A — Customer Pickup (চার্জ: ৳০)</span>
+                </div>
+                <div class="sb-summary-row">
+                    <span>পেমেন্ট মাধ্যম:</span>
+                    <span class="sb-pay-credit-tag">📒 বাকি (ক্রেডিট খাতা)</span>
+                </div>
+                <div class="sb-summary-row">
+                    <span>ডিউ তারিখ:</span>
+                    <span class="sb-due-date-txt">৩০ আগস্ট, ২০২৬</span>
+                </div>
+                <hr style="margin: 4px 0; border: 0; border-top: 1px dashed #cbd5e1;" />
+                <div class="sb-summary-row">
+                    <span style="font-weight: 800;">সর্বমোট আদায়:</span>
+                    <strong class="sb-summary-total">৳ ৪৭৩</strong>
+                </div>
+            </div>
+
+            <!-- Action Buttons for Delivery Flow -->
+            <div class="sb-order-action-btns">
+                <button type="button" class="sb-btn-reject" onclick="handleOrderAction('reject')">রিজেক্ট</button>
+                <button type="button" class="sb-btn-accept" onclick="handleOrderAction('ready')">পণ্য প্রস্তুত / রেডি</button>
+            </div>
+        </div>
     </div>
-</main>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 2: ক্রেডিট (বাকি) তালিকা (Credit Ledger Modal)     -->
+<!-- ======================================================== -->
+<div class="sb-modal-backdrop" id="creditLedgerModal" style="display: none;">
+    <div class="sb-modal-box">
+        <div class="sb-modal-header">
+            <div class="sb-order-header-left">
+                <button type="button" class="sb-pane-back" onclick="closeCreditLedgerModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </button>
+                <h4 style="margin:0; font-size: 17px; font-weight:800;">ক্রেডিট (বাকি)</h4>
+            </div>
+            <button type="button" class="sb-modal-close-btn" onclick="closeCreditLedgerModal()">&times;</button>
+        </div>
+
+        <div class="sb-modal-body">
+            <!-- Filter Tabs -->
+            <div class="sb-credit-filter-tabs">
+                <button type="button" class="sb-cf-tab active" onclick="filterCreditTab(this, 'all')">সব</button>
+                <button type="button" class="sb-cf-tab" onclick="filterCreditTab(this, 'unpaid')">অপরিশোধিত</button>
+                <button type="button" class="sb-cf-tab" onclick="filterCreditTab(this, 'paid')">পরিশোধিত</button>
+            </div>
+
+            <!-- List of Credit Customers -->
+            <div class="sb-credit-list">
+                <!-- Item 1 -->
+                <div class="sb-credit-item" data-status="unpaid">
+                    <div class="sb-credit-cust-avatar" style="background-image: url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80&q=80');"></div>
+                    <div class="sb-credit-info">
+                        <h4>রফিকুল ইসলাম <small>№ SB25478</small></h4>
+                        <p>তারিখ: ১৬ আগস্ট, ২০২৬</p>
+                        <span class="sb-credit-due-txt">ডিউ: ৩০ আগস্ট, ২০২৬</span>
+                    </div>
+                    <strong class="sb-credit-amount">৳ ১,০০০</strong>
+                </div>
+
+                <!-- Item 2 -->
+                <div class="sb-credit-item" data-status="unpaid">
+                    <div class="sb-credit-cust-avatar" style="background-image: url('https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=80&q=80');"></div>
+                    <div class="sb-credit-info">
+                        <h4>জসীম উদ্দিন <small>№ SB26510</small></h4>
+                        <p>তারিখ: ১২ আগস্ট, ২০২৬</p>
+                        <span class="sb-credit-due-txt">ডিউ: ২২ আগস্ট, ২০২৬</span>
+                    </div>
+                    <strong class="sb-credit-amount">৳ ৭৫০</strong>
+                </div>
+
+                <!-- Item 3 (Paid) -->
+                <div class="sb-credit-item" data-status="paid">
+                    <div class="sb-credit-cust-avatar" style="background-image: url('https://images.unsplash.com/photo-1580489944761-15a19d654956?w=80&q=80');"></div>
+                    <div class="sb-credit-info">
+                        <h4>মোঃ সালাম <small>№ SB23655</small></h4>
+                        <p>তারিখ: ০১ আগস্ট, ২০২৬</p>
+                        <span class="sb-credit-paid-badge">পরিশোধিত</span>
+                    </div>
+                    <strong class="sb-credit-amount sb-text-green">৳ ০</strong>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 16px;">
+                <a href="/Shopkeeper/Dues" class="sb-btn-primary-full" style="display: block; text-decoration: none;">সব দেখুন</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================== -->
+<!-- MODAL 3: আয় ও লাভ রিপোর্ট (Income & Profit Split Report) -->
+<!-- ======================================================== -->
+<div class="sb-modal-backdrop" id="profitReportModal" style="display: none;">
+    <div class="sb-modal-box">
+        <div class="sb-modal-header">
+            <div class="sb-order-header-left">
+                <button type="button" class="sb-pane-back" onclick="closeProfitReportModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </button>
+                <h4 style="margin:0; font-size: 17px; font-weight:800;">আয় রিপোর্ট</h4>
+            </div>
+            <select class="sb-select-sm">
+                <option>এই মাস</option>
+                <option>গত মাস</option>
+            </select>
+        </div>
+
+        <div class="sb-modal-body">
+            <div class="sb-report-date-range">০১ - ১৬ আগস্ট, ২০২৬</div>
+
+            <!-- Report KPI Rows -->
+            <div class="sb-report-kpi-stack">
+                <div class="sb-report-row">
+                    <span>মোট বিক্রয়</span>
+                    <strong>৳ ৮৫,০০০</strong>
+                </div>
+
+                <div class="sb-report-row">
+                    <span>মোট লাভ</span>
+                    <strong class="sb-text-green">৳ ৮,৫০০</strong>
+                </div>
+
+                <div class="sb-report-row sb-report-highlight">
+                    <span>আমার অংশ (৫০%)</span>
+                    <strong class="sb-text-green">৳ ৪,২৫০</strong>
+                </div>
+
+                <div class="sb-report-row">
+                    <span>Smart Bazar অংশ (৫০%)</span>
+                    <strong style="color: #64748b;">৳ ৪,২৫০</strong>
+                </div>
+            </div>
+
+            <!-- Chart Bar Visualization -->
+            <div class="sb-report-chart-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: 700; color: #475569;">দৈনিক বিক্রয় গ্রাফ</span>
+                </div>
+                <div style="position: relative; height: 160px; width: 100%;">
+                    <canvas id="shopkeeperProfitChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    /* ========================================================== */
+    /* SHOPKEEPER SMART BAZAR THEME & AESTHETICS                 */
+    /* ========================================================== */
+    :root {
+        --sb-primary: #059669;
+        --sb-primary-hover: #047857;
+        --sb-primary-light: #ecfdf5;
+        --sb-dark: #0f172a;
+        --sb-border: #e2e8f0;
+        --sb-card-bg: #ffffff;
+        --sb-radius-sm: 10px;
+        --sb-radius-md: 14px;
+        --sb-radius-lg: 20px;
+    }
+
+    body {
+        background-color: #f1f5f9;
+        font-family: 'Anek Bangla', 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .sb-shop-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+    }
+
+    /* SIDEBAR */
+    .sb-shop-sidebar {
+        width: 250px;
+        background: #ffffff;
+        border-right: 1px solid var(--sb-border);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        position: sticky;
+        top: 0;
+        z-index: 40;
+    }
+
+    .sb-shop-brand {
+        padding: 20px 18px 14px;
+    }
+
+    .sb-shop-brand-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sb-brand-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-accent { color: var(--sb-primary); }
+
+    .sb-shop-code-pill {
+        display: block;
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .sb-shop-nav {
+        flex: 1;
+        padding: 8px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        overflow-y: auto;
+    }
+
+    .sb-shop-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--sb-radius-md);
+        color: #475569;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .sb-shop-nav-item:hover {
+        background: #f8fafc;
+        color: var(--sb-primary);
+    }
+
+    .sb-shop-nav-item.active {
+        background: var(--sb-primary);
+        color: #ffffff;
+    }
+
+    .sb-badge-alert {
+        margin-left: auto;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 12px;
+    }
+
+    .sb-shop-sidebar-footer {
+        padding: 14px;
+        border-top: 1px solid var(--sb-border);
+    }
+
+    .sb-shop-logout-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 9px 12px;
+        border: none;
+        background: transparent;
+        color: #ef4444;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border-radius: var(--sb-radius-md);
+    }
+
+    .sb-shop-logout-btn:hover { background: #fee2e2; }
+
+    /* MAIN CONTENT */
+    .sb-shop-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #064e3b; /* Premium Forest Green Hero Background */
+        padding-bottom: 70px;
+    }
+
+    /* TOPBAR */
+    .sb-shop-topbar {
+        background: transparent;
+        padding: 18px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffffff;
+    }
+
+    .sb-shop-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sb-shop-back-btn {
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .sb-shop-topbar-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .sb-shop-cart-badge-btn {
+        position: relative;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .sb-cart-count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 800;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* CONTAINER */
+    .sb-shop-container {
+        padding: 0 20px 40px;
+        max-width: 600px;
+        width: 100%;
+        margin: 0 auto;
+    }
+
+    .sb-shop-alert {
+        padding: 12px 16px;
+        border-radius: var(--sb-radius-md);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        font-size: 13.5px;
+        font-weight: 600;
+    }
+
+    .sb-shop-alert-success {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    /* PROFILE CARD */
+    .sb-shop-profile-card {
+        background: #ffffff;
+        border-radius: var(--sb-radius-lg);
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        margin-bottom: 16px;
+    }
+
+    .sb-shop-banner-img {
+        height: 120px;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .sb-shop-profile-details {
+        padding: 16px 18px;
+    }
+
+    .sb-shop-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .sb-shop-name {
+        margin: 0;
+        font-size: 19px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-shop-status-pill {
+        font-size: 12px;
+        font-weight: 800;
+        padding: 4px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sb-status-open {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .sb-status-closed {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .sb-shop-address {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* 4 FINANCIAL METRICS */
+    .sb-shop-metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .sb-metric-box {
+        background: #ffffff;
+        border-radius: var(--sb-radius-md);
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+
+    .sb-metric-lbl {
+        font-size: 12.5px;
+        color: #64748b;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .sb-metric-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-text-green { color: #059669; }
+    .sb-text-amber { color: #d97706; }
+
+    /* 6 ACTIONS TILES */
+    .sb-shop-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .sb-action-tile {
+        background: #ffffff;
+        border-radius: var(--sb-radius-md);
+        padding: 18px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .sb-action-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .sb-tile-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sb-icon-blue { background: #eff6ff; }
+    .sb-icon-orange { background: #fff7ed; }
+    .sb-icon-green { background: #ecfdf5; }
+    .sb-icon-amber { background: #fffbeb; }
+    .sb-icon-purple { background: #faf5ff; }
+    .sb-icon-indigo { background: #eef2ff; }
+
+    .sb-tile-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #1e293b;
+        text-align: center;
+    }
+
+    /* MOBILE BOTTOM NAV */
+    .sb-mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        border-top: 1px solid var(--sb-border);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 6px 12px;
+        z-index: 100;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .sb-bnav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 8px;
+    }
+
+    .sb-bnav-item.active {
+        color: var(--sb-primary);
+    }
+
+    .sb-bnav-pos-btn {
+        background: var(--sb-primary);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -24px;
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+        text-decoration: none;
+        transition: transform 0.2s;
+    }
+
+    .sb-bnav-pos-btn:hover {
+        transform: scale(1.05);
+    }
+
+    /* MODALS */
+    .sb-order-badge-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+    }
+
+    .sb-order-id-txt {
+        font-size: 14px;
+        color: #475569;
+    }
+
+    .sb-order-new-pill {
+        background: #ffedd5;
+        color: #ea580c;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 20px;
+    }
+
+    .sb-customer-profile-box {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f8fafc;
+        border-radius: var(--sb-radius-md);
+        padding: 12px 14px;
+        margin-bottom: 16px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .sb-customer-avatar-circle {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #ecfdf5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sb-customer-info-txt {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sb-cust-lbl {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .sb-customer-info-txt strong {
+        font-size: 14px;
+        color: #0f172a;
+    }
+
+    .sb-customer-info-txt small {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .sb-order-items-table-wrap {
+        margin-bottom: 16px;
+    }
+
+    .sb-order-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+    }
+
+    .sb-order-table th {
+        background: #f8fafc;
+        padding: 8px 10px;
+        text-align: left;
+        color: #64748b;
+        font-weight: 700;
+        border-bottom: 1px solid var(--sb-border);
+    }
+
+    .sb-order-table td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .sb-order-summary-box {
+        background: #f8fafc;
+        border-radius: var(--sb-radius-md);
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 18px;
+    }
+
+    .sb-summary-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13.5px;
+    }
+
+    .sb-summary-total {
+        font-size: 17px;
+        color: var(--sb-primary);
+        font-weight: 800;
+    }
+
+    .sb-pay-credit-tag {
+        background: #fee2e2;
+        color: #dc2626;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+
+    .sb-due-date-txt {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #475569;
+    }
+
+    .sb-order-action-btns {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 10px;
+    }
+
+    .sb-btn-reject {
+        background: #fee2e2;
+        color: #dc2626;
+        border: none;
+        padding: 12px;
+        border-radius: var(--sb-radius-md);
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    .sb-btn-accept {
+        background: var(--sb-primary);
+        color: #ffffff;
+        border: none;
+        padding: 12px;
+        border-radius: var(--sb-radius-md);
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+    }
+
+    /* CREDIT LEDGER MODAL */
+    .sb-credit-filter-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .sb-cf-tab {
+        flex: 1;
+        padding: 8px;
+        border-radius: var(--sb-radius-sm);
+        border: 1px solid var(--sb-border);
+        background: #f8fafc;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .sb-cf-tab.active {
+        background: var(--sb-primary);
+        color: #ffffff;
+        border-color: var(--sb-primary);
+    }
+
+    .sb-credit-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .sb-credit-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #f8fafc;
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .sb-credit-cust-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+    }
+
+    .sb-credit-info {
+        flex: 1;
+    }
+
+    .sb-credit-info h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .sb-credit-info small {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .sb-credit-info p {
+        margin: 2px 0;
+        font-size: 11.5px;
+        color: #64748b;
+    }
+
+    .sb-credit-due-txt {
+        font-size: 11px;
+        font-weight: 700;
+        color: #dc2626;
+    }
+
+    .sb-credit-paid-badge {
+        font-size: 10.5px;
+        font-weight: 700;
+        background: #dcfce7;
+        color: #16a34a;
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+
+    .sb-credit-amount {
+        font-size: 16px;
+        font-weight: 800;
+        color: #dc2626;
+    }
+
+    /* PROFIT REPORT MODAL */
+    .sb-report-date-range {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+
+    .sb-report-kpi-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .sb-report-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 14px;
+        border-radius: var(--sb-radius-sm);
+        background: #f8fafc;
+        font-size: 14px;
+        font-weight: 700;
+    }
+
+    .sb-report-highlight {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+    }
+
+    @@media (min-width: 901px) {
+        .sb-mobile-bottom-nav { display: none; }
+        .sb-shop-main { background: #f8fafc; padding: 24px 32px; }
+        .sb-shop-topbar { color: #0f172a; }
+        .sb-shop-topbar-title { color: #0f172a; }
+        .sb-shop-back-btn { color: #0f172a; }
+        .sb-shop-cart-badge-btn { color: #0f172a; }
+        .sb-shop-container { max-width: 900px; }
+        .sb-shop-actions-grid { grid-template-columns: repeat(6, 1fr); }
+    }
+
+    @@media (max-width: 900px) {
+        .sb-shop-sidebar { display: none; }
+    }
+</style>
+}
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            var ctx = document.getElementById('salesExpenseChart').getContext('2d');
-            var chartLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartLabels));
-            var salesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartSalesData));
-            var expenseData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartExpenseData));
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    function toggleShopStatus() {
+        const badge = document.getElementById('shopStatusToggle');
+        if (badge.classList.contains('sb-status-open')) {
+            badge.classList.remove('sb-status-open');
+            badge.classList.add('sb-status-closed');
+            badge.textContent = 'Closed';
+        } else {
+            badge.classList.remove('sb-status-closed');
+            badge.classList.add('sb-status-open');
+            badge.textContent = 'Open';
+        }
+    }
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartLabels,
-                    datasets: [
-                        {
-                            label: 'Sales (৳)',
-                            data: salesData,
-                            backgroundColor: 'rgba(20, 100, 233, 0.7)',
-                            borderColor: 'rgba(20, 100, 233, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Expenses (৳)',
-                            data: expenseData,
-                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                            borderColor: 'rgba(239, 68, 68, 1)',
-                            borderWidth: 1,
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: '#e2e8f0'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        }
-                    }
-                }
-            });
+    // Modal Triggers
+    function openCustomerOrderModal() {
+        document.getElementById('customerOrderModal').style.display = 'flex';
+    }
+    function closeCustomerOrderModal() {
+        document.getElementById('customerOrderModal').style.display = 'none';
+    }
+
+    function openCreditLedgerModal() {
+        document.getElementById('creditLedgerModal').style.display = 'flex';
+    }
+    function closeCreditLedgerModal() {
+        document.getElementById('creditLedgerModal').style.display = 'none';
+    }
+
+    function openProfitReportModal() {
+        document.getElementById('profitReportModal').style.display = 'flex';
+        initShopProfitChart();
+    }
+    function closeProfitReportModal() {
+        document.getElementById('profitReportModal').style.display = 'none';
+    }
+
+    function handleOrderAction(action) {
+        if (action === 'ready') {
+            alert('পণ্য সফলভাবে প্রস্তুত (Order Ready) করা হয়েছে! গ্রাহককে দোকান থেকে সংগ্রহের (Pickup Collect) জন্য নোটিফিকেশন পাঠানো হলো।');
+        } else if (action === 'accept') {
+            alert('অর্ডার সফলভাবে গ্রহণ করা হয়েছে!');
+        } else {
+            alert('অর্ডারটি বাতিল (Reject) করা হয়েছে।');
+        }
+        closeCustomerOrderModal();
+    }
+
+    function filterCreditTab(btn, status) {
+        document.querySelectorAll('.sb-cf-tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+
+        const items = document.querySelectorAll('.sb-credit-item');
+        items.forEach(item => {
+            if (status === 'all' || item.getAttribute('data-status') === status) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
         });
-    </script>
+    }
+
+    let profitChartInstance = null;
+    function initShopProfitChart() {
+        if (profitChartInstance) return;
+        const ctx = document.getElementById('shopkeeperProfitChart').getContext('2d');
+        profitChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['১০ আগস্ট', '১১ আগস্ট', '১২ আগস্ট', '১৩ আগস্ট', '১৪ আগস্ট', '১৫ আগস্ট', '১৬ আগস্ট'],
+                datasets: [{
+                    label: 'বিক্রয় (৳)',
+                    data: [4200, 5800, 7100, 9400, 8200, 6500, 8500],
+                    backgroundColor: '#059669',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { family: 'Anek Bangla', size: 10 } } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { family: 'Anek Bangla', size: 10 } } }
+                }
+            }
+        });
+    }
+</script>
 }

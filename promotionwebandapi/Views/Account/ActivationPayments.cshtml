@@ -53,7 +53,7 @@
                         <td>@(payment.CardType ?? "SSLCOMMERZ")</td>
                         <td><strong>&#2547; @payment.Amount.ToString("N2")</strong><small>@payment.Currency</small></td>
                         <td><span class="company-status @statusClass">@payment.Status</span></td>
-                        <td>@(payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("dd MMM yyyy")<small>@(payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("hh:mm tt")</small></td>
+                        <td>@((payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("dd MMM yyyy"))<small>@((payment.PaidAt ?? payment.CreatedAt).ToLocalTime().ToString("hh:mm tt"))</small></td>
                     </tr>
                 }
                 </tbody>

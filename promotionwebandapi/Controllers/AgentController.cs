@@ -8,6 +8,7 @@ public sealed class AgentController(
     AppStore store,
     DeliveryStore deliveryStore,
     ServiceRequestStore serviceRequestStore,
+    LoanStore loanStore,
     IWebHostEnvironment environment) : Controller
 {
     [HttpGet]
@@ -15,6 +16,41 @@ public sealed class AgentController(
 
     [HttpGet]
     public IActionResult Dashboard() => AgentView("Dashboard");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateOfficeLocation(
+        string officeName,
+        string officeAddress,
+        string? roadNo,
+        string? areaName,
+        string? thana,
+        string? contactPhone,
+        string? officeHours,
+        decimal? latitude,
+        decimal? longitude)
+    {
+        var agentUserId = GetAgentUserId();
+        if (agentUserId is null) return LoginRedirect();
+
+        if (string.IsNullOrWhiteSpace(officeName) || string.IsNullOrWhiteSpace(officeAddress))
+        {
+            TempData["AgentError"] = "অফিসের নাম এবং ঠিকানা দেওয়া আবশ্যক।";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        try
+        {
+            loanStore.UpdateAgentOffice(agentUserId.Value, officeName, officeAddress, roadNo, areaName, thana, contactPhone, officeHours, latitude, longitude);
+            TempData["AgentSuccess"] = "অফিসের বিস্তারিত ঠিকানা ও লোকেশন সফলভাবে আপডেট হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["AgentError"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Profile));
+    }
 
     [HttpGet]
     public IActionResult FieldForce() => AgentView("FieldForce");
@@ -42,7 +78,8 @@ public sealed class AgentController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult RegisterFieldOfficer([Bind(Prefix = "FieldOfficerRegistration")] FieldOfficerRegistrationInput input)
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<IActionResult> RegisterFieldOfficer([Bind(Prefix = "FieldOfficerRegistration")] FieldOfficerRegistrationInput input)
     {
         var agentUserId = GetAgentUserId();
         if (agentUserId is null) return LoginRedirect();
@@ -54,7 +91,19 @@ public sealed class AgentController(
 
         try
         {
-            store.RegisterFieldOfficer(agentUserId.Value, input);
+            string? profilePhotoUrl = null;
+            if (input.ProfilePhoto is { Length: > 0 })
+            {
+                var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+                Directory.CreateDirectory(uploads);
+                var filename = Guid.NewGuid().ToString() + Path.GetExtension(input.ProfilePhoto.FileName);
+                var filepath = Path.Combine(uploads, filename);
+                using var stream = new FileStream(filepath, FileMode.Create);
+                await input.ProfilePhoto.CopyToAsync(stream);
+                profilePhotoUrl = $"/uploads/profiles/{filename}";
+            }
+
+            store.RegisterFieldOfficer(agentUserId.Value, input, profilePhotoUrl);
             TempData["AgentSuccess"] = $"{input.Name} has been registered as field force.";
         }
         catch (InvalidOperationException ex)
@@ -62,6 +111,35 @@ public sealed class AgentController(
             TempData["AgentError"] = ex.Message;
         }
         return RedirectToAction(nameof(FieldForce));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<IActionResult> UpdateProfilePicture(IFormFile profilePicture)
+    {
+        var agentUserId = GetAgentUserId();
+        if (agentUserId is null) return LoginRedirect();
+
+        if (profilePicture is { Length: > 0 })
+        {
+            var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+            Directory.CreateDirectory(uploads);
+            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filepath = Path.Combine(uploads, filename);
+            using var stream = new FileStream(filepath, FileMode.Create);
+            await profilePicture.CopyToAsync(stream);
+            var photoPath = $"/uploads/profiles/{filename}";
+            
+            store.UpdateUserProfilePicture(agentUserId.Value, photoPath);
+            TempData["AgentSuccess"] = "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।";
+        }
+        else
+        {
+            TempData["AgentError"] = "অনুগ্রহ করে একটি ছবি নির্বাচন করুন।";
+        }
+        
+        return RedirectToAction(nameof(Profile));
     }
 
     [HttpPost]
@@ -235,10 +313,12 @@ public sealed class AgentController(
     private AgentDashboardViewModel BuildPortal(int agentUserId)
     {
         var district = store.GetAgentDistrict(agentUserId);
+        var user = store.GetUserById(agentUserId);
         return new AgentDashboardViewModel
         {
-            AgentName = HttpContext.Session.GetString("UserName") ?? "Agent",
-            AgentPhone = HttpContext.Session.GetString("UserPhone") ?? "",
+            AgentName = user?.Name ?? HttpContext.Session.GetString("UserName") ?? "Agent",
+            AgentPhone = user?.Phone ?? HttpContext.Session.GetString("UserPhone") ?? "",
+            ProfilePictureUrl = user?.ProfilePictureUrl,
             District = district,
             Locations = store.GetLocationCatalog(),
             FieldOfficers = store.GetFieldOfficersByAgent(agentUserId),

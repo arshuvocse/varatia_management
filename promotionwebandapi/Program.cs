@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Http.Features;
 using PromotionWeb.Hubs;
@@ -37,6 +38,32 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddSignalR();
+
+var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
+try
+{
+    if (!Directory.Exists(dataProtectionPath))
+    {
+        Directory.CreateDirectory(dataProtectionPath);
+    }
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+        .SetApplicationName("SmartBazar");
+}
+catch (Exception)
+{
+    builder.Services.AddDataProtection()
+        .SetApplicationName("SmartBazar");
+}
+
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = "SmartBazar.Antiforgery";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -53,8 +80,11 @@ builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(4);
+    options.Cookie.Name = "SmartBazar.Session";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 builder.Services.AddScoped<AppStore>();
 builder.Services.AddScoped<CustomerOrderStore>();
@@ -70,6 +100,7 @@ builder.Services.AddScoped<ServiceRequestStore>();
 builder.Services.AddScoped<ShopkeeperActivationStore>();
 builder.Services.AddScoped<SosStore>();
 builder.Services.AddScoped<LiveSupportStore>();
+builder.Services.AddScoped<LoanStore>();
 builder.Services.AddHttpClient<SslCommerzService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);

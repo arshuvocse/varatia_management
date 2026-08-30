@@ -80,6 +80,12 @@ public sealed class CustomerOrderInputModel
 
     public string? Remarks { get; set; }
 
+    public string PaymentMethod { get; set; } = "ক্যাশ";
+
+    public string DeliveryType { get; set; } = "পিকআপ"; // "পিকআপ" (Model A: Customer Pickup) or "হোম ডেলিভারি" (Model B: Home Delivery)
+
+    public decimal DeliveryCharge { get; set; } = 0m;
+
     public List<CustomerOrderItemInputModel> Items { get; set; } = [];
 }
 
@@ -100,7 +106,9 @@ public sealed class CustomerOrderMaster
     public DateTime OrderDate { get; init; } = DateTime.Now;
     public decimal TotalAmount { get; init; }
     public decimal DiscountAmount { get; init; }
-    public decimal NetAmount => TotalAmount - DiscountAmount;
+    public decimal DeliveryCharge { get; init; } = 0m;
+    public string DeliveryType { get; init; } = "পিকআপ";
+    public decimal NetAmount => TotalAmount - DiscountAmount + DeliveryCharge;
     public string Status { get; set; } = CustomerOrderStatus.Pending;
     public string? Remarks { get; init; }
     public IReadOnlyList<CustomerOrderDetail> Details { get; init; } = [];

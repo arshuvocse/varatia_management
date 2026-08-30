@@ -1,10 +1,8 @@
 @model PromotionWeb.Models.ShopkeeperDashboardViewModel
-
-<div class="shop-page-header">
-    <h1 class="shop-page-title">দৈনিক রিপোর্ট ও আয়-ব্যয় অ্যানালিটিক্স</h1>
-</div>
-
 @{
+    ViewData["Title"] = "দৈনিক রিপোর্ট - Smart Bazar";
+    ViewData["ActivePage"] = "DailyReport";
+    
     var totalSalesSum = Model.DailyReports.Sum(r => r.TotalSalesAmount);
     var totalCashSum = Model.DailyReports.Sum(r => r.TotalCashCollected);
     var totalDueCollectedSum = Model.DailyReports.Sum(r => r.TotalDueCollected);
@@ -12,60 +10,76 @@
     var netProfit = totalSalesSum - totalExpensesSum;
 }
 
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
-        <span style="color: #64748b; font-size: 13px; font-weight: 700;">মোট সেলস ভলিউম</span>
-        <h3 style="margin: 6px 0 0; color: #0f172a; font-size: 22px;">৳ @totalSalesSum.ToString("N2")</h3>
-    </div>
-    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px;">
-        <span style="color: #166534; font-size: 13px; font-weight: 700;">মোট ক্যাশ রিসিভ</span>
-        <h3 style="margin: 6px 0 0; color: #15803d; font-size: 22px;">৳ @totalCashSum.ToString("N2")</h3>
-    </div>
-    <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 18px;">
-        <span style="color: #9f1239; font-size: 13px; font-weight: 700;">দোকানের মোট খরচ</span>
-        <h3 style="margin: 6px 0 0; color: #e11d48; font-size: 22px;">৳ @totalExpensesSum.ToString("N2")</h3>
-    </div>
-    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px;">
-        <span style="color: #1e40af; font-size: 13px; font-weight: 700;">আনুপাতিক নিট প্রফিট</span>
-        <h3 style="margin: 6px 0 0; color: #2563eb; font-size: 22px;">৳ @netProfit.ToString("N2")</h3>
-    </div>
-</div>
+<main class="app-page shop-theme shop-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model="Model" />
 
-@if (Model.DailyReports.Count == 0)
-{
-    <div class="shop-empty-state">
-        <div class="shop-empty-icon">📊</div>
-        <h3>কোনো রিপোর্ট নেই</h3>
-        <p>এখন পর্যন্ত কোনো লেনদেন সম্পন্ন হয়নি।</p>
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span>ANALYTICS & REPORTS</span>
+                    <h1>দৈনিক রিপোর্ট ও আয়-ব্যয় অ্যানালিটিক্স</h1>
+                    <p>দৈনিক বিক্রি, নগদ আদায়, দোকানের খরচ ও মোট লাভের পরিসংখ্যান।</p>
+                </div>
+            </header>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
+                    <span style="color: #64748b; font-size: 13px; font-weight: 700;">মোট সেলস ভলিউম</span>
+                    <h3 style="margin: 6px 0 0; color: #0f172a; font-size: 22px;">৳ @totalSalesSum.ToString("N2")</h3>
+                </div>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px;">
+                    <span style="color: #166534; font-size: 13px; font-weight: 700;">মোট ক্যাশ রিসিভ</span>
+                    <h3 style="margin: 6px 0 0; color: #15803d; font-size: 22px;">৳ @totalCashSum.ToString("N2")</h3>
+                </div>
+                <div style="background: #fff1f2; border: 1px solid #fecdd3; border-radius: 12px; padding: 18px;">
+                    <span style="color: #9f1239; font-size: 13px; font-weight: 700;">দোকানের মোট খরচ</span>
+                    <h3 style="margin: 6px 0 0; color: #e11d48; font-size: 22px;">৳ @totalExpensesSum.ToString("N2")</h3>
+                </div>
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px;">
+                    <span style="color: #1e40af; font-size: 13px; font-weight: 700;">আনুপাতিক নিট প্রফিট</span>
+                    <h3 style="margin: 6px 0 0; color: #2563eb; font-size: 22px;">৳ @netProfit.ToString("N2")</h3>
+                </div>
+            </div>
+
+            @if (Model.DailyReports.Count == 0)
+            {
+                <div class="shop-empty-state" style="background:#fff; padding:40px; text-align:center; border-radius:12px; border:1px solid #e2e8f0;">
+                    <div style="font-size: 36px; margin-bottom: 8px;">📊</div>
+                    <h3 style="margin:0 0 4px; color:#0f172a;">কোনো রিপোর্ট নেই</h3>
+                    <p style="color:#64748b; margin:0;">এখন পর্যন্ত কোনো লেনদেন সম্পন্ন হয়নি।</p>
+                </div>
+            }
+            else
+            {
+                <div class="shop-data-table-container" style="background:#fff; padding:20px; border-radius:12px; border:1px solid #e2e8f0; overflow-x:auto;">
+                    <table class="shop-data-table" style="width:100%; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
+                                <th style="padding:10px 12px; text-align:left;">তারিখ</th>
+                                <th style="padding:10px 12px; text-align:left;">মোট বিক্রির পরিমাণ</th>
+                                <th style="padding:10px 12px; text-align:left;">মোট সেলস (টাকা)</th>
+                                <th style="padding:10px 12px; text-align:left;">মোট ক্যাশ/ইনস্ট্যান্ট রিসিভ</th>
+                                <th style="padding:10px 12px; text-align:left;">বকেয়া আদায়</th>
+                                <th style="padding:10px 12px; text-align:right;">মোট রিসিভ (সারাদিন)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var report in Model.DailyReports)
+                            {
+                                <tr style="border-bottom:1px solid #f1f5f9;">
+                                    <td style="padding:10px 12px;"><strong>@report.Date.ToString("dd MMM yyyy")</strong></td>
+                                    <td style="padding:10px 12px;">@report.TotalSalesCount টি</td>
+                                    <td style="padding:10px 12px;">৳@report.TotalSalesAmount.ToString("N2")</td>
+                                    <td style="padding:10px 12px;">৳@((report.TotalCashCollected - report.TotalDueCollected).ToString("N2"))</td>
+                                    <td style="padding:10px 12px;">৳@report.TotalDueCollected.ToString("N2")</td>
+                                    <td style="padding:10px 12px; color: #059669; font-weight: bold; text-align:right;">৳@report.TotalCashCollected.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
     </div>
-}
-else
-{
-    <div class="shop-data-table-container">
-        <table class="shop-data-table">
-            <thead>
-                <tr>
-                    <th>তারিখ</th>
-                    <th>মোট বিক্রির পরিমাণ</th>
-                    <th>মোট সেলস (টাকা)</th>
-                    <th>মোট ক্যাশ/ইনস্ট্যান্ট রিসিভ</th>
-                    <th>বকেয়া আদায়</th>
-                    <th>মোট রিসিভ (সারাদিন)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var report in Model.DailyReports)
-                {
-                    <tr>
-                        <td><strong>@report.Date.ToString("dd MMM yyyy")</strong></td>
-                        <td>@report.TotalSalesCount টি</td>
-                        <td>৳@report.TotalSalesAmount.ToString("N2")</td>
-                        <td>৳@((report.TotalCashCollected - report.TotalDueCollected).ToString("N2"))</td>
-                        <td>৳@report.TotalDueCollected.ToString("N2")</td>
-                        <td style="color: #059669; font-weight: bold;">৳@report.TotalCashCollected.ToString("N2")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
+</main>

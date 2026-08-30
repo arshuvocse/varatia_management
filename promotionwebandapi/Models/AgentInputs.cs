@@ -15,6 +15,8 @@ public sealed class FieldOfficerRegistrationInput
 
     [Required]
     public int? DistrictId { get; set; }
+
+    public Microsoft.AspNetCore.Http.IFormFile? ProfilePhoto { get; set; }
 }
 
 public sealed class AgentDistrictInfo

@@ -3,6 +3,7 @@ namespace PromotionWeb.Models;
 public sealed class FieldOfficerDashboardViewModel
 {
     public string OfficerName { get; init; } = "";
+    public string? ProfilePictureUrl { get; init; }
     public ShopkeeperRegistrationViewModel Registration { get; init; } = new();
     public IReadOnlyList<Shopkeeper> Shops { get; init; } = [];
     public LocationCatalog Locations { get; init; } = new();

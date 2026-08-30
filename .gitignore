@@ -31,3 +31,9 @@ Thumbs.db
 Firebase/*.json
 *firebase-adminsdk*.json
 
+# Runtime & Local Publish
+self_contained_publish/
+promotionwebandapi/logs/
+promotionwebandapi/DataProtectionKeys/
+
+

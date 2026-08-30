@@ -37,17 +37,6 @@ public sealed class FieldOfficerController(
         return View("Shops", BuildShopsModel());
     }
 
-    [HttpGet("/FieldForce/Prices")]
-    public IActionResult Prices()
-    {
-        if (!IsFieldOfficer())
-        {
-            return RedirectToAction("Login", "Account");
-        }
-
-        return View("Prices", BuildShopsModel());
-    }
-
     [HttpGet("/FieldForce/Products")]
     public IActionResult Products()
     {
@@ -73,6 +62,70 @@ public sealed class FieldOfficerController(
             DistributionProducts = productStore.GetProducts(GetUserId()),
             Locations = store.GetLocationCatalog()
         });
+    }
+
+    [HttpGet("/FieldForce/Messages")]
+    public IActionResult Messages()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        return View("Messages", BuildDashboard());
+    }
+
+    [HttpGet("/FieldForce/Notifications")]
+    public IActionResult Notifications()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        return View("Notifications", BuildDashboard());
+    }
+
+    [HttpGet("/FieldForce/Profile")]
+    public IActionResult Profile()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        return View("Profile", BuildDashboard());
+    }
+
+    [HttpPost("/FieldForce/UpdateProfilePicture")]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<IActionResult> UpdateProfilePicture(IFormFile profilePicture)
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        var userId = GetUserId();
+
+        if (profilePicture is { Length: > 0 })
+        {
+            var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+            Directory.CreateDirectory(uploads);
+            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filepath = Path.Combine(uploads, filename);
+            using var stream = new FileStream(filepath, FileMode.Create);
+            await profilePicture.CopyToAsync(stream);
+            var photoPath = $"/uploads/profiles/{filename}";
+            
+            store.UpdateUserProfilePicture(userId, photoPath);
+            TempData["SuccessMessage"] = "প্রোফাইল ছবি সফলভাবে আপডেট হয়েছে।";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "অনুগ্রহ করে একটি ছবি নির্বাচন করুন।";
+        }
+        
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpGet("/FieldForce/Reports")]
+    public IActionResult Reports()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        return View("Reports", BuildDashboard());
+    }
+
+    [HttpGet("/FieldForce/Orders")]
+    public IActionResult Orders()
+    {
+        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
+        return View("Reports", BuildDashboard());
     }
 
     [HttpPost("/FieldForce/Products")]
@@ -168,50 +221,6 @@ public sealed class FieldOfficerController(
         return RedirectToAction(nameof(Shops));
     }
 
-    [HttpPost("/FieldForce/Shops/Prices")]
-    [ValidateAntiForgeryToken]
-    public IActionResult UpdateShopPrices(FieldOfficerShopPricingInputModel input)
-    {
-        if (!IsFieldOfficer()) return RedirectToAction("Login", "Account");
-        try
-        {
-            var selectedShopIds = input.ShopkeeperIds.Count > 0
-                ? input.ShopkeeperIds.Where(id => id > 0).Distinct().ToArray()
-                : input.ShopkeeperId > 0 ? [input.ShopkeeperId] : [];
-            if (selectedShopIds.Length == 0)
-            {
-                throw new InvalidOperationException("Select at least one shopkeeper.");
-            }
-
-            var shops = store.GetShopkeepers(GetUserId())
-                .Where(item => selectedShopIds.Contains(item.Id))
-                .ToList();
-            if (shops.Count != selectedShopIds.Length)
-            {
-                throw new InvalidOperationException("Select valid shopkeepers under your account.");
-            }
-            if (shops.Select(shop => shop.ShopType).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1)
-            {
-                throw new InvalidOperationException("Select shopkeepers from the same shop category.");
-            }
-
-            foreach (var shop in shops)
-            {
-                productStore.UpdateShopProductAssignments(
-                    GetUserId(),
-                    shop.Id,
-                    shop.ShopType,
-                    input.SelectedProductIds,
-                    input.ProductPrices);
-            }
-            TempData["SuccessMessage"] = $"{shops.Count} shopkeeper product purchase and sales prices updated.";
-        }
-        catch (InvalidOperationException ex)
-        {
-            TempData["ErrorMessage"] = ex.Message;
-        }
-        return RedirectToAction(nameof(Prices));
-    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -261,7 +270,9 @@ public sealed class FieldOfficerController(
             var billboardPhotoPath = await SaveShopkeeperImage(registration.BillboardPhoto, "billboard");
             var shop = store.RegisterShopkeeper(registration, GetUserId(), profilePhotoPath, billboardPhotoPath);
             productStore.AssignProductsToShop(shop.Id, registration.ShopType, registration.SelectedProductIds);
+            
             TempData["SuccessMessage"] = $"{shop.ShopName} রেজিস্ট্রেশন সম্পন্ন। এখন দোকানদার {shop.Phone} দিয়ে লগইন করতে পারবেন।";
+            
             if (IsAjaxRequest())
             {
                 return Json(new
@@ -304,13 +315,16 @@ public sealed class FieldOfficerController(
 
     private FieldOfficerDashboardViewModel BuildDashboard(ShopkeeperRegistrationViewModel? registration = null)
     {
+        var userId = GetUserId();
+        var user = store.GetUserById(userId);
         return new FieldOfficerDashboardViewModel
         {
-            OfficerName = HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স",
+            OfficerName = user?.Name ?? HttpContext.Session.GetString("UserName") ?? "ফিল্ড ফোর্স",
+            ProfilePictureUrl = user?.ProfilePictureUrl,
             Registration = registration ?? new ShopkeeperRegistrationViewModel(),
-            Shops = store.GetShopkeepers(GetUserId()),
+            Shops = store.GetShopkeepers(userId),
             Locations = store.GetLocationCatalog(),
-            Products = productStore.GetProducts(GetUserId())
+            Products = productStore.GetProducts(userId)
                 .Where(product => product.IsActive)
                 .OrderBy(product => product.Category)
                 .ThenBy(product => product.Name)

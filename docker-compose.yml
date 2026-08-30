@@ -1,6 +1,18 @@
-version: '3.8'
-
 services:
+  web:
+    build:
+      context: ./promotionwebandapi
+      dockerfile: Dockerfile
+    container_name: varatia_web_api
+    restart: always
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+    depends_on:
+      - mssql
+
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: varatia_mssql_db
@@ -9,7 +21,7 @@ services:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=Shuvo**10
     ports:
-      - "1433:1433"
+      - "14333:1433"
     volumes:
       - mssql_data:/var/opt/mssql/data
 

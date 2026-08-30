@@ -40,13 +40,35 @@
 
                         <div asp-validation-summary="ModelOnly" class="validation"></div>
                         
+                        <!-- 8 Core Categories Horizontal Scroll Strip -->
+                        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scrollbar-width: none;">
+                            <button type="button" class="cat-pill active" onclick="selectQuickCategory('')">🌟 সকল পণ্য</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('মুদির দোকান')">🛒 মুদি দোকান</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('কসমেটিক্স')">💄 কসমেটিক্স</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('ফার্মেসি')">💊 ফার্মেসি</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('জামা কাপড়')">👕 জামা কাপড়</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('জুতার দোকান')">👟 জুতার দোকান</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('কাঁচা বাজার')">🥬 কাঁচা বাজার</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('ইলেকট্রনিক্স শপ')">⚡ ইলেকট্রনিক্স</button>
+                            <button type="button" class="cat-pill" onclick="selectQuickCategory('মোবাইল ফোনের দোকান')">📱 মোবাইল শপ</button>
+                        </div>
+
+                        <!-- District Pricing & Margin Auto-Calculation Notification -->
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #166534;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 16px;">🏷️</span>
+                                <span><strong>জেলা ভিত্তিক স্বয়ংক্রিয় মূল্য:</strong> পাইকারি বেস দর + জেলা পরিবহন খরচ + দোকানদার ও কোম্পানির মার্জিন সমন্বিত।</span>
+                            </div>
+                            <span style="background: #dcfce7; color: #15803d; font-weight: 800; padding: 2px 8px; border-radius: 6px;">১০০% স্বচ্ছ দর</span>
+                        </div>
+
                         <div class="product-filter-row" style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <select id="category-filter" style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font: inherit;">
-                                <option value="">All Categories</option>
+                                <option value="">সকল ক্যাটাগরি</option>
                             </select>
                             <div style="position: relative; flex: 2;">
                                 <span class="search-field-icon" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;">⌕</span>
-                                <input id="product-search" type="search" placeholder="Product search করুন..."
+                                <input id="product-search" type="search" placeholder="পণ্য বা ব্র্যান্ড খুঁজুন..."
                                        autocomplete="off" style="width: 100%; padding: 10px 10px 10px 35px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font: inherit;" />
                             </div>
                         </div>
@@ -107,16 +129,75 @@
                         <strong id="checkout-shop-name">Not selected</strong>
                     </div>
                     <div class="sale-calculation" aria-live="polite">
-                        <div><span>Order total</span><strong id="customer-total-নমুনা">৳ 0.00</strong></div>
-                        <div><span>Discount</span><strong id="customer-discount-নমুনা">৳ 0.00</strong></div>
-                        <div><span>Net amount</span><strong id="customer-net-নমুনা">৳ 0.00</strong></div>
+                        <div><span>পণ্যের মোট মূল্য</span><strong id="customer-total-নমুনা">৳ 0.00</strong></div>
+                        <div><span>ডিসকাউন্ট</span><strong id="customer-discount-নমুনা">৳ 0.00</strong></div>
+                        <div><span>ডেলিভারি চার্জ</span><strong id="customer-delivery-charge-display" style="color: #059669;">৳ 0.00</strong></div>
+                        <hr style="margin: 6px 0; border: 0; border-top: 1px solid #e2e8f0;" />
+                        <div><span>সর্বমোট পরিশোধ</span><strong id="customer-net-নমুনা" style="font-size: 19px; color: #059669;">৳ 0.00</strong></div>
                     </div>
                     <small>3% discount applies to orders of ৳1,000 or more.</small>
-                    <label asp-for="Order.Remarks">Delivery note</label>
-                    <input asp-for="Order.Remarks" placeholder="Preferred time or instruction" />
+
+                    <!-- Delivery System: Model A vs Model B -->
+                    <label style="display:block; margin-top: 14px; margin-bottom: 6px; font-weight: 700; color: #1e293b;">ডেলিভারি সিস্টেম (Delivery Option)</label>
+                    <div class="sb-cust-delivery-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+                        <label class="sb-cust-delivery-card active" onclick="selectDeliveryModel(this, 'পিকআপ', 0)">
+                            <input type="radio" name="CustDeliveryRadio" value="পিকআপ" checked style="display:none;" />
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 20px;">🏬</span>
+                                <div>
+                                    <strong style="display:block; font-size: 12px; color: #0f172a;">Customer Pickup</strong>
+                                    <small style="font-size: 10px; color: #64748b;">দোকান থেকে সংগ্রহ</small>
+                                </div>
+                            </div>
+                            <span class="sb-badge-free" style="margin-top: 6px; display: inline-block; font-size: 10px; font-weight: 800; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 6px;">চার্জ: ৳০ (ফ্রি)</span>
+                        </label>
+
+                        <label class="sb-cust-delivery-card" onclick="selectDeliveryModel(this, 'হোম ডেলিভারি', 30)">
+                            <input type="radio" name="CustDeliveryRadio" value="হোম ডেলিভারি" style="display:none;" />
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 20px;">🛵</span>
+                                <div>
+                                    <strong style="display:block; font-size: 12px; color: #0f172a;">Home Delivery</strong>
+                                    <small style="font-size: 10px; color: #64748b;">ঠিকানায় ডেলিভারি</small>
+                                </div>
+                            </div>
+                            <span class="sb-badge-fee" style="margin-top: 6px; display: inline-block; font-size: 10px; font-weight: 800; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 6px;">চার্জ: +৳৩০</span>
+                        </label>
+                    </div>
+                    <input asp-for="Order.DeliveryType" type="hidden" id="cust-order-delivery-type" value="পিকআপ" />
+                    <input asp-for="Order.DeliveryCharge" type="hidden" id="cust-order-delivery-charge" value="0" />
+
+                    <!-- Payment Options -->
+                    <label style="display:block; margin-top: 10px; margin-bottom: 6px; font-weight: 700; color: #1e293b;">পেমেন্ট মাধ্যম (Payment Option)</label>
+                    <div class="sb-cust-pay-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px;">
+                        <label class="sb-cust-pay-card active" onclick="selectCustPayOption(this, 'ক্যাশ')">
+                            <input type="radio" name="CustPayOptionRadio" value="ক্যাশ" checked style="display:none;" />
+                            <span style="font-size: 18px;">💵</span>
+                            <strong style="font-size: 12px; margin-top: 2px;">Cash</strong>
+                            <small style="font-size: 9.5px; color: #64748b;">ক্যাশ</small>
+                        </label>
+
+                        <label class="sb-cust-pay-card" onclick="selectCustPayOption(this, 'অনলাইন পেমেন্ট')">
+                            <input type="radio" name="CustPayOptionRadio" value="অনলাইন পেমেন্ট" style="display:none;" />
+                            <span style="font-size: 18px;">📱</span>
+                            <strong style="font-size: 12px; margin-top: 2px;">Online</strong>
+                            <small style="font-size: 9.5px; color: #64748b;">বিকাশ/নগদ</small>
+                        </label>
+
+                        <label class="sb-cust-pay-card" onclick="selectCustPayOption(this, 'বকেয়া')">
+                            <input type="radio" name="CustPayOptionRadio" value="বকেয়া" style="display:none;" />
+                            <span style="font-size: 18px;">📒</span>
+                            <strong style="font-size: 12px; margin-top: 2px;">বাকি</strong>
+                            <small style="font-size: 9.5px; color: #64748b;">ক্রেডিট খাতা</small>
+                        </label>
+                    </div>
+                    <input asp-for="Order.PaymentMethod" type="hidden" id="cust-order-payment-method" value="ক্যাশ" />
+
+                    <label asp-for="Order.Remarks">ডেলিভারি নোট / ঠিকানা মন্তব্য</label>
+                    <input asp-for="Order.Remarks" placeholder="পিকআপ সময় বা ডেলিভারির ঠিকানা/নির্দেশনা" />
                     <button class="btn-primary sale-submit-button" id="customer-order-submit" type="submit">
                         <span class="order-submit-spinner" aria-hidden="true"></span>
-                        <span class="order-submit-text">অর্ডার করুন</span>
+                        <span class="order-submit-text">অর্ডার নিশ্চিত করুন</span>
                     </button>
                 </aside>
             </form>
@@ -274,11 +355,42 @@
             flex-direction: column;
         }
     }
+
+    .cat-pill {
+        white-space: nowrap;
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+    .cat-pill:hover, .cat-pill.active {
+        background: #2563eb;
+        color: #fff;
+        border-color: #2563eb;
+        box-shadow: 0 4px 10px rgba(37,99,235,0.25);
+    }
 </style>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
+        window.selectQuickCategory = function(category) {
+            document.querySelectorAll('.cat-pill').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(`'${category}'`));
+            });
+            const sel = document.getElementById('category-filter');
+            if (sel) {
+                sel.value = category;
+                sel.dispatchEvent(new Event('change'));
+            }
+        };
+
         (() => {
             const products = @Html.Raw(productsJson);
             const initialOrderItems = @Html.Raw(initialOrderItemsJson);
@@ -554,9 +666,15 @@
                 const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
                 const total = items.reduce((sum, item) => sum + item.product.UnitPrice * item.quantity, 0);
                 const discount = total >= 1000 ? total * 0.03 : 0;
+                const deliveryCharge = Number(document.getElementById("cust-order-delivery-charge")?.value || 0);
                 document.getElementById("customer-total-নমুনা").textContent = formatCurrency(total);
                 document.getElementById("customer-discount-নমুনা").textContent = formatCurrency(discount);
-                document.getElementById("customer-net-নমুনা").textContent = formatCurrency(total - discount);
+                const deliveryDisplay = document.getElementById("customer-delivery-charge-display");
+                if (deliveryDisplay) {
+                    deliveryDisplay.textContent = formatCurrency(deliveryCharge);
+                }
+                const netAmount = Math.max(0, total - discount + deliveryCharge);
+                document.getElementById("customer-net-নমুনা").textContent = formatCurrency(netAmount);
                 cartCount.textContent = `${itemCount} item${itemCount === 1 ? "" : "s"}`;
             };
 
@@ -637,6 +755,70 @@
             
             renderProductGrid();
             renderCart();
+
+            window.triggerOrderRecalc = updateOrderTotal;
         })();
+
+        function selectDeliveryModel(card, type, charge) {
+            document.querySelectorAll('.sb-cust-delivery-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            document.getElementById('cust-order-delivery-type').value = type;
+            document.getElementById('cust-order-delivery-charge').value = charge;
+            if (window.triggerOrderRecalc) window.triggerOrderRecalc();
+        }
+
+        function selectCustPayOption(card, method) {
+            document.querySelectorAll('.sb-cust-pay-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            document.getElementById('cust-order-payment-method').value = method;
+        }
     </script>
+    <style>
+        .sb-cust-delivery-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .sb-cust-delivery-card:hover {
+            border-color: #a7f3d0;
+            background: #ecfdf5;
+        }
+        .sb-cust-delivery-card.active {
+            border-color: #059669;
+            background: #ecfdf5;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+        }
+        .sb-cust-pay-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .sb-cust-pay-card:hover {
+            border-color: #a7f3d0;
+            background: #ecfdf5;
+        }
+        .sb-cust-pay-card.active {
+            border-color: #059669;
+            background: #ecfdf5;
+            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.15);
+        }
+        .sb-cust-pay-card.active strong {
+            color: #059669;
+        }
+    </style>
 }

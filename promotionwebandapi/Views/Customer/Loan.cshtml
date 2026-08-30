@@ -1,0 +1,411 @@
+@model CustomerLoanDashboardViewModel
+@{
+    ViewData["Title"] = "ডিজিটাল ন্যানো লোন";
+    ViewData["ActivePage"] = "Loan";
+    var customerInitial = string.IsNullOrWhiteSpace(Model.CustomerName) ? "C" : Model.CustomerName.Trim()[..1].ToUpperInvariant();
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model='new CustomerDashboardViewModel { CustomerName = Model.CustomerName, CustomerPhone = Model.CustomerPhone, WalletBalance = Model.WalletBalance }' />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span style="background: linear-gradient(135deg, #e11d48, #be123c); color: #fff; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; text-transform: uppercase;">
+                        ⚡ ইনস্ট্যান্ট ন্যানো লোন
+                    </span>
+                    <h1 style="margin-top: 6px;">ডিজিটাল লোন (বিকাশ স্টাইল)</h1>
+                    <p>কোনো জামানত ছাড়াই তাৎক্ষণিক ৫,০০০ থেকে ৫০,০০০ টাকা পর্যন্ত সহজ কিস্তিতে ডিজিটাল ঋণ।</p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div style="text-align: right; background: #fff; padding: 8px 16px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+                        <small style="color: #64748b; display: block; font-size: 11px; font-weight: 600;">ওয়ালেট ব্যালেন্স</small>
+                        <strong style="font-size: 18px; color: #0f172a;">৳@Model.WalletBalance.ToString("N2")</strong>
+                    </div>
+                </div>
+            </header>
+
+            @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+            {
+                <div class="alert alert-success" style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">✅</span>
+                    <span>@Model.SuccessMessage</span>
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="alert alert-danger" style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 18px; border-radius: 12px; margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">⚠️</span>
+                    <span>@Model.ErrorMessage</span>
+                </div>
+            }
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-bottom: 30px;">
+                
+                <!-- Loan Application / Calculator Box -->
+                <div class="panel" style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 14px;">
+                        <div>
+                            <h2 style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">নতুন লোন আবেদন</h2>
+                            <small style="color: #64748b;">বার্ষিক মাত্র ৯% মুনাফা হারে ইনস্ট্যান্ট লোন</small>
+                        </div>
+                        <span style="background: #eff6ff; color: #2563eb; padding: 4px 12px; border-radius: 999px; font-weight: 700; font-size: 12px;">
+                            সীমা: ৳@Model.Eligibility.AvailableLimit.ToString("N0")
+                        </span>
+                    </div>
+
+                    @if (Model.ActiveLoan != null)
+                    {
+                        <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 15px;">
+                            <div style="font-size: 36px; margin-bottom: 8px;">⏳</div>
+                            <h3 style="font-size: 16px; font-weight: 800; color: #92400e; margin: 0 0 6px;">একটি লোন বর্তমানে চলমান আছে</h3>
+                            <p style="font-size: 13px; color: #78350f; margin: 0 0 14px;">আপনার লোন নং <strong>#@Model.ActiveLoan.Id.ToString("D5")</strong> পরিশোধ সম্পন্ন হওয়ার পর পুনরায় নতুন লোন আবেদন করতে পারবেন।</p>
+                            <a href="#active-loan-section" class="btn-primary" style="display: inline-block; padding: 8px 18px; font-size: 13px; text-decoration: none; border-radius: 8px;">চলমান কিস্তি দেখুন</a>
+                        </div>
+                    }
+                    else
+                    {
+                        <form asp-action="ApplyLoan" method="post" id="loan-application-form">
+                            @Html.AntiForgeryToken()
+
+                            <!-- Amount Selection -->
+                            <div style="margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <label style="font-weight: 700; color: #334155; font-size: 14px;">লোনের পরিমাণ (টাকা)</label>
+                                    <span id="display-amount" style="font-size: 22px; font-weight: 900; color: #e11d48;">৳১০,০০০</span>
+                                </div>
+                                <input type="range" id="loan-amount-slider" name="Amount" min="5000" max="50000" step="1000" value="10000"
+                                       style="width: 100%; height: 8px; border-radius: 5px; accent-color: #e11d48; cursor: pointer;" />
+                                
+                                <!-- Quick chips -->
+                                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                                    <button type="button" class="amount-chip" onclick="setLoanAmount(5000)">৳৫,০০০</button>
+                                    <button type="button" class="amount-chip active" onclick="setLoanAmount(10000)">৳১০,০০০</button>
+                                    <button type="button" class="amount-chip" onclick="setLoanAmount(20000)">৳২০,০০০</button>
+                                    <button type="button" class="amount-chip" onclick="setLoanAmount(35000)">৳৩৫,০০০</button>
+                                    <button type="button" class="amount-chip" onclick="setLoanAmount(50000)">৳৫০,০০০</button>
+                                </div>
+                            </div>
+
+                            <!-- Tenure Selection -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-weight: 700; color: #334155; font-size: 14px; display: block; margin-bottom: 8px;">পরিশোধের মেয়াদ (মাস)</label>
+                                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+                                    <label class="tenure-card">
+                                        <input type="radio" name="TenureMonths" value="3" onchange="updateLoanCalc()" />
+                                        <span>৩ মাস</span>
+                                    </label>
+                                    <label class="tenure-card active">
+                                        <input type="radio" name="TenureMonths" value="6" checked onchange="updateLoanCalc()" />
+                                        <span>৬ মাস</span>
+                                    </label>
+                                    <label class="tenure-card">
+                                        <input type="radio" name="TenureMonths" value="9" onchange="updateLoanCalc()" />
+                                        <span>৯ মাস</span>
+                                    </label>
+                                    <label class="tenure-card">
+                                        <input type="radio" name="TenureMonths" value="12" onchange="updateLoanCalc()" />
+                                        <span>১২ মাস</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Purpose Selection -->
+                            <div style="margin-bottom: 20px;">
+                                <label style="font-weight: 700; color: #334155; font-size: 14px; display: block; margin-bottom: 8px;">লোনের উদ্দেশ্য</label>
+                                <select name="Purpose" style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 12px; font: inherit; outline: none; background: #fff;">
+                                    <option value="জরুরি পারিবারিক খরচ">জরুরি পারিবারিক খরচ</option>
+                                    <option value="দোকান বা ব্যবসার পণ্য ক্রয়">দোকান বা ব্যবসার পণ্য ক্রয়</option>
+                                    <option value="চিকিৎসা বাবদ খরচ">চিকিৎসা বাবদ খরচ</option>
+                                    <option value="সন্তানের পড়াশোনার খরচ">সন্তানের পড়াশোনার খরচ</option>
+                                    <option value="অন্যান্য প্রয়োজনীয় কাজ">অন্যান্য প্রয়োজনীয় কাজ</option>
+                                </select>
+                            </div>
+
+                            <!-- Realtime Breakdown Summary -->
+                            <div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #475569;">
+                                    <span>প্রতি মাসের কিস্তি (EMI):</span>
+                                    <strong id="calc-emi" style="color: #0f172a; font-size: 15px;">৳১,৭৪৫</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #475569;">
+                                    <span>মুনাফা (৯% বার্ষিক):</span>
+                                    <span id="calc-interest" style="color: #0f172a;">৳৪৫০</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #475569;">
+                                    <span>প্রসেসিং ফি (০.৫%):</span>
+                                    <span id="calc-fee" style="color: #0f172a;">৳৫০</span>
+                                </div>
+                                <div style="border-top: 1px dashed #cbd5e1; margin: 10px 0; padding-top: 10px; display: flex; justify-content: space-between; font-size: 15px; font-weight: 800; color: #0f172a;">
+                                    <span>সর্বমোট পরিশোধযোগ্য:</span>
+                                    <span id="calc-total" style="color: #e11d48; font-size: 17px;">৳১০,৫০০</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #e11d48, #be123c); border: none; border-radius: 14px; color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 14px rgba(225,29,72,0.3);">
+                                ⚡ তাৎক্ষণিক লোন গ্রহণ করুন
+                            </button>
+                        </form>
+                    }
+                </div>
+
+                <!-- Active Loan Card & Features -->
+                <div id="active-loan-section">
+                    @if (Model.ActiveLoan != null)
+                    {
+                        <div class="panel" style="background: #ffffff; border-radius: 20px; border: 2px solid #2563eb; padding: 24px; box-shadow: 0 10px 25px -5px rgba(37,99,235,0.1); margin-bottom: 24px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+                                <div>
+                                    <span style="background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px;">
+                                        সক্রিয় লোন #@Model.ActiveLoan.Id.ToString("D5")
+                                    </span>
+                                    <h2 style="font-size: 22px; font-weight: 900; color: #0f172a; margin: 6px 0 2px;">
+                                        ৳@Model.ActiveLoan.LoanAmount.ToString("N0")
+                                    </h2>
+                                    <small style="color: #64748b;">মেয়াদ: @Model.ActiveLoan.TenureMonths মাস | প্রতি মাসে: ৳@Model.ActiveLoan.MonthlyInstallment.ToString("N0")</small>
+                                </div>
+                                <div style="text-align: right;">
+                                    <span style="font-size: 12px; color: #64748b;">অবশিষ্ট দেনা</span>
+                                    <div style="font-size: 18px; font-weight: 800; color: #e11d48;">৳@Model.ActiveLoan.RemainingAmount.ToString("N0")</div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div style="margin-bottom: 20px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 6px;">
+                                    <span>পরিশোধের অগ্রগতি (@Model.ActiveLoan.ProgressPercent.ToString("F0")%)</span>
+                                    <span>পরিশোধিত: ৳@Model.ActiveLoan.PaidAmount.ToString("N0") / ৳@Model.ActiveLoan.TotalPayable.ToString("N0")</span>
+                                </div>
+                                <div style="height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                                    <div style="height: 100%; width: @Model.ActiveLoan.ProgressPercent%; background: linear-gradient(90deg, #2563eb, #10b981); border-radius: 999px; transition: width 0.4s ease;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Next Due Box -->
+                            @if (Model.ActiveLoan.NextDueInstallment != null)
+                            {
+                                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 14px; padding: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <small style="color: #1e40af; font-weight: 700; display: block;">পরবর্তী কিস্তি (#@Model.ActiveLoan.NextDueInstallment.InstallmentNumber)</small>
+                                        <strong style="font-size: 18px; color: #0f172a;">৳@Model.ActiveLoan.NextDueInstallment.Amount.ToString("N0")</strong>
+                                        <div style="font-size: 11px; color: #475569; margin-top: 2px;">
+                                            তারিখ: @Model.ActiveLoan.NextDueInstallment.DueDate.ToString("dd MMM, yyyy") 
+                                            (@(Model.ActiveLoan.NextDueInstallment.DaysRemaining > 0 ? $"{Model.ActiveLoan.NextDueInstallment.DaysRemaining} দিন বাকি" : "আজকে প্রযোজ্য"))
+                                        </div>
+                                    </div>
+                                    <form asp-action="PayLoanInstallment" method="post" onsubmit="return confirm('আপনি কি ওয়ালেট থেকে কিস্তি বাবদ ৳@Model.ActiveLoan.NextDueInstallment.Amount.ToString("N0") পরিশোধ করতে চান?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="installmentId" value="@Model.ActiveLoan.NextDueInstallment.Id" />
+                                        <input type="hidden" name="paymentMethod" value="Wallet" />
+                                        <button type="submit" class="btn-primary" style="background: #10b981; border: none; border-radius: 10px; padding: 10px 18px; font-weight: 700; color: #fff; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
+                                            💳 কিস্তি দিন
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+
+                            <!-- Installments List Details -->
+                            <details style="border-top: 1px solid #f1f5f9; padding-top: 12px;">
+                                <summary style="font-weight: 700; color: #2563eb; cursor: pointer; font-size: 13px;">সবগুলো কিস্তির বিবরণ দেখুন (@Model.ActiveLoan.Installments.Count টি কিস্তি)</summary>
+                                <div style="margin-top: 12px; max-height: 200px; overflow-y: auto;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                                        <thead>
+                                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left;">
+                                                <th style="padding: 8px;">কিস্তি নং</th>
+                                                <th style="padding: 8px;">তারিখ</th>
+                                                <th style="padding: 8px;">পরিমাণ</th>
+                                                <th style="padding: 8px;">স্ট্যাটাস</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var inst in Model.ActiveLoan.Installments)
+                                            {
+                                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                    <td style="padding: 8px; font-weight: 600;">#@inst.InstallmentNumber</td>
+                                                    <td style="padding: 8px;">@inst.DueDate.ToString("dd/MM/yyyy")</td>
+                                                    <td style="padding: 8px; font-weight: 700;">৳@inst.Amount.ToString("N0")</td>
+                                                    <td style="padding: 8px;">
+                                                        @if (inst.Status == "Paid")
+                                                        {
+                                                            <span style="color: #10b981; font-weight: 700;">✔ পরিশোধিত</span>
+                                                        }
+                                                        else if (inst.IsOverdue)
+                                                        {
+                                                            <span style="color: #ef4444; font-weight: 700;">⚠️ বকেয়া</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span style="color: #f59e0b; font-weight: 600;">চলমান</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </details>
+                        </div>
+                    }
+
+                    <!-- Loan Benefits & Info -->
+                    <div class="panel" style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px;">
+                        <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 14px;">কেন ডিজিটাল লোন নেবেন?</h3>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: #ecfdf5; color: #059669; display: grid; place-items: center; font-size: 16px; font-weight: 800; flex-shrink: 0;">⚡</div>
+                                <div>
+                                    <strong style="font-size: 13px; color: #1e293b; display: block;">তাৎক্ষণিক অনুমোদন ও ওয়ালেটে জমা</strong>
+                                    <small style="color: #64748b;">কোনো কাগজপত্র ছাড়াই মুহূর্তেই একাউন্টে টাকা যোগ হয়।</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: #2563eb; display: grid; place-items: center; font-size: 16px; font-weight: 800; flex-shrink: 0;">📅</div>
+                                <div>
+                                    <strong style="font-size: 13px; color: #1e293b; display: block;">সহজ মাসিক কিস্তি</strong>
+                                    <small style="color: #64748b;">৩ থেকে ১২ মাসের মধ্যে আপনার সামর্থ্য অনুযায়ী কিস্তি পরিশোধের সুবিধা।</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <div style="width: 32px; height: 32px; border-radius: 8px; background: #faf5ff; color: #7c3aed; display: grid; place-items: center; font-size: 16px; font-weight: 800; flex-shrink: 0;">🛡️</div>
+                                <div>
+                                    <strong style="font-size: 13px; color: #1e293b; display: block;">স্বচ্ছ ও গোপন কোনো চার্জ নেই</strong>
+                                    <small style="color: #64748b;">সরকারি নীতিমালার আলোকে বার্ষিক মাত্র ৯% মুনাফা হার।</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Past Loan History -->
+            @if (Model.LoanHistory.Count > 0)
+            {
+                <section class="panel" style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 16px;">পূর্ববর্তী লোনের ইতিহাস</h3>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
+                                    <th style="padding: 10px;">লোন নং</th>
+                                    <th style="padding: 10px;">আবেদনের তারিখ</th>
+                                    <th style="padding: 10px;">মূল পরিমাণ</th>
+                                    <th style="padding: 10px;">মোট পরিশোধযোগ্য</th>
+                                    <th style="padding: 10px;">অবশিষ্ট দেনা</th>
+                                    <th style="padding: 10px;">স্ট্যাটাস</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var loan in Model.LoanHistory)
+                                {
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 10px; font-weight: 700;">#@loan.Id.ToString("D5")</td>
+                                        <td style="padding: 10px;">@loan.AppliedAt.ToString("dd MMM yyyy")</td>
+                                        <td style="padding: 10px; font-weight: 700;">৳@loan.LoanAmount.ToString("N0")</td>
+                                        <td style="padding: 10px;">৳@loan.TotalPayable.ToString("N0")</td>
+                                        <td style="padding: 10px; color: @(loan.RemainingAmount > 0 ? "#e11d48" : "#10b981"); font-weight: 700;">৳@loan.RemainingAmount.ToString("N0")</td>
+                                        <td style="padding: 10px;">
+                                            @if (loan.Status == "Completed")
+                                            {
+                                                <span style="background: #ecfdf5; color: #059669; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">পরিশোধ সম্পন্ন</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="background: #eff6ff; color: #2563eb; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">সক্রিয়</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
+
+        </section>
+    </div>
+</main>
+
+<style>
+    .amount-chip {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        color: #334155;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .amount-chip:hover, .amount-chip.active {
+        background: #e11d48;
+        color: #fff;
+        border-color: #e11d48;
+    }
+    .tenure-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 6px;
+        text-align: center;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 13px;
+        color: #334155;
+        transition: all 0.2s ease;
+        display: block;
+    }
+    .tenure-card input {
+        display: none;
+    }
+    .tenure-card.active, .tenure-card:has(input:checked) {
+        border-color: #e11d48;
+        background: #fff1f2;
+        color: #e11d48;
+    }
+</style>
+
+<script>
+    function setLoanAmount(amt) {
+        document.getElementById('loan-amount-slider').value = amt;
+        document.querySelectorAll('.amount-chip').forEach(btn => {
+            btn.classList.toggle('active', btn.innerText.includes(amt.toLocaleString()));
+        });
+        updateLoanCalc();
+    }
+
+    document.getElementById('loan-amount-slider')?.addEventListener('input', function() {
+        updateLoanCalc();
+        document.querySelectorAll('.amount-chip').forEach(btn => btn.classList.remove('active'));
+    });
+
+    function updateLoanCalc() {
+        const slider = document.getElementById('loan-amount-slider');
+        if (!slider) return;
+        const amount = parseFloat(slider.value) || 10000;
+        document.getElementById('display-amount').innerText = '৳' + amount.toLocaleString('bn-BD');
+
+        const tenureChecked = document.querySelector('input[name="TenureMonths"]:checked');
+        const months = parseInt(tenureChecked ? tenureChecked.value : 6) || 6;
+
+        document.querySelectorAll('.tenure-card').forEach(card => {
+            const input = card.querySelector('input');
+            if (input) card.classList.toggle('active', input.checked);
+        });
+
+        // 9% flat simple annual interest
+        const interest = Math.round(amount * (0.09 / 12) * months);
+        let fee = Math.round(amount * 0.005);
+        if (fee < 25) fee = 25;
+        const total = amount + interest + fee;
+        const emi = Math.round(total / months);
+
+        document.getElementById('calc-emi').innerText = '৳' + emi.toLocaleString('bn-BD');
+        document.getElementById('calc-interest').innerText = '৳' + interest.toLocaleString('bn-BD');
+        document.getElementById('calc-fee').innerText = '৳' + fee.toLocaleString('bn-BD');
+        document.getElementById('calc-total').innerText = '৳' + total.toLocaleString('bn-BD');
+    }
+
+    document.addEventListener('DOMContentLoaded', updateLoanCalc);
+</script>

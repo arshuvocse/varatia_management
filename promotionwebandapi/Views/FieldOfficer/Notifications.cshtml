@@ -1,0 +1,205 @@
+@model FieldOfficerDashboardViewModel
+@{
+    ViewData["Title"] = "নোটিফিকেশন ও অ্যালার্ট - Smart Bazar";
+    ViewData["ActivePage"] = "Notifications";
+}
+
+<div class="sb-app-layout">
+    <!-- Sidebar -->
+    <partial name="_Sidebar" model="Model" view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Notifications" } }' />
+
+    <!-- Main Content -->
+    <main class="sb-main-content">
+        <!-- Top Navigation Bar -->
+        <header class="sb-topbar">
+            <div class="sb-topbar-left">
+                <a href="/FieldForce" class="sb-menu-toggle" style="text-decoration:none; display:flex; align-items:center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <div class="sb-user-greeting">
+                    <div class="sb-greeting-title">
+                        ফিল্ড নোটিফিকেশন ও অ্যালার্ট
+                    </div>
+                    <span class="sb-user-role">দোকানের কার্যকলাপ, অর্ডার আপডেট ও সিস্টেম বার্তা</span>
+                </div>
+            </div>
+
+            <div class="sb-topbar-right">
+                <span class="sb-date-badge">
+                    <span class="sb-date-text">১২ টি নতুন বার্তা</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <div class="sb-dashboard-body">
+            <div class="sb-notif-container">
+                <div class="sb-notif-header">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="sb-badge-pill">সব বার্তা</span>
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:#0f172a;">সাম্প্রতিক নোটিফিকেশন সমূহ</h3>
+                    </div>
+                    <button type="button" class="sb-btn-mark-read" onclick="alert('সকল নোটিফিকেশন পড়া হয়েছে হিসেবে চিহ্নিত করা হয়েছে!')">সব পড়া হিসেবে চিহ্নিত করুন</button>
+                </div>
+
+                <div class="sb-notif-list">
+                    <!-- Item 1 -->
+                    <div class="sb-notif-item unread">
+                        <div class="sb-notif-icon sb-icon-green">🏪</div>
+                        <div class="sb-notif-content">
+                            <div class="sb-notif-title">নতুন দোকান অনবোর্ড ভেরিফিকেশন সম্পন্ন</div>
+                            <div class="sb-notif-desc"><strong>রহমান স্টোর (মিরপুর-১০)</strong> সফলভাবে Smart Bazar-এ নিবন্ধিত হয়েছে এবং লাইভ পণ্য প্রদর্শিত হচ্ছে।</div>
+                            <span class="sb-notif-time">১০ মিনিট আগে</span>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 -->
+                    <div class="sb-notif-item unread">
+                        <div class="sb-notif-icon sb-icon-blue">💰</div>
+                        <div class="sb-notif-content">
+                            <div class="sb-notif-title">কমিশন পেআউট ক্রেডিট হয়েছে</div>
+                            <div class="sb-notif-desc">আপনার এই সপ্তাহের ফিল্ড ফোর্স কমিশন <strong>৳ ৩,৪৫০</strong> অনুমোদিত হয়েছে এবং ওয়ালেটে ক্রেডিট হয়েছে।</div>
+                            <span class="sb-notif-time">১ ঘন্টা আগে</span>
+                        </div>
+                    </div>
+
+                    <!-- Item 3 -->
+                    <div class="sb-notif-item unread">
+                        <div class="sb-notif-icon sb-icon-amber">⚠️</div>
+                        <div class="sb-notif-content">
+                            <div class="sb-notif-title">পণ্যের দামের তারতম্য সতর্কতা</div>
+                            <div class="sb-notif-desc">কাঁচাবাজার ক্যাটাগরির ৩টি পণ্যের দাম বাজারে পরিবর্তিত হয়েছে। অনুগ্রহ করে সংশ্লিষ্ট দোকানদারদের দাম আপডেট নিশ্চিত করুন।</div>
+                            <span class="sb-notif-time">৩ ঘন্টা আগে</span>
+                        </div>
+                    </div>
+
+                    <!-- Item 4 -->
+                    <div class="sb-notif-item">
+                        <div class="sb-notif-icon sb-icon-purple">📦</div>
+                        <div class="sb-notif-content">
+                            <div class="sb-notif-title">এরিয়ায় বড় ডেলিভারি অর্ডার সম্পন্ন</div>
+                            <div class="sb-notif-desc">বিসমিল্লাহ জেনারেল স্টোর থেকে ৳ ২,৫০০ মূল্যের অর্ডার সফলভাবে হোম ডেলিভারি হয়েছে।</div>
+                            <span class="sb-notif-time">গতকাল</span>
+                        </div>
+                    </div>
+
+                    <!-- Item 5 -->
+                    <div class="sb-notif-item">
+                        <div class="sb-notif-icon sb-icon-green">🎯</div>
+                        <div class="sb-notif-content">
+                            <div class="sb-notif-title">মাসিক অনবোর্ডিং টার্গেট অর্জন</div>
+                            <div class="sb-notif-desc">অভিনন্দন! আপনি এই মাসে আপনার নির্ধারিত ১৫টি দোকান অনবোর্ডিং টার্গেটের মধ্যে ১২টি সফলভাবে সম্পন্ন করেছেন।</div>
+                            <span class="sb-notif-time">২ দিন আগে</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Styles {
+<style>
+    .sb-notif-container {
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        padding: 24px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .sb-notif-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .sb-btn-mark-read {
+        background: #f1f5f9;
+        color: #475569;
+        border: none;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .sb-btn-mark-read:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .sb-notif-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .sb-notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #f1f5f9;
+        background: #ffffff;
+        transition: all 0.15s;
+    }
+
+    .sb-notif-item.unread {
+        background: #f8fafc;
+        border-left: 4px solid #059669;
+    }
+
+    .sb-notif-item:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .sb-notif-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+
+    .sb-icon-green { background: #ecfdf5; }
+    .sb-icon-blue { background: #eff6ff; }
+    .sb-icon-amber { background: #fef3c7; }
+    .sb-icon-purple { background: #faf5ff; }
+
+    .sb-notif-content {
+        flex: 1;
+    }
+
+    .sb-notif-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 4px;
+    }
+
+    .sb-notif-desc {
+        font-size: 13px;
+        color: #475569;
+        line-height: 1.45;
+        margin-bottom: 6px;
+    }
+
+    .sb-notif-time {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+</style>
+}

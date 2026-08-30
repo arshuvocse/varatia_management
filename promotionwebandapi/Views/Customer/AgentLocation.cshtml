@@ -1,0 +1,116 @@
+@model AgentOfficeLocationViewModel
+@{
+    ViewData["Title"] = "এরিয়া এজেন্ট অফিস";
+    ViewData["ActivePage"] = "AgentLocation";
+}
+
+<main class="app-page shop-theme shop-portal-page customer-portal-page">
+    <div class="shop-portal-shell">
+        <partial name="_Sidebar" model='new CustomerDashboardViewModel { CustomerName = "Customer", CustomerPhone = "" }' />
+
+        <section class="shop-page-content">
+            <header class="shop-page-header">
+                <div>
+                    <span style="background: #eff6ff; color: #2563eb; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800;">
+                        📍 এরিয়া অফিস লোকেশন
+                    </span>
+                    <h1 style="margin-top: 6px;">অনুমোদিত এজেন্ট ও অফিস ঠিকানা</h1>
+                    <p>আপনার এলাকার অফিশিয়াল এজেন্ট অফিস, সহায়তা কেন্দ্র এবং সরাসরি যোগাযোগের তথ্য।</p>
+                </div>
+            </header>
+
+            @if (Model != null)
+            {
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+                    <!-- Agent Card -->
+                    <div class="panel" style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 26px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);">
+                        <div style="display: flex; gap: 18px; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 18px;">
+                            @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+                            {
+                                <img src="@Model.ProfilePictureUrl" alt="@Model.AgentName" style="width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid #2563eb;" />
+                            }
+                            else
+                            {
+                                <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: #fff; display: grid; place-items: center; font-size: 26px; font-weight: 800;">
+                                    @(string.IsNullOrWhiteSpace(Model.AgentName) ? "A" : Model.AgentName[..1].ToUpperInvariant())
+                                </div>
+                            }
+                            <div>
+                                <span style="background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px;">👑 অনুমোদিত এরিয়া এজেন্ট</span>
+                                <h2 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 4px 0 2px;">@Model.AgentName</h2>
+                                <small style="color: #64748b;">@Model.DistrictName জেলা, @Model.DivisionName বিভাগ</small>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; gap: 16px; font-size: 14px;">
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <span style="font-size: 18px;">🏢</span>
+                                <div>
+                                    <strong style="color: #0f172a; display: block;">অফিসের নাম:</strong>
+                                    <span style="color: #475569;">@(string.IsNullOrWhiteSpace(Model.OfficeName) ? "আমার ঠিকানা এরিয়া অফিস" : Model.OfficeName)</span>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <span style="font-size: 18px;">📍</span>
+                                <div>
+                                    <strong style="color: #0f172a; display: block;">বিস্তারিত ঠিকানা:</strong>
+                                    <span style="color: #475569;">
+                                        @(string.IsNullOrWhiteSpace(Model.FullDisplayAddress) ? "বাণিজ্যিক ভবন, প্রধান সড়ক, ঢাকা" : Model.FullDisplayAddress)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <span style="font-size: 18px;">⏰</span>
+                                <div>
+                                    <strong style="color: #0f172a; display: block;">অফিস খোলার সময়:</strong>
+                                    <span style="color: #475569;">@(string.IsNullOrWhiteSpace(Model.OfficeHours) ? "সকাল ৯:০০ - রাত ৮:০০ (প্রতিদিন)" : Model.OfficeHours)</span>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                <span style="font-size: 18px;">📞</span>
+                                <div>
+                                    <strong style="color: #0f172a; display: block;">হটলাইন / মোবাইল:</strong>
+                                    <a href="tel:@Model.ContactPhone" style="color: #2563eb; font-weight: 700; text-decoration: none;">@Model.ContactPhone</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 24px; display: flex; gap: 10px;">
+                            <a href="tel:@Model.ContactPhone" class="btn-primary" style="flex: 1; text-align: center; padding: 12px; text-decoration: none; border-radius: 12px; font-weight: 700; background: #10b981;">
+                                📞 কল করুন
+                            </a>
+                            <a href="https://maps.google.com/?q=@(Model.Latitude ?? 23.8103m),@(Model.Longitude ?? 90.4125m)" target="_blank" class="btn-primary" style="flex: 1; text-align: center; padding: 12px; text-decoration: none; border-radius: 12px; font-weight: 700;">
+                                🗺️ গুগল ম্যাপস
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Map Container Preview -->
+                    <div class="panel" style="background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; display: flex; flex-direction: column;">
+                        <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 14px;">লাইভ ম্যাপ ভিউ</h3>
+                        <div style="flex: 1; min-height: 260px; border-radius: 14px; overflow: hidden; border: 1px solid #cbd5e1; background: #e2e8f0;">
+                            <iframe 
+                                width="100%" 
+                                height="100%" 
+                                style="border:0; min-height: 260px;" 
+                                loading="lazy" 
+                                allowfullscreen 
+                                src="https://maps.google.com/maps?q=@(Model.Latitude ?? 23.8103m),@(Model.Longitude ?? 90.4125m)&hl=bn&z=15&output=embed">
+                            </iframe>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="panel" style="text-align: center; padding: 40px;">
+                    <p>আপনার জেলার জন্য নির্ধারিত এজেন্টের তথ্য পাওয়া যায়নি।</p>
+                </div>
+            }
+
+        </section>
+    </div>
+</main>

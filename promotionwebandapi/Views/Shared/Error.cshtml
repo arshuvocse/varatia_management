@@ -1,0 +1,17 @@
+@model PromotionWeb.Models.ErrorViewModel
+@{
+    ViewData["Title"] = "Error";
+    Layout = "_Layout";
+}
+
+<div class="container py-5 text-center">
+    <h1 class="text-danger mb-3">একটি অপ্রত্যাশিত সমস্যা দেখা দিয়েছে</h1>
+    <p class="text-muted">দয়া করে কিছুক্ষণ পর পুনরায় চেষ্টা করুন।</p>
+    @if (Model.ShowRequestId)
+    {
+        <p class="small text-secondary">Request ID: <code>@Model.RequestId</code></p>
+    }
+    <div class="mt-4">
+        <a href="/landing.html" class="btn btn-primary">হোম পেজে ফিরে যান</a>
+    </div>
+</div>

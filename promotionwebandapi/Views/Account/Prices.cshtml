@@ -1,0 +1,443 @@
+@model CompanyDashboardViewModel
+@using System.Text.Json
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "দাম আপডেট";
+    ViewData["PageTitle"] = "পণ্যের দাম আপডেট ও নির্ধারণ";
+    ViewData["ActivePage"] = "Prices";
+
+    var pricingDataJson = JsonSerializer.Serialize(new
+    {
+        shops = Model.ShopsModel.Shops.Select(shop => new
+        {
+            shop.Id,
+            shop.ShopName,
+            shop.ShopCode,
+            shop.ShopType,
+            shop.DivisionId,
+            shop.DivisionName,
+            shop.DistrictId,
+            shop.DistrictName,
+            shop.ThanaId,
+            shop.ThanaName,
+            shop.OwnerName,
+            shop.FieldOfficerName
+        }),
+        products = Model.ShopsModel.Products.Select(product => new
+        {
+            product.Id,
+            product.ProductCode,
+            product.Name,
+            product.Category,
+            product.UnitPrice
+        }),
+        assignments = Model.ShopsModel.Assignments
+    });
+}
+
+<style>
+    .price-manager { margin: 1.25rem 0; }
+    .location-filter-grid { display: grid; grid-template-columns: repeat(4, minmax(160px, 1fr)); gap: .9rem; margin-top: 1rem; }
+    .location-filter-grid label { display: grid; gap: .35rem; font-weight: 600; font-size: 0.88rem; color: #334155; }
+    .location-filter-grid input { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; }
+    .location-filter-grid input:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15); }
+    
+    .price-manager-status { margin: 1rem 0; padding: .85rem 1.1rem; border-radius: 10px; background: #f8fafc; color: #475569; font-weight: 600; font-size: 0.92rem; display: flex; justify-between: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; border: 1px solid #e2e8f0; }
+    .price-manager-status.ready { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .location-badge-container { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .location-chip { background: #ccfbf1; color: #0f766e; padding: .25rem .65rem; border-radius: 6px; font-size: .82rem; font-weight: 700; }
+    
+    .shop-multi-panel { margin-top: 1rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden; }
+    .shop-multi-toolbar { display: flex; gap: .75rem; align-items: center; justify-content: space-between; padding: .85rem 1.1rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .shop-multi-toolbar strong { font-size: 0.95rem; color: #1e293b; }
+    .shop-multi-toolbar button { border: 0; border-radius: 8px; padding: .45rem .85rem; cursor: pointer; font-weight: 600; font-size: .85rem; transition: all 0.2s; }
+    .btn-location-select { background: #0f766e; color: #fff; }
+    .btn-location-select:hover { background: #115e59; }
+    .btn-thana-select { background: #0284c7; color: #fff; }
+    .btn-thana-select:hover { background: #0369a1; }
+    .btn-visible-select { background: #475569; color: #fff; }
+    .btn-visible-select:hover { background: #334155; }
+    .btn-clear-select { background: #ef4444; color: #fff; }
+    .btn-clear-select:hover { background: #dc2626; }
+    
+    .shop-checkbox-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .75rem; max-height: 340px; overflow-y: auto; padding: 1.1rem; }
+    .shop-checkbox-card { display: flex; gap: .7rem; align-items: flex-start; border: 1px solid #e2e8f0; border-radius: 10px; padding: .85rem; transition: border-color 0.2s, background-color 0.2s; cursor: pointer; user-select: none; }
+    .shop-checkbox-card:hover { border-color: #0f766e; background-color: #f0fdf4; }
+    .shop-checkbox-card input { margin-top: .2rem; accent-color: #0f766e; width: 17px; height: 17px; }
+    .shop-checkbox-card strong, .shop-checkbox-card small { display: block; }
+    .shop-checkbox-card strong { font-size: 0.92rem; color: #0f172a; }
+    .shop-checkbox-card small { color: #64748b; font-size: 0.8rem; margin-top: 2px; }
+    
+    .bulk-product-list { display: grid; gap: .75rem; margin-top: 1rem; }
+    .bulk-product-card { display: grid; grid-template-columns: minmax(220px, 1.2fr) 160px 160px 150px; gap: 1rem; align-items: center; padding: 1rem 1.1rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+    .bulk-product-card > label { display: grid; gap: .3rem; font-size: .85rem; font-weight: 600; color: #334155; }
+    .bulk-product-card input[type="number"] { padding: 0.5rem 0.65rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-weight: 600; }
+    .bulk-product-card input[type="number"]:focus { outline: none; border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15); }
+    .product-toggle { display: flex !important; align-items: center; gap: .6rem !important; font-size: .92rem !important; cursor: pointer; user-select: none; }
+    .product-toggle input { width: 18px; height: 18px; accent-color: #0f766e; }
+    .product-toggle span strong { font-size: 0.95rem; color: #0f172a; display: block; }
+    .product-toggle span small { color: #64748b; font-size: 0.8rem; display: block; }
+    
+    .profit-badge { padding: .5rem .75rem; border-radius: 8px; font-size: .85rem; font-weight: 700; text-align: center; background: #f1f5f9; color: #475569; }
+    .profit-badge.positive { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .profit-badge.negative { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    .btn-save-prices { margin-top: 1.25rem; width: 100%; padding: 0.9rem; font-size: 1.05rem; font-weight: 700; background: #0f766e; color: #fff; border: none; border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+    .btn-save-prices:hover { background: #115e59; }
+
+    @@media (max-width: 900px) {
+        .location-filter-grid { grid-template-columns: repeat(2, 1fr); }
+        .bulk-product-card { grid-template-columns: 1fr 1fr; }
+        .bulk-product-card .product-toggle { grid-column: 1 / -1; }
+    }
+    @@media (max-width: 560px) {
+        .location-filter-grid, .bulk-product-card { grid-template-columns: 1fr; }
+        .shop-multi-toolbar { align-items: stretch; flex-direction: column; }
+    }
+</style>
+
+<section class="company-section">
+    <div class="company-section-heading">
+        <div>
+            <span>কোম্পানি প্রাইজ ম্যানেজমেন্ট</span>
+            <h2>দোকানদার পণ্যের ক্রয় ও বিক্রি মূল্য নির্ধারণ</h2>
+        </div>
+    </div>
+
+    <div class="company-card price-manager">
+        <div class="location-filter-grid">
+            <label>বিভাগ (Division)<input id="pricing-division" list="pricing-division-list" placeholder="Division সিলেক্ট/টাইপ করুন" autocomplete="off" /></label>
+            <label>জেলা (District)<input id="pricing-district" list="pricing-district-list" placeholder="District সিলেক্ট/টাইপ করুন" autocomplete="off" /></label>
+            <label>থানা (Thana)<input id="pricing-thana" list="pricing-thana-list" placeholder="Thana সিলেক্ট/টাইপ করুন" autocomplete="off" /></label>
+            <label>দোকান খুঁজুন<input id="pricing-shop-search" placeholder="দোকানের নাম / কোড টাইপ করুন" autocomplete="off" /></label>
+        </div>
+        <datalist id="pricing-division-list"></datalist>
+        <datalist id="pricing-district-list"></datalist>
+        <datalist id="pricing-thana-list"></datalist>
+
+        <div class="price-manager-status" id="pricing-status">
+            <span>উপরে ফিল্টার ব্যবহার করুন অথবা সরাসরি দোকান সিলেক্ট করুন।</span>
+            <div class="location-badge-container" id="location-badges"></div>
+        </div>
+
+        <div class="shop-multi-panel">
+            <div class="shop-multi-toolbar">
+                <strong id="shop-result-summary">0 টি দোকান পাওয়া গেছে</strong>
+                <div style="display: flex; gap: .5rem; flex-wrap: wrap;">
+                    <button type="button" class="btn-location-select" id="select-district-shops">📍 জেলা ভিত্তিক সিলেক্ট</button>
+                    <button type="button" class="btn-thana-select" id="select-thana-shops">🏬 থানা ভিত্তিক সিলেক্ট</button>
+                    <button type="button" class="btn-visible-select" id="select-visible-shops">ভিজিবল সব সিলেক্ট</button>
+                    <button type="button" class="btn-clear-select" id="clear-selected-shops">ক্লিয়ার</button>
+                </div>
+            </div>
+            <div class="shop-checkbox-list" id="pricing-shop-list"></div>
+        </div>
+
+        <form action="/Account/UpdateShopPrices" method="post" id="pricing-form" hidden>
+            @Html.AntiForgeryToken()
+            <div id="pricing-shop-ids"></div>
+            <div id="product-selection-toolbar" style="margin-top: 1.2rem; margin-bottom: -0.25rem; display: none; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <label style="display: flex; gap: 0.5rem; align-items: center; font-weight: 700; color: #0f172a; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="select-all-products" style="accent-color: #0f766e; width: 18px; height: 18px;"> সব পণ্য নির্বাচন করুন
+                </label>
+                <small style="color: #64748b; font-weight: 600;">💡 ক্রয় ও বিক্রি মূল্য পরিবর্তন করলে অটোমেটিক লাভের হিসাব দেখাবে</small>
+            </div>
+            <div class="bulk-product-list" id="pricing-products"></div>
+            <button type="submit" class="btn-save-prices">
+                💾 নির্বাচিত সকল দোকানে পণ্য ও প্রাইজ সংরক্ষণ করুন
+            </button>
+        </form>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const pricingData = @Html.Raw(pricingDataJson);
+            const divisionInput = document.getElementById('pricing-division');
+            const districtInput = document.getElementById('pricing-district');
+            const thanaInput = document.getElementById('pricing-thana');
+            const shopSearchInput = document.getElementById('pricing-shop-search');
+            const shopList = document.getElementById('pricing-shop-list');
+            const shopSummary = document.getElementById('shop-result-summary');
+            const selectVisibleButton = document.getElementById('select-visible-shops');
+            const selectDistrictButton = document.getElementById('select-district-shops');
+            const selectThanaButton = document.getElementById('select-thana-shops');
+            const clearSelectedButton = document.getElementById('clear-selected-shops');
+            const pricingForm = document.getElementById('pricing-form');
+            const shopIdsContainer = document.getElementById('pricing-shop-ids');
+            const productContainer = document.getElementById('pricing-products');
+            const selectAllProductsCheckbox = document.getElementById('select-all-products');
+            const productSelectionToolbar = document.getElementById('product-selection-toolbar');
+            const pricingStatus = document.getElementById('pricing-status');
+            const locationBadges = document.getElementById('location-badges');
+            const selectedShopIds = new Set();
+
+            const escapeHtml = value => String(value ?? '')
+                .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+            const normalize = value => String(value ?? '').trim().toLocaleLowerCase();
+            const uniqueValues = values => [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
+            
+            const fillDatalist = (id, values) => {
+                document.getElementById(id).innerHTML = values
+                    .map(value => `<option value="${escapeHtml(value)}"></option>`)
+                    .join('');
+            };
+            const includesText = (value, search) => normalize(value).includes(normalize(search));
+
+            const updateLocationDatalists = () => {
+                const filteredByDivision = pricingData.shops.filter(shop => 
+                    !divisionInput.value || includesText(shop.DivisionName, divisionInput.value)
+                );
+                fillDatalist('pricing-division-list', uniqueValues(pricingData.shops.map(shop => shop.DivisionName)));
+                fillDatalist('pricing-district-list', uniqueValues(filteredByDivision.map(shop => shop.DistrictName)));
+
+                const filteredByDistrict = filteredByDivision.filter(shop => 
+                    !districtInput.value || includesText(shop.DistrictName, districtInput.value)
+                );
+                fillDatalist('pricing-thana-list', uniqueValues(filteredByDistrict.map(shop => shop.ThanaName)));
+            };
+
+            updateLocationDatalists();
+
+            const getFilteredShops = () => pricingData.shops.filter(shop => {
+                const shopText = `${shop.ShopName} ${shop.ShopCode} ${shop.ShopType} ${shop.OwnerName} ${shop.FieldOfficerName}`;
+                return (!divisionInput.value || includesText(shop.DivisionName, divisionInput.value))
+                    && (!districtInput.value || includesText(shop.DistrictName, districtInput.value))
+                    && (!thanaInput.value || includesText(shop.ThanaName, thanaInput.value))
+                    && (!shopSearchInput.value || includesText(shopText, shopSearchInput.value));
+            });
+
+            const updateLocationBadges = () => {
+                let badgesHtml = '';
+                if (divisionInput.value) badgesHtml += `<span class="location-chip">বিভাগ: ${escapeHtml(divisionInput.value)}</span>`;
+                if (districtInput.value) badgesHtml += `<span class="location-chip">জেলা: ${escapeHtml(districtInput.value)}</span>`;
+                if (thanaInput.value) badgesHtml += `<span class="location-chip">থানা: ${escapeHtml(thanaInput.value)}</span>`;
+                locationBadges.innerHTML = badgesHtml;
+            };
+
+            const renderShops = () => {
+                updateLocationDatalists();
+                updateLocationBadges();
+                const shops = getFilteredShops();
+                shopSummary.textContent = `${shops.length} টি দোকান পাওয়া গেছে · ${selectedShopIds.size} টি নির্বাচিত`;
+                
+                shopList.innerHTML = shops.map(shop => `
+                    <label class="shop-checkbox-card">
+                        <input type="checkbox" value="${shop.Id}" ${selectedShopIds.has(shop.Id) ? 'checked' : ''}>
+                        <span>
+                            <strong>${escapeHtml(shop.ShopName)} (${escapeHtml(shop.ShopCode)})</strong>
+                            <small>ক্যাটাগরি: ${escapeHtml(shop.ShopType)} | মালিক: ${escapeHtml(shop.OwnerName)}</small>
+                            <small>অবস্থান: ${escapeHtml(shop.ThanaName)}, ${escapeHtml(shop.DistrictName)}</small>
+                        </span>
+                    </label>
+                `).join('') || '<p style="padding:1.5rem; text-align:center; color:#64748b; grid-column:1/-1;">এই ফিল্টার অনুযায়ী কোনো দোকান পাওয়া যায়নি।</p>';
+
+                shopList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                    checkbox.addEventListener('change', () => {
+                        const shopId = Number(checkbox.value);
+                        if (checkbox.checked) selectedShopIds.add(shopId);
+                        else selectedShopIds.delete(shopId);
+                        renderProducts();
+                        renderShops();
+                    });
+                });
+                renderProducts();
+            };
+
+            const updateProfitBadge = (card) => {
+                const purchaseInput = card.querySelector('input[name$=".PurchasePrice"]');
+                const salesInput = card.querySelector('input[name$=".SalesPrice"]');
+                const badge = card.querySelector('.profit-badge');
+                if (!purchaseInput || !salesInput || !badge) return;
+
+                const purchase = Number(purchaseInput.value) || 0;
+                const sales = Number(salesInput.value) || 0;
+                const profit = sales - purchase;
+                const percent = purchase > 0 ? ((profit / purchase) * 100) : 0;
+
+                if (sales < purchase) {
+                    badge.className = 'profit-badge negative';
+                    badge.textContent = `লস ৳${Math.abs(profit).toFixed(2)}`;
+                } else if (profit > 0) {
+                    badge.className = 'profit-badge positive';
+                    badge.textContent = `লাভ ৳${profit.toFixed(2)} (${percent.toFixed(1)}%)`;
+                } else {
+                    badge.className = 'profit-badge';
+                    badge.textContent = 'লাভ ৳0.00';
+                }
+            };
+
+            const renderProducts = () => {
+                const selectedShops = pricingData.shops.filter(shop => selectedShopIds.has(shop.Id));
+                pricingForm.hidden = selectedShops.length === 0;
+                shopIdsContainer.innerHTML = selectedShops
+                    .map(shop => `<input type="hidden" name="ShopkeeperIds" value="${shop.Id}">`)
+                    .join('');
+                productContainer.innerHTML = '';
+
+                if (selectedShops.length === 0) {
+                    pricingStatus.querySelector('span').textContent = 'কমপক্ষে একজন দোকানদার অথবা স্থান অনুযায়ী দোকান সিলেক্ট করুন।';
+                    pricingStatus.classList.remove('ready');
+                    return;
+                }
+
+                const selectedTypes = [...new Set(selectedShops.map(shop => shop.ShopType).filter(Boolean))];
+                const shopType = selectedTypes.length === 1 ? selectedTypes[0] : '';
+                const firstShop = selectedShops[0];
+                const assignments = new Map(pricingData.assignments
+                    .filter(item => item.ShopkeeperId === firstShop.Id)
+                    .map(item => [item.CompanyProductId, item]));
+                let products = pricingData.products.filter(product => !shopType || normalize(product.Category) === normalize(shopType));
+                if (products.length === 0 && pricingData.products.length > 0) {
+                    products = pricingData.products;
+                }
+                
+                const locText = thanaInput.value ? ` · থানা: ${thanaInput.value}` : (districtInput.value ? ` · জেলা: ${districtInput.value}` : '');
+                const categoryLabel = selectedTypes.length > 0 ? selectedTypes.join(', ') : 'সকল ক্যাটাগরি';
+                pricingStatus.querySelector('span').textContent = `✅ ${selectedShops.length}টি দোকান নির্বাচিত (${escapeHtml(categoryLabel)}${locText}) · মোট পণ্য: ${products.length}টি`;
+                pricingStatus.classList.add('ready');
+                
+                let allChecked = true;
+                productContainer.innerHTML = products.map((product, index) => {
+                    const assignment = assignments.get(product.Id);
+                    if (!assignment) allChecked = false;
+                    const purchasePrice = assignment?.PurchasePrice ?? product.UnitPrice;
+                    const salesPrice = assignment?.SalesPrice ?? product.UnitPrice;
+                    return `<div class="bulk-product-card">
+                        <label class="product-toggle">
+                            <input type="checkbox" name="SelectedProductIds" value="${product.Id}" ${assignment ? 'checked' : ''}>
+                            <span><strong>${escapeHtml(product.Name)}</strong><small>${escapeHtml(product.ProductCode)}</small></span>
+                        </label>
+                        <input type="hidden" name="ProductPrices[${index}].CompanyProductId" value="${product.Id}">
+                        <label>ক্রয় মূল্য (Purchase)<input type="number" name="ProductPrices[${index}].PurchasePrice" min="0" step="0.01" value="${Number(purchasePrice).toFixed(2)}"></label>
+                        <label>বিক্রি মূল্য (Sales)<input type="number" name="ProductPrices[${index}].SalesPrice" min="0.01" step="0.01" value="${Number(salesPrice).toFixed(2)}"></label>
+                        <div class="profit-badge">লাভ ৳0.00</div>
+                    </div>`;
+                }).join('') || '<p style="padding:1.5rem; text-align:center; color:#64748b;">এই ক্যাটাগরির কোনো প্রডাক্ট পাওয়া যায়নি।</p>';
+                
+                productContainer.querySelectorAll('.bulk-product-card').forEach(card => {
+                    updateProfitBadge(card);
+                    card.querySelectorAll('input[type="number"]').forEach(input => {
+                        input.addEventListener('input', () => updateProfitBadge(card));
+                    });
+                });
+
+                if (products.length > 0) {
+                    productSelectionToolbar.style.display = 'flex';
+                    selectAllProductsCheckbox.checked = allChecked;
+                } else {
+                    productSelectionToolbar.style.display = 'none';
+                }
+            };
+
+            const autoSelectByLocation = () => {
+                if (thanaInput.value) {
+                    const shopsInThana = pricingData.shops.filter(shop => includesText(shop.ThanaName, thanaInput.value));
+                    if (shopsInThana.length > 0) {
+                        selectedShopIds.clear();
+                        shopsInThana.forEach(shop => selectedShopIds.add(shop.Id));
+                    }
+                } else if (districtInput.value) {
+                    const shopsInDistrict = pricingData.shops.filter(shop => includesText(shop.DistrictName, districtInput.value));
+                    if (shopsInDistrict.length > 0) {
+                        selectedShopIds.clear();
+                        shopsInDistrict.forEach(shop => selectedShopIds.add(shop.Id));
+                    }
+                }
+            };
+
+            divisionInput.addEventListener('input', renderShops);
+            districtInput.addEventListener('input', () => {
+                autoSelectByLocation();
+                renderShops();
+            });
+            thanaInput.addEventListener('input', () => {
+                autoSelectByLocation();
+                renderShops();
+            });
+            shopSearchInput.addEventListener('input', renderShops);
+
+            selectDistrictButton.addEventListener('click', () => {
+                if (!districtInput.value) {
+                    alert('অনুগ্রহ করে আগে একটি District টাইপ/সিলেক্ট করুন।');
+                    districtInput.focus();
+                    return;
+                }
+                const shopsInDistrict = pricingData.shops.filter(shop => includesText(shop.DistrictName, districtInput.value));
+                if (shopsInDistrict.length === 0) {
+                    alert('এই জেলায় কোনো দোকান পাওয়া যায়নি।');
+                    return;
+                }
+                shopsInDistrict.forEach(shop => selectedShopIds.add(shop.Id));
+                renderShops();
+            });
+
+            selectThanaButton.addEventListener('click', () => {
+                if (!thanaInput.value) {
+                    alert('অনুগ্রহ করে আগে একটি Thana টাইপ/সিলেক্ট করুন।');
+                    thanaInput.focus();
+                    return;
+                }
+                const shopsInThana = pricingData.shops.filter(shop => includesText(shop.ThanaName, thanaInput.value));
+                if (shopsInThana.length === 0) {
+                    alert('এই থানায় কোনো দোকান পাওয়া যায়নি।');
+                    return;
+                }
+                shopsInThana.forEach(shop => selectedShopIds.add(shop.Id));
+                renderShops();
+            });
+
+            selectVisibleButton.addEventListener('click', () => {
+                getFilteredShops().forEach(shop => selectedShopIds.add(shop.Id));
+                renderShops();
+            });
+
+            clearSelectedButton.addEventListener('click', () => {
+                selectedShopIds.clear();
+                renderShops();
+            });
+
+            selectAllProductsCheckbox.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                pricingForm.querySelectorAll('input[name="SelectedProductIds"]').forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+            });
+
+            productContainer.addEventListener('change', (e) => {
+                if (e.target.name === 'SelectedProductIds') {
+                    const checkboxes = pricingForm.querySelectorAll('input[name="SelectedProductIds"]');
+                    const checkedCheckboxes = pricingForm.querySelectorAll('input[name="SelectedProductIds"]:checked');
+                    selectAllProductsCheckbox.checked = checkboxes.length > 0 && checkboxes.length === checkedCheckboxes.length;
+                }
+            });
+
+            pricingForm.addEventListener('submit', event => {
+                const selectedProducts = [...pricingForm.querySelectorAll('input[name="SelectedProductIds"]:checked')];
+                if (selectedShopIds.size === 0 || selectedProducts.length === 0) {
+                    event.preventDefault();
+                    pricingStatus.querySelector('span').textContent = 'দোকান এবং কমপক্ষে একটি পণ্য সিলেক্ট করুন।';
+                    pricingStatus.classList.remove('ready');
+                    return;
+                }
+
+                for (const checkbox of selectedProducts) {
+                    const card = checkbox.closest('.bulk-product-card');
+                    const purchase = Number(card.querySelector('input[name$=".PurchasePrice"]').value);
+                    const sales = Number(card.querySelector('input[name$=".SalesPrice"]').value);
+                    if (purchase < 0 || sales <= 0 || sales < purchase) {
+                        event.preventDefault();
+                        pricingStatus.querySelector('span').textContent = 'বিক্রি মূল্য (Sales Price) অবশ্যই ক্রয় মূল্য (Purchase Price)-এর সমান বা বেশি হতে হবে।';
+                        pricingStatus.classList.remove('ready');
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+                }
+            });
+
+            renderShops();
+        })();
+    </script>
+}

@@ -30,9 +30,8 @@ public sealed class CustomerOrderStore(
                     companyProduct.ImageUrl
                 ) AS ImageUrl
             FROM dbo.tbl_CustomerOrderProducts AS catalog
-            INNER JOIN dbo.tbl_Products AS inventory
+            LEFT JOIN dbo.tbl_Products AS inventory
                 ON inventory.IsActive = 1
-               AND inventory.StockQuantity > 0
                AND (
                     inventory.Sku = catalog.Sku
                     OR catalog.Sku = CONCAT(N'SP', inventory.ShopkeeperId, N'-', inventory.Sku)
@@ -40,7 +39,7 @@ public sealed class CustomerOrderStore(
             LEFT JOIN dbo.tbl_CompanyProducts AS companyProduct
                 ON companyProduct.ProductCode = catalog.Sku
             WHERE catalog.IsActive = 1
-            ORDER BY catalog.Name, inventory.ShopkeeperId;
+            ORDER BY catalog.Category, catalog.Name;
             """, connection);
         var products = new Dictionary<int, CustomerProductCatalogBuilder>();
 
@@ -62,7 +61,10 @@ public sealed class CustomerOrderStore(
                 products[id] = product;
             }
 
-            product.ShopkeeperIds.Add(reader.GetInt32(reader.GetOrdinal("ShopkeeperId")));
+            if (!reader.IsDBNull(reader.GetOrdinal("ShopkeeperId")))
+            {
+                product.ShopkeeperIds.Add(reader.GetInt32(reader.GetOrdinal("ShopkeeperId")));
+            }
             if (string.IsNullOrWhiteSpace(product.ImageUrl)
                 && !reader.IsDBNull(reader.GetOrdinal("ImageUrl")))
             {
@@ -105,6 +107,26 @@ public sealed class CustomerOrderStore(
         connection.Open();
         using var reader = command.ExecuteReader();
         return ReadOrders(reader);
+    }
+
+    public CustomerOrderMaster? GetOrderByIdAndPhone(int orderId, string phone)
+    {
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("""
+            SELECT Id, CustomerId, CustomerName, CustomerPhone, ShopkeeperId, ShopkeeperName, OrderDate, TotalAmount, DiscountAmount, Status, Remarks
+            FROM dbo.tbl_CustomerOrders
+            WHERE Id = @OrderId AND CustomerPhone = @Phone;
+
+            SELECT Id, OrderMasterId, ProductId, ProductName, Sku, Quantity, UnitPrice
+            FROM dbo.tbl_CustomerOrderDetails
+            WHERE OrderMasterId = @OrderId;
+            """, connection);
+        command.Parameters.AddWithValue("@OrderId", orderId);
+        command.Parameters.AddWithValue("@Phone", phone.Trim());
+
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        return ReadOrders(reader).FirstOrDefault();
     }
 
     public void UpdateOrderStatus(int shopkeeperId, int orderId, string status)
@@ -163,7 +185,8 @@ public sealed class CustomerOrderStore(
         command.Parameters.AddWithValue("@ShopkeeperId", shopkeeper.Id);
         command.Parameters.AddWithValue("@CustomerLatitude", (object?)input.CustomerLatitude ?? DBNull.Value);
         command.Parameters.AddWithValue("@CustomerLongitude", (object?)input.CustomerLongitude ?? DBNull.Value);
-        command.Parameters.AddWithValue("@Remarks", string.IsNullOrWhiteSpace(input.Remarks) ? DBNull.Value : input.Remarks.Trim());
+        var deliveryNote = $"[ডেলিভারি: {input.DeliveryType ?? "পিকআপ"}{(input.DeliveryCharge > 0 ? $" (চার্জ: ৳{input.DeliveryCharge:N0})" : " (ফ্রি)")} | পেমেন্ট: {input.PaymentMethod ?? "ক্যাশ"}] {(string.IsNullOrWhiteSpace(input.Remarks) ? "" : input.Remarks.Trim())}".Trim();
+        command.Parameters.AddWithValue("@Remarks", deliveryNote);
 
         var itemsParameter = command.Parameters.Add("@Items", SqlDbType.Structured);
         itemsParameter.TypeName = "dbo.CustomerOrderDetailInput";

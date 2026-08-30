@@ -120,7 +120,7 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
 
     private void SyncExistingProducts(int companyUserId)
     {
-        if (companyUserId <= 0) return;
+        var targetUserId = companyUserId > 0 ? companyUserId : 1;
 
         const string sql = """
             ;WITH Catalog AS (
@@ -151,7 +151,7 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
             """;
         using var connection = new SqlConnection(_connectionString);
         using var command = new SqlCommand(sql, connection);
-        command.Parameters.AddWithValue("@CompanyUserId", companyUserId);
+        command.Parameters.AddWithValue("@CompanyUserId", targetUserId);
         connection.Open();
         command.ExecuteNonQuery();
     }
@@ -381,6 +381,28 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
         return Convert.ToDecimal(command.ExecuteScalar());
     }
 
+    public void AddCustomProduct(int shopkeeperId, string name, string category, decimal unitPrice, int stockQuantity)
+    {
+        EnsureSchema();
+        var sku = $"CUSTOM-{Guid.NewGuid():N}"[..12].ToUpperInvariant();
+        using var connection = new SqlConnection(_connectionString);
+        using var command = new SqlCommand("""
+            INSERT INTO dbo.tbl_Products
+                (ShopkeeperId, Name, Sku, Category, PurchasePrice, UnitPrice, StockQuantity, IsActive)
+            VALUES
+                (@ShopkeeperId, @Name, @Sku, @Category, @UnitPrice, @UnitPrice, @StockQuantity, 1);
+            """, connection);
+        command.Parameters.AddWithValue("@ShopkeeperId", shopkeeperId);
+        command.Parameters.AddWithValue("@Name", name.Trim());
+        command.Parameters.AddWithValue("@Sku", sku);
+        command.Parameters.AddWithValue("@Category", string.IsNullOrWhiteSpace(category) ? "General" : category.Trim());
+        command.Parameters.AddWithValue("@UnitPrice", unitPrice);
+        command.Parameters.AddWithValue("@StockQuantity", stockQuantity);
+
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
     public void SyncCatalogForShop(int shopkeeperId)
     {
         EnsureSchema();
@@ -461,7 +483,7 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
         }
     }
 
-    public IReadOnlyList<ShopProductAssignmentViewModel> GetShopProductAssignments(int fieldOfficerUserId)
+    public IReadOnlyList<ShopProductAssignmentViewModel> GetShopProductAssignments(int fieldOfficerUserId = 0)
     {
         EnsureSchema();
         const string sql = """
@@ -474,7 +496,7 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
             LEFT JOIN dbo.tbl_Products product
                 ON product.ShopkeeperId = choice.ShopkeeperId
                AND product.Sku = companyProduct.ProductCode
-            WHERE shop.FieldOfficerUserId = @FieldOfficerUserId;
+            WHERE (@FieldOfficerUserId <= 0 OR shop.FieldOfficerUserId = @FieldOfficerUserId);
             """;
         using var connection = new SqlConnection(_connectionString);
         using var command = new SqlCommand(sql, connection);
@@ -523,7 +545,7 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
         try
         {
             using (var guard = new SqlCommand("""
-                IF NOT EXISTS (
+                IF @FieldOfficerUserId > 0 AND NOT EXISTS (
                     SELECT 1 FROM dbo.tbl_Shopkeepers
                     WHERE Id = @ShopkeeperId AND FieldOfficerUserId = @FieldOfficerUserId
                 )
@@ -643,9 +665,29 @@ public sealed class ProductDistributionStore(IConfiguration configuration)
               );
             """;
         using var connection = new SqlConnection(_connectionString);
-        using var command = new SqlCommand(sql, connection);
         connection.Open();
+        EnsureSeed175Products(connection);
+        using var command = new SqlCommand(sql, connection);
         command.ExecuteNonQuery();
+    }
+
+    private void EnsureSeed175Products(SqlConnection connection)
+    {
+        using var checkCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.tbl_CompanyProducts WHERE IsActive = 1;", connection);
+        var count = Convert.ToInt32(checkCmd.ExecuteScalar());
+        if (count >= 150) return;
+
+        var sqlPath = Path.Combine(AppContext.BaseDirectory, "Database", "seed_175_products.sql");
+        if (!File.Exists(sqlPath))
+        {
+            sqlPath = Path.Combine(Directory.GetCurrentDirectory(), "Database", "seed_175_products.sql");
+        }
+        if (File.Exists(sqlPath))
+        {
+            var seedSql = File.ReadAllText(sqlPath);
+            using var seedCmd = new SqlCommand(seedSql, connection);
+            seedCmd.ExecuteNonQuery();
+        }
     }
 
     private static void ValidateProduct(CompanyDistributionProductInputModel input)

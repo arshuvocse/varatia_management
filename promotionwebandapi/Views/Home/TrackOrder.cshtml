@@ -1,0 +1,91 @@
+@{
+    ViewData["Title"] = "অর্ডার ট্র্যাকিং - Amar Thikanaa";
+    var order = ViewBag.Order as PromotionWeb.Models.CustomerOrderMaster;
+    var assignment = ViewBag.Assignment as PromotionWeb.Models.DeliveryAssignment;
+    var errorMessage = ViewBag.ErrorMessage as string;
+}
+
+<div style="max-width: 800px; margin: 40px auto; padding: 24px; font-family: 'Anek Bangla', 'Inter', sans-serif;">
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #1e3a8a; font-size: 32px; font-weight: 800; margin-bottom: 8px;">📦 অর্ডার ট্র্যাকিং</h1>
+        <p style="color: #64748b; font-size: 16px;">আপনার Order ID এবং মোবাইল নম্বর দিয়ে রিয়েল-টাইম ডেলিভারি স্ট্যাটাস খুঁজুন</p>
+    </div>
+
+    <form method="get" action="/track-order" style="background: #ffffff; padding: 24px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 30px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end;">
+            <div>
+                <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 6px;">Order ID</label>
+                <input type="number" name="orderId" placeholder="যেমন: 1024" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px;" />
+            </div>
+            <div>
+                <label style="display: block; font-weight: 700; color: #334155; margin-bottom: 6px;">মোবাইল নম্বর</label>
+                <input type="tel" name="phone" placeholder="যেমন: 01XXXXXXXXX" required style="width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 15px;" />
+            </div>
+            <button type="submit" style="padding: 12px 24px; background: #2563eb; color: #fff; border: 0; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer;">খুঁজুন</button>
+        </div>
+    </form>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div style="padding: 16px; background: #fee2e2; color: #991b1b; border-radius: 12px; font-weight: 700; margin-bottom: 24px; text-align: center;">
+            ⚠️ @errorMessage
+        </div>
+    }
+
+    @if (order != null)
+    {
+        <div style="background: #ffffff; padding: 28px; border-radius: 20px; box-shadow: 0 12px 35px rgba(0,0,0,0.09); border: 1px solid #e2e8f0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; margin-bottom: 20px;">
+                <div>
+                    <h2 style="margin: 0; font-size: 22px; color: #0f172a;">অর্ডার #@order.Id</h2>
+                    <small style="color: #64748b;">তারিখ: @order.OrderDate.ToString("dd MMM yyyy, hh:mm tt")</small>
+                </div>
+                <span style="padding: 6px 16px; border-radius: 999px; background: #dbeafe; color: #1e40af; font-weight: 800; font-size: 14px;">@order.Status</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 12px;">
+                <div><strong>গ্রাহক:</strong> @order.CustomerName (@order.CustomerPhone)</div>
+                <div><strong>দোকান:</strong> @order.ShopkeeperName</div>
+                <div><strong>মোট মূল্য:</strong> ৳ @order.TotalAmount.ToString("N2")</div>
+                <div><strong>ডিসকাউন্ট:</strong> ৳ @order.DiscountAmount.ToString("N2")</div>
+            </div>
+
+            @if (assignment != null)
+            {
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 18px; border-radius: 14px; margin-bottom: 24px;">
+                    <h3 style="margin: 0 0 10px; color: #1d4ed8; font-size: 16px;">🛵 ডেলিভারি ম্যান</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>@assignment.DeliveryManName</strong><br />
+                            <a href="tel:@assignment.DeliveryManPhone" style="color: #2563eb; text-decoration: underline;">📞 @assignment.DeliveryManPhone</a>
+                        </div>
+                        <span style="padding: 4px 12px; border-radius: 20px; background: #3b82f6; color: #fff; font-size: 13px; font-weight: 700;">@assignment.Status</span>
+                    </div>
+                </div>
+            }
+
+            <h3 style="margin-bottom: 12px; color: #334155; font-size: 16px;">পণ্যের বিবরণ</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f1f5f9; text-align: left;">
+                        <th style="padding: 10px;">পণ্য</th>
+                        <th style="padding: 10px;">পরিমাণ</th>
+                        <th style="padding: 10px;">একক মূল্য</th>
+                        <th style="padding: 10px; text-align: right;">মোট</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in order.Details)
+                    {
+                        <tr style="border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding: 10px; font-weight: 700;">@item.ProductName</td>
+                            <td style="padding: 10px;">@item.Quantity</td>
+                            <td style="padding: 10px;">৳ @item.UnitPrice.ToString("N2")</td>
+                            <td style="padding: 10px; text-align: right; font-weight: 700;">৳ @(item.Quantity * item.UnitPrice)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

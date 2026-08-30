@@ -1,281 +1,1341 @@
 @model ShopkeeperDashboardViewModel
 @{
-    ViewData["Title"] = "Customer Chat";
+    ViewData["Title"] = "চ্যাট থেকে অর্ডার ও ৫০/৫০ লাভ বণ্টন - Smart Bazar";
     ViewData["ActivePage"] = "Chat";
 }
 
-<main class="app-page shop-theme shop-portal-page shop-chat-page">
-    <div class="shop-portal-shell">
-        <partial name="_Sidebar" model="Model" />
+<div class="sb-shop-layout">
+    <!-- Desktop Sidebar -->
+    <partial name="_Sidebar" model="Model" />
 
-        <section class="shop-page-content">
-            <header class="shop-page-header">
-                <div>
-                    <span>LIVE CUSTOMER SUPPORT</span>
-                    <h1>ক্রেতার সঙ্গে চ্যাট</h1>
-                    <p>Customer message, unread notification and conversation history live দেখুন।</p>
+    <!-- Main Content -->
+    <main class="sb-chat-main">
+        <!-- Top Navigation Header -->
+        <header class="sb-chat-topbar">
+            <div class="sb-chat-user-header">
+                <a href="/Shopkeeper/Dashboard" class="sb-chat-back-btn">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <div class="sb-chat-avatar-wrap">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80" alt="রহিম উদ্দিন" class="sb-chat-user-img" />
+                    <span class="sb-chat-online-dot"></span>
                 </div>
-            </header>
+                <div class="sb-chat-user-meta">
+                    <h2 class="sb-chat-user-name">রহিম উদ্দিন</h2>
+                    <span class="sb-chat-status-txt">● Online</span>
+                </div>
+            </div>
 
-            <section class="chat-workspace" data-current-user-id="@Context.Session.GetInt32("UserId")">
-                <aside class="chat-inbox" id="shop-chat-inbox">
-                    <div class="chat-inbox-title">
-                        <div>
-                            <span>MESSAGES</span>
-                            <h2>Inbox</h2>
-                        </div>
-                        <b class="chat-unread-badge" data-chat-notification-badge hidden="@(Model.UnreadChatCount == 0)">@Model.UnreadChatCount</b>
-                    </div>
-                    <label class="chat-inbox-search">
-                        <span aria-hidden="true">⌕</span>
-                        <input id="chat-customer-search" type="search" placeholder="খুঁজুন customer..." autocomplete="off" />
-                    </label>
-                    <div class="chat-inbox-list" id="chat-inbox-list">
-                        @if (Model.ChatInbox.Count == 0)
-                        {
-                            <p class="empty" id="empty-chat-inbox">No customer message yet.</p>
-                        }
-                        @foreach (var conversation in Model.ChatInbox)
-                        {
-                            <button type="button" class="chat-inbox-item" data-conversation-id="@conversation.Id">
-                                <span class="chat-customer-avatar">@(string.IsNullOrWhiteSpace(conversation.CustomerName) ? "?" : conversation.CustomerName.Trim()[..1].ToUpperInvariant())</span>
-                                <span class="chat-inbox-copy">
-                                    <strong>@conversation.CustomerName</strong>
-                                    <small>@conversation.CustomerPhone</small>
-                                    <em>@(string.IsNullOrWhiteSpace(conversation.LastMessage) ? "New conversation" : conversation.LastMessage)</em>
-                                </span>
-                                <b class="chat-unread-badge" hidden="@(conversation.UnreadCount == 0)">@conversation.UnreadCount</b>
-                            </button>
-                        }
-                    </div>
-                </aside>
+            <div class="sb-chat-header-actions">
+                <a href="tel:01712998877" class="sb-chat-action-btn" title="Call Customer">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </a>
+                <button type="button" class="sb-chat-action-btn" title="Menu">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+                </button>
+            </div>
+        </header>
 
-                <section class="chat-room">
-                    <header class="chat-room-header">
-                        <div>
-                            <strong id="shop-chat-title">Select a customer</strong>
-                            <span id="shop-chat-subtitle">Conversation খুললে live message দেখা যাবে।</span>
-                        </div>
-                        <div class="chat-header-actions">
-                            <span class="chat-online-state">Live</span>
-                            <button class="chat-call-button" type="button" data-audio-call-button disabled>Audio call</button>
-                            <button class="chat-call-button" type="button" data-video-call-button disabled>Video call</button>
-                        </div>
-                    </header>
-                    <div class="chat-message-list" id="shop-chat-messages">
-                        <p class="empty">Inbox থেকে একটি customer select করুন।</p>
+        <!-- Chat Conversation Body -->
+        <div class="sb-chat-body-container">
+            <!-- Encryption Security Banner -->
+            <div class="sb-chat-encryption-badge">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span><strong>এন্ড-টু-এন্ড এনক্রিপটেড চ্যাট</strong> - আপনার সব বার্তা নিরাপদে এনক্রিপটেড করা আছে।</span>
+            </div>
+
+            <div class="sb-chat-date-separator"><span>আজ</span></div>
+
+            <!-- Message 1: Customer Grocery List Message -->
+            <div class="sb-chat-msg-row sb-msg-incoming">
+                <div class="sb-chat-bubble sb-bubble-incoming">
+                    <p class="sb-msg-text">
+                        ভাই, নিচের বাজারগুলো দিবেন -<br>
+                        <strong>কাঁচামরিচ ২০ টাকা</strong><br>
+                        <strong>হলুদ ১০ টাকা</strong><br>
+                        <strong>লবণ ১০ টাকা</strong><br>
+                        <strong>শিম ৫০ টাকা</strong><br>
+                        <strong>আলু ২০ টাকা</strong>
+                    </p>
+                    <span class="sb-msg-time">10:30 AM <span class="sb-msg-seen">✓✓</span></span>
+                </div>
+            </div>
+
+            <!-- Message 2: Shopkeeper Reply -->
+            <div class="sb-chat-msg-row sb-msg-outgoing">
+                <div class="sb-chat-bubble sb-bubble-outgoing">
+                    <p class="sb-msg-text">ঠিক আছে ভাই, অর্ডার নিচ্ছি</p>
+                    <span class="sb-msg-time">10:31 AM</span>
+                </div>
+            </div>
+
+            <!-- Smart Conversion Button: "🛒 অর্ডার হিসেবে নিন" -->
+            <div class="sb-chat-convert-btn-wrap">
+                <button type="button" class="sb-btn-convert-order" onclick="openOrderReviewModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span>অর্ডার হিসেবে নিন</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Bottom Input & Media Bar -->
+        <div class="sb-chat-bottom-input-bar">
+            <!-- Media Quick Attachment Bar -->
+            <div class="sb-chat-media-shortcuts">
+                <button type="button" class="sb-media-shortcut-btn" onclick="triggerPhotoUpload()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span>ছবি (ফর্দ)</span>
+                </button>
+
+                <button type="button" class="sb-media-shortcut-btn" onclick="startVoiceRecord()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <span>ভয়েস</span>
+                </button>
+
+                <button type="button" class="sb-media-shortcut-btn" onclick="triggerFileUpload()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    <span>ফাইল</span>
+                </button>
+
+                <button type="button" class="sb-media-shortcut-btn sb-btn-add">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="19" x2="19" y2="12"/></svg>
+                </button>
+            </div>
+
+            <!-- Input Box -->
+            <div class="sb-chat-input-controls-row">
+                <button type="button" class="sb-emoji-btn">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                </button>
+                <input type="text" placeholder="মেসেজ লিখুন..." class="sb-chat-text-input" id="chatMessageInput" />
+                <button type="button" class="sb-chat-mic-submit-btn" id="chatSubmitBtn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5-Step Workflow & Benefits Infographic Section -->
+        <section class="sb-workflow-infographic-card">
+            <h3 class="sb-wf-title">এভাবেই কাজ করবে</h3>
+            <div class="sb-wf-steps-grid">
+                <!-- Step 1 -->
+                <div class="sb-wf-step">
+                    <div class="sb-wf-step-badge">১</div>
+                    <strong>কাস্টমার লিস্ট পাঠাবে</strong>
+                    <p>চ্যাট, ছবি, এসএমএস বা মুখে বলে দিবে</p>
+                    <div class="sb-wf-icons-row">
+                        <span>💬</span><span>🖼️</span><span>📱</span><span>🎙️</span>
                     </div>
-                    <form class="chat-compose" id="shop-chat-form">
-                        <input id="shop-chat-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
-                        <button class="chat-image-button" id="shop-chat-image-button" type="button" title="Send image" disabled>Image</button>
-                        <button class="chat-voice-button" id="shop-chat-voice-button" type="button" title="Send Voice SMS" disabled>🎤 Voice</button>
-                        <input id="shop-chat-input" maxlength="1000" autocomplete="off" placeholder="Write a message..." disabled />
-                        <button class="btn-primary" type="submit" disabled>Send</button>
-                    </form>
-                </section>
-            </section>
+                </div>
+
+                <!-- Arrow -->
+                <div class="sb-wf-arrow">➔</div>
+
+                <!-- Step 2 -->
+                <div class="sb-wf-step">
+                    <div class="sb-wf-step-badge">২</div>
+                    <strong>অর্ডার হিসেবে নিন</strong>
+                    <p>দোকানদার চ্যাট থেকে অর্ডার হিসেবে নেবেন</p>
+                    <div class="sb-wf-preview-btn">🛒 অর্ডার হিসেবে নিন</div>
+                </div>
+
+                <!-- Arrow -->
+                <div class="sb-wf-arrow">➔</div>
+
+                <!-- Step 3 -->
+                <div class="sb-wf-step">
+                    <div class="sb-wf-step-badge">৩</div>
+                    <strong>অর্ডার পর্যালোচনা</strong>
+                    <p>পণ্যের তালিকা দেখাবে, প্রয়োজনে এডিট করবেন</p>
+                    <div class="sb-wf-items-sample">
+                        <span>🌶️ কাঁচামরিচ ৳২০</span>
+                        <span>🟡 হলুদ ৳১০</span>
+                    </div>
+                </div>
+
+                <!-- Arrow -->
+                <div class="sb-wf-arrow">➔</div>
+
+                <!-- Step 4 -->
+                <div class="sb-wf-step">
+                    <div class="sb-wf-step-badge">৪</div>
+                    <strong>কনফার্ম অর্ডার</strong>
+                    <p>কনফার্ম করলেই বিল এবং হিসাব তৈরি হবে</p>
+                    <div class="sb-wf-confirm-sample">✔️ কনফার্ম করুন</div>
+                </div>
+
+                <!-- Arrow -->
+                <div class="sb-wf-arrow">➔</div>
+
+                <!-- Step 5 -->
+                <div class="sb-wf-step">
+                    <div class="sb-wf-step-badge">৫</div>
+                    <strong>লাভ বণ্টন ও সম্পন্ন</strong>
+                    <p>স্বয়ংক্রিয়ভাবে লাভ বণ্টন হবে ৫০% - ৫০%</p>
+                    <div class="sb-wf-profit-pill">
+                        <span>🏬 ৳১০</span> + <span>🛍️ ৳১০</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Bar -->
+            <div class="sb-wf-features-strip">
+                <div class="sb-feat-item">
+                    <span class="sb-feat-icon">⚡</span>
+                    <div>
+                        <strong>অতি দ্রুত অর্ডার</strong>
+                        <small>কয়েক সেকেন্ডে অর্ডার সম্পন্ন</small>
+                    </div>
+                </div>
+
+                <div class="sb-feat-item">
+                    <span class="sb-feat-icon">🧮</span>
+                    <div>
+                        <strong>হিসাব সম্পূর্ণ স্বয়ংক্রিয়</strong>
+                        <small>ভুলের কোনো সুযোগ নেই</small>
+                    </div>
+                </div>
+
+                <div class="sb-feat-item">
+                    <span class="sb-feat-icon">⚖️</span>
+                    <div>
+                        <strong>লাভ বণ্টন স্বচ্ছ</strong>
+                        <small>৫০% আপনার, ৫০% কোম্পানির</small>
+                    </div>
+                </div>
+
+                <div class="sb-feat-item">
+                    <span class="sb-feat-icon">📄</span>
+                    <div>
+                        <strong>বিল প্রিন্ট ও শেয়ার</strong>
+                        <small>PDF ডাউনলোড ও শেয়ার করা যায়</small>
+                    </div>
+                </div>
+            </div>
         </section>
+    </main>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 1: স্ক্রিন ২ - অর্ডার পর্যালোচনা (Order Review & Parsing Modal)      -->
+<!-- ========================================================================= -->
+<div class="sb-modal-backdrop" id="orderReviewModal" style="display: none;">
+    <div class="sb-modal-box sb-review-modal-box">
+        <div class="sb-modal-header">
+            <div class="sb-modal-title-wrap">
+                <button type="button" class="sb-pane-back" onclick="closeOrderReviewModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </button>
+                <div>
+                    <h4 style="margin:0; font-size: 17px; font-weight:800;">অর্ডার পর্যালোচনা</h4>
+                    <small style="color: #64748b; font-weight: 600;">রহিম উদ্দিন</small>
+                </div>
+            </div>
+            <button type="button" class="sb-modal-close-btn" onclick="closeOrderReviewModal()">&times;</button>
+        </div>
+
+        <div class="sb-modal-body">
+            <h5 style="margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #475569;">পণ্যগুলোর তালিকা</h5>
+
+            <!-- Extracted Parsed Items List -->
+            <div class="sb-parsed-items-list" id="parsedItemsList">
+                <!-- Item 1: কাঁচামরিচ -->
+                <div class="sb-parsed-item-card">
+                    <div class="sb-item-thumb-box">
+                        <img src="https://images.unsplash.com/photo-1588252303782-cb80119abd6d?w=100&q=80" alt="কাঁচামরিচ" />
+                    </div>
+                    <div class="sb-item-info">
+                        <strong>কাঁচামরিচ</strong>
+                        <small>পরিমাণ: ১</small>
+                    </div>
+                    <strong class="sb-item-price">৳ ২০</strong>
+                    <button type="button" class="sb-btn-remove-item" onclick="removeParsedItem(this, 20)">×</button>
+                </div>
+
+                <!-- Item 2: হলুদ -->
+                <div class="sb-parsed-item-card">
+                    <div class="sb-item-thumb-box">
+                        <img src="https://images.unsplash.com/photo-1615485290382-441e4d049cb5?w=100&q=80" alt="হলুদ" />
+                    </div>
+                    <div class="sb-item-info">
+                        <strong>হলুদ</strong>
+                        <small>পরিমাণ: ১</small>
+                    </div>
+                    <strong class="sb-item-price">৳ ১০</strong>
+                    <button type="button" class="sb-btn-remove-item" onclick="removeParsedItem(this, 10)">×</button>
+                </div>
+
+                <!-- Item 3: লবণ -->
+                <div class="sb-parsed-item-card">
+                    <div class="sb-item-thumb-box">
+                        <img src="https://images.unsplash.com/photo-1518110925495-5fe2fda0442c?w=100&q=80" alt="লবণ" />
+                    </div>
+                    <div class="sb-item-info">
+                        <strong>লবণ</strong>
+                        <small>পরিমাণ: ১</small>
+                    </div>
+                    <strong class="sb-item-price">৳ ১০</strong>
+                    <button type="button" class="sb-btn-remove-item" onclick="removeParsedItem(this, 10)">×</button>
+                </div>
+
+                <!-- Item 4: শিম -->
+                <div class="sb-parsed-item-card">
+                    <div class="sb-item-thumb-box">
+                        <img src="https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=100&q=80" alt="শিম" />
+                    </div>
+                    <div class="sb-item-info">
+                        <strong>শিম</strong>
+                        <small>পরিমাণ: ১</small>
+                    </div>
+                    <strong class="sb-item-price">৳ ৫০</strong>
+                    <button type="button" class="sb-btn-remove-item" onclick="removeParsedItem(this, 50)">×</button>
+                </div>
+
+                <!-- Item 5: আলু -->
+                <div class="sb-parsed-item-card">
+                    <div class="sb-item-thumb-box">
+                        <img src="https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=100&q=80" alt="আলু" />
+                    </div>
+                    <div class="sb-item-info">
+                        <strong>আলু</strong>
+                        <small>পরিমাণ: ১</small>
+                    </div>
+                    <strong class="sb-item-price">৳ ২০</strong>
+                    <button type="button" class="sb-btn-remove-item" onclick="removeParsedItem(this, 20)">×</button>
+                </div>
+            </div>
+
+            <!-- Review Summary Bar -->
+            <div class="sb-review-total-bar">
+                <div>
+                    <span style="font-size: 11px; color: #64748b; display: block;">মোট পরিমাণ</span>
+                    <strong id="reviewItemCount">৫ টি আইটেম</strong>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 11px; color: #64748b; display: block;">মোট টাকা</span>
+                    <strong class="sb-text-green" id="reviewTotalAmount" style="font-size: 20px;">৳ ১১০</strong>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="sb-review-action-btns">
+                <button type="button" class="sb-btn-edit-order" onclick="enableEditMode()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <span>এডিট করুন</span>
+                </button>
+                <button type="button" class="sb-btn-confirm-order" onclick="confirmOrderAndShowInvoice()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>কনফার্ম করুন</span>
+                </button>
+            </div>
+        </div>
     </div>
-</main>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: স্ক্রিন ৩ - বিল ও লাভের হিসাব (Invoice & 50/50 Profit Modal)      -->
+<!-- ========================================================================= -->
+<div class="sb-modal-backdrop" id="invoiceProfitModal" style="display: none;">
+    <div class="sb-modal-box sb-invoice-modal-box">
+        <div class="sb-modal-header">
+            <div class="sb-modal-title-wrap">
+                <button type="button" class="sb-pane-back" onclick="closeInvoiceProfitModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </button>
+                <div>
+                    <h4 style="margin:0; font-size: 17px; font-weight:800;">বিল ও লাভের হিসাব</h4>
+                    <small style="color: #64748b; font-weight: 600;">রহিম উদ্দিন</small>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="sb-btn-icon-top" onclick="window.print()" title="Print Bill">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                </button>
+                <button type="button" class="sb-btn-icon-top" onclick="downloadInvoicePdf()" title="PDF Download">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                </button>
+                <button type="button" class="sb-modal-close-btn" onclick="closeInvoiceProfitModal()">&times;</button>
+            </div>
+        </div>
+
+        <div class="sb-modal-body">
+            <!-- Success Status Pill -->
+            <div class="sb-invoice-success-pill">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>অর্ডার সফলভাবে সম্পন্ন হয়েছে</span>
+            </div>
+
+            <!-- Bill Metadata -->
+            <div class="sb-bill-metadata-card">
+                <div class="sb-meta-row">
+                    <span>বিল নম্বর</span>
+                    <strong>#SB2505261050</strong>
+                </div>
+                <div class="sb-meta-row">
+                    <span>তারিখ ও সময়</span>
+                    <span>26 May 2025, 10:35 AM</span>
+                </div>
+                <div class="sb-meta-row">
+                    <span>পেমেন্ট মেথড</span>
+                    <strong>নগদ (Cash)</strong>
+                </div>
+            </div>
+
+            <!-- Itemized Table -->
+            <div class="sb-invoice-table-wrap">
+                <span class="sb-tbl-caption">পণ্যের তালিকা</span>
+                <table class="sb-invoice-table">
+                    <thead>
+                        <tr>
+                            <th>পণ্য</th>
+                            <th style="text-align: center;">দাম (৳)</th>
+                            <th style="text-align: center;">পরিমাণ</th>
+                            <th style="text-align: right;">মোট (৳)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>কাঁচামরিচ</td>
+                            <td style="text-align: center;">২০</td>
+                            <td style="text-align: center;">১</td>
+                            <td style="text-align: right;">২০</td>
+                        </tr>
+                        <tr>
+                            <td>হলুদ</td>
+                            <td style="text-align: center;">১০</td>
+                            <td style="text-align: center;">১</td>
+                            <td style="text-align: right;">১০</td>
+                        </tr>
+                        <tr>
+                            <td>লবণ</td>
+                            <td style="text-align: center;">১০</td>
+                            <td style="text-align: center;">১</td>
+                            <td style="text-align: right;">১০</td>
+                        </tr>
+                        <tr>
+                            <td>শিম</td>
+                            <td style="text-align: center;">৫০</td>
+                            <td style="text-align: center;">১</td>
+                            <td style="text-align: right;">৫০</td>
+                        </tr>
+                        <tr>
+                            <td>আলু</td>
+                            <td style="text-align: center;">২০</td>
+                            <td style="text-align: center;">১</td>
+                            <td style="text-align: right;">২০</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Profit Calculation Stack -->
+            <div class="sb-calc-summary-card">
+                <div class="sb-calc-row">
+                    <span>মোট টাকা (Customer Pay)</span>
+                    <strong>৳ ১১০</strong>
+                </div>
+                <div class="sb-calc-row">
+                    <span>মোট ক্রয় মূল্য (Wholesale Cost)</span>
+                    <span>৳ ৯০</span>
+                </div>
+                <hr style="margin: 4px 0; border: 0; border-top: 1px dashed #cbd5e1;" />
+                <div class="sb-calc-row sb-profit-highlight">
+                    <span>মোট লাভ</span>
+                    <strong class="sb-text-green">৳ ২০</strong>
+                </div>
+            </div>
+
+            <!-- 50/50 Profit Sharing Highlight Grid -->
+            <div class="sb-profit-split-section">
+                <span class="sb-split-title">লাভ বণ্টন (50% - 50%)</span>
+                <div class="sb-split-grid">
+                    <!-- Shopkeeper Profit -->
+                    <div class="sb-split-box sb-split-shopkeeper">
+                        <div style="font-size: 24px; margin-bottom: 2px;">🏬</div>
+                        <span class="sb-split-label">আপনার লাভ</span>
+                        <strong class="sb-split-amount sb-text-blue">৳ ১০</strong>
+                    </div>
+
+                    <!-- Company Profit -->
+                    <div class="sb-split-box sb-split-company">
+                        <div style="font-size: 24px; margin-bottom: 2px;">🛍️</div>
+                        <span class="sb-split-label">স্মার্ট বাজারের লাভ</span>
+                        <strong class="sb-split-amount sb-text-orange">৳ ১০</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="sb-invoice-bottom-actions">
+                <button type="button" class="sb-btn-new-order" onclick="startNewOrder()">নতুন অর্ডার</button>
+                <button type="button" class="sb-btn-share-bill" onclick="shareBillToWhatsapp()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    <span>এই বিল শেয়ার করুন</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+<style>
+    /* ========================================================== */
+    /* CHAT-TO-ORDER & 50/50 PROFIT SPLIT THEME                   */
+    /* ========================================================== */
+    :root {
+        --sb-primary: #059669;
+        --sb-primary-hover: #047857;
+        --sb-dark: #0f172a;
+        --sb-border: #e2e8f0;
+        --sb-radius-sm: 8px;
+        --sb-radius-md: 14px;
+        --sb-radius-lg: 20px;
+    }
+
+    body {
+        background-color: #f1f5f9;
+        font-family: 'Anek Bangla', 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .sb-shop-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+    }
+
+    .sb-chat-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: #f8fafc;
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    /* TOPBAR */
+    .sb-chat-topbar {
+        background: #ffffff;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--sb-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+    }
+
+    .sb-chat-user-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .sb-chat-back-btn {
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+    }
+
+    .sb-chat-avatar-wrap {
+        position: relative;
+        width: 44px;
+        height: 44px;
+    }
+
+    .sb-chat-user-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .sb-chat-online-dot {
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        border: 2px solid #ffffff;
+    }
+
+    .sb-chat-user-meta h2 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .sb-chat-status-txt {
+        font-size: 12px;
+        color: #10b981;
+        font-weight: 700;
+    }
+
+    .sb-chat-header-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .sb-chat-action-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: #f1f5f9;
+        border: none;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    /* CHAT BODY */
+    .sb-chat-body-container {
+        padding: 16px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-height: 320px;
+    }
+
+    .sb-chat-encryption-badge {
+        background: #fffbeb;
+        border: 1px solid #fef3c7;
+        border-radius: var(--sb-radius-sm);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #b45309;
+        text-align: center;
+        margin: 0 auto 10px;
+        max-width: 460px;
+    }
+
+    .sb-chat-date-separator {
+        text-align: center;
+        margin: 4px 0;
+    }
+
+    .sb-chat-date-separator span {
+        background: #e2e8f0;
+        color: #475569;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+
+    .sb-chat-msg-row {
+        display: flex;
+        width: 100%;
+    }
+
+    .sb-msg-incoming {
+        justify-content: flex-start;
+    }
+
+    .sb-msg-outgoing {
+        justify-content: flex-end;
+    }
+
+    .sb-chat-bubble {
+        max-width: 80%;
+        padding: 12px 14px;
+        border-radius: 16px;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .sb-bubble-incoming {
+        background: #dcfce7;
+        color: #064e3b;
+        border-bottom-left-radius: 4px;
+    }
+
+    .sb-bubble-outgoing {
+        background: #ffffff;
+        color: #0f172a;
+        border-bottom-right-radius: 4px;
+        border: 1px solid var(--sb-border);
+    }
+
+    .sb-msg-text {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .sb-msg-time {
+        display: block;
+        text-align: right;
+        font-size: 10.5px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+
+    .sb-msg-seen {
+        color: #2563eb;
+        font-weight: 800;
+    }
+
+    /* CONVERT TO ORDER BUTTON */
+    .sb-chat-convert-btn-wrap {
+        display: flex;
+        justify-content: flex-start;
+        margin-top: -4px;
+    }
+
+    .sb-btn-convert-order {
+        background: #ffffff;
+        color: var(--sb-primary);
+        border: 2px solid var(--sb-primary);
+        border-radius: 25px;
+        padding: 8px 18px;
+        font-size: 13.5px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+        transition: all 0.2s;
+    }
+
+    .sb-btn-convert-order:hover {
+        background: var(--sb-primary);
+        color: #ffffff;
+        transform: translateY(-2px);
+    }
+
+    /* BOTTOM INPUT BAR */
+    .sb-chat-bottom-input-bar {
+        background: #ffffff;
+        border-top: 1px solid var(--sb-border);
+        padding: 12px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .sb-chat-media-shortcuts {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+    }
+
+    .sb-media-shortcut-btn {
+        background: #f8fafc;
+        border: 1px solid var(--sb-border);
+        border-radius: 20px;
+        padding: 6px 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .sb-media-shortcut-btn:hover { background: #ecfdf5; border-color: #a7f3d0; }
+
+    .sb-chat-input-controls-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .sb-emoji-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+    }
+
+    .sb-chat-text-input {
+        flex: 1;
+        background: #f1f5f9;
+        border: 1px solid var(--sb-border);
+        border-radius: 25px;
+        padding: 10px 16px;
+        font-size: 14px;
+        outline: none;
+        font-family: inherit;
+    }
+
+    .sb-chat-mic-submit-btn {
+        background: var(--sb-primary);
+        border: none;
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    /* WORKFLOW INFOGRAPHIC SECTION */
+    .sb-workflow-infographic-card {
+        background: #ffffff;
+        border-radius: var(--sb-radius-lg);
+        padding: 20px 24px;
+        border: 1px solid var(--sb-border);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        margin: 0 20px;
+    }
+
+    .sb-wf-title {
+        text-align: center;
+        margin: 0 0 18px;
+        font-size: 18px;
+        font-weight: 800;
+        color: #0f172a;
+        position: relative;
+    }
+
+    .sb-wf-title::after {
+        content: '';
+        display: block;
+        width: 50px;
+        height: 3px;
+        background: var(--sb-primary);
+        margin: 6px auto 0;
+        border-radius: 2px;
+    }
+
+    .sb-wf-steps-grid {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 24px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+
+    .sb-wf-step {
+        background: #f8fafc;
+        border: 1px solid var(--sb-border);
+        border-radius: var(--sb-radius-md);
+        padding: 12px 10px;
+        flex: 1;
+        min-width: 130px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        position: relative;
+    }
+
+    .sb-wf-step-badge {
+        position: absolute;
+        top: -10px;
+        left: 10px;
+        background: var(--sb-primary);
+        color: #ffffff;
+        font-size: 11px;
+        font-weight: 800;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sb-wf-step strong {
+        font-size: 12.5px;
+        color: #0f172a;
+        margin-top: 4px;
+        margin-bottom: 2px;
+    }
+
+    .sb-wf-step p {
+        margin: 0 0 6px;
+        font-size: 10.5px;
+        color: #64748b;
+        line-height: 1.3;
+    }
+
+    .sb-wf-icons-row {
+        display: flex;
+        gap: 4px;
+        font-size: 14px;
+    }
+
+    .sb-wf-preview-btn {
+        background: #ecfdf5;
+        color: #059669;
+        font-size: 9.5px;
+        font-weight: 800;
+        padding: 3px 6px;
+        border-radius: 12px;
+    }
+
+    .sb-wf-items-sample {
+        display: flex;
+        flex-direction: column;
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #0284c7;
+    }
+
+    .sb-wf-confirm-sample {
+        background: #6366f1;
+        color: #ffffff;
+        font-size: 9.5px;
+        font-weight: 800;
+        padding: 3px 6px;
+        border-radius: 12px;
+    }
+
+    .sb-wf-profit-pill {
+        background: #ecfdf5;
+        font-size: 10px;
+        font-weight: 800;
+        padding: 2px 6px;
+        border-radius: 8px;
+    }
+
+    .sb-wf-arrow {
+        color: #94a3b8;
+        font-weight: 800;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    /* FEATURES STRIP */
+    .sb-wf-features-strip {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        background: #f8fafc;
+        border-radius: var(--sb-radius-md);
+        padding: 14px;
+        border: 1px solid var(--sb-border);
+    }
+
+    .sb-feat-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sb-feat-icon {
+        font-size: 20px;
+    }
+
+    .sb-feat-item strong {
+        display: block;
+        font-size: 12.5px;
+        color: #0f172a;
+    }
+
+    .sb-feat-item small {
+        font-size: 10.5px;
+        color: #64748b;
+    }
+
+    /* PARSED ITEMS LIST (MODAL 1) */
+    .sb-parsed-items-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .sb-parsed-item-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #f8fafc;
+        border-radius: var(--sb-radius-sm);
+        padding: 8px 12px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .sb-item-thumb-box {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #ffffff;
+        flex-shrink: 0;
+    }
+
+    .sb-item-thumb-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .sb-item-info {
+        flex: 1;
+    }
+
+    .sb-item-info strong {
+        font-size: 13.5px;
+        color: #0f172a;
+        display: block;
+    }
+
+    .sb-item-info small {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .sb-item-price {
+        font-size: 14px;
+        font-weight: 800;
+        color: var(--sb-primary);
+    }
+
+    .sb-btn-remove-item {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 0 4px;
+    }
+
+    .sb-btn-remove-item:hover { color: #ef4444; }
+
+    .sb-review-total-bar {
+        background: #f8fafc;
+        border-radius: var(--sb-radius-sm);
+        padding: 10px 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        border: 1px solid var(--sb-border);
+    }
+
+    .sb-review-action-btns {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 10px;
+    }
+
+    .sb-btn-edit-order {
+        background: #f1f5f9;
+        color: #334155;
+        border: none;
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .sb-btn-confirm-order {
+        background: #6366f1;
+        color: #ffffff;
+        border: none;
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        font-weight: 800;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    /* INVOICE & PROFIT SPLIT (MODAL 2) */
+    .sb-invoice-success-pill {
+        background: #dcfce7;
+        color: #15803d;
+        padding: 10px 14px;
+        border-radius: var(--sb-radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 800;
+        margin-bottom: 14px;
+    }
+
+    .sb-bill-metadata-card {
+        background: #f8fafc;
+        border-radius: var(--sb-radius-sm);
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .sb-meta-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+    }
+
+    .sb-meta-row span { color: #64748b; }
+    .sb-meta-row strong { color: #0f172a; }
+
+    .sb-invoice-table-wrap {
+        margin-bottom: 14px;
+    }
+
+    .sb-tbl-caption {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #475569;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .sb-invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .sb-invoice-table th {
+        background: #f1f5f9;
+        padding: 6px 8px;
+        color: #475569;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .sb-invoice-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .sb-calc-summary-card {
+        background: #f8fafc;
+        border-radius: var(--sb-radius-sm);
+        padding: 10px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .sb-calc-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13.5px;
+    }
+
+    .sb-profit-highlight {
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    .sb-profit-split-section {
+        margin-bottom: 16px;
+    }
+
+    .sb-split-title {
+        font-size: 13px;
+        font-weight: 800;
+        color: #0f172a;
+        display: block;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+
+    .sb-split-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .sb-split-box {
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .sb-split-shopkeeper {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+    }
+
+    .sb-split-company {
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+    }
+
+    .sb-split-label {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #475569;
+    }
+
+    .sb-split-amount {
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .sb-text-blue { color: #2563eb; }
+    .sb-text-orange { color: #ea580c; }
+
+    .sb-invoice-bottom-actions {
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 10px;
+    }
+
+    .sb-btn-new-order {
+        background: #f1f5f9;
+        color: #334155;
+        border: none;
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        font-weight: 800;
+        font-size: 13.5px;
+        cursor: pointer;
+    }
+
+    .sb-btn-share-bill {
+        background: #25D366;
+        color: #ffffff;
+        border: none;
+        border-radius: var(--sb-radius-md);
+        padding: 12px;
+        font-weight: 800;
+        font-size: 13.5px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .sb-btn-icon-top {
+        background: #f1f5f9;
+        border: none;
+        border-radius: 8px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #334155;
+        cursor: pointer;
+    }
+
+    @@media (max-width: 900px) {
+        .sb-wf-features-strip { grid-template-columns: 1fr 1fr; }
+    }
+
+    @@media (max-width: 600px) {
+        .sb-wf-features-strip { grid-template-columns: 1fr; }
+    }
+</style>
+}
 
 @section Scripts {
-    <script>
-        (() => {
-            const currentUserId = Number(document.querySelector(".chat-workspace")?.dataset.currentUserId);
-            const inbox = document.getElementById("shop-chat-inbox");
-            const messageList = document.getElementById("shop-chat-messages");
-            const title = document.getElementById("shop-chat-title");
-            const subtitle = document.getElementById("shop-chat-subtitle");
-            const form = document.getElementById("shop-chat-form");
-            const input = document.getElementById("shop-chat-input");
-            const sendButton = form?.querySelector(".btn-primary");
-            const imageInput = document.getElementById("shop-chat-image");
-            const imageButton = document.getElementById("shop-chat-image-button");
-            const voiceButton = document.getElementById("shop-chat-voice-button");
-            const callButton = document.querySelector("[data-audio-call-button]");
-            const videoCallButton = document.querySelector("[data-video-call-button]");
-            const inboxList = document.getElementById("chat-inbox-list");
-            const customerSearch = document.getElementById("chat-customer-search");
-            let activeConversationId = 0;
+<script>
+    function openOrderReviewModal() {
+        document.getElementById('orderReviewModal').style.display = 'flex';
+    }
+    function closeOrderReviewModal() {
+        document.getElementById('orderReviewModal').style.display = 'none';
+    }
 
-            window.setupVoiceRecorder?.({ recordButton: voiceButton, getConversationId: () => activeConversationId });
+    function removeParsedItem(btn, price) {
+        const card = btn.closest('.sb-parsed-item-card');
+        if (card) {
+            card.remove();
+            recalcReviewTotals();
+        }
+    }
 
-            const upsertInboxItem = notification => {
-                document.getElementById("empty-chat-inbox")?.remove();
+    function recalcReviewTotals() {
+        const cards = document.querySelectorAll('.sb-parsed-item-card');
+        document.getElementById('reviewItemCount').textContent = cards.length + ' টি আইটেম';
+        let total = 0;
+        cards.forEach(c => {
+            const priceTxt = c.querySelector('.sb-item-price')?.textContent || '0';
+            const price = Number(priceTxt.replace(/[^\d.]/g, '')) || 0;
+            total += price;
+        });
+        document.getElementById('reviewTotalAmount').textContent = '৳ ' + total;
+    }
 
-                let item = inbox.querySelector(`[data-conversation-id="${notification.conversationId}"]`);
-                if (!item) {
-                    item = document.createElement("button");
-                    item.type = "button";
-                    item.className = "chat-inbox-item";
-                    item.dataset.conversationId = notification.conversationId;
+    function enableEditMode() {
+        alert('আপনি প্রতিটি পণ্যের নাম ও পরিমাণ সরাসরি এডিট করতে পারবেন।');
+    }
 
-                    const avatar = document.createElement("span");
-                    avatar.className = "chat-customer-avatar";
-                    avatar.textContent = (notification.customerName || notification.senderName || "?").trim().charAt(0).toUpperCase();
+    function confirmOrderAndShowInvoice() {
+        closeOrderReviewModal();
+        document.getElementById('invoiceProfitModal').style.display = 'flex';
+    }
+    function closeInvoiceProfitModal() {
+        document.getElementById('invoiceProfitModal').style.display = 'none';
+    }
 
-                    const details = document.createElement("span");
-                    details.className = "chat-inbox-copy";
-                    details.append(
-                        Object.assign(document.createElement("strong"), { textContent: notification.customerName || notification.senderName }),
-                        Object.assign(document.createElement("small"), { textContent: notification.customerPhone || "" }),
-                        Object.assign(document.createElement("em"), { textContent: notification.messageText })
-                    );
+    function startNewOrder() {
+        closeInvoiceProfitModal();
+        alert('নতুন অর্ডার তৈরির জন্য রেডি!');
+    }
 
-                    const badge = document.createElement("b");
-                    badge.className = "chat-unread-badge";
-                    badge.textContent = "1";
-                    item.append(avatar, details, badge);
-                } else {
-                    item.querySelector("strong").textContent = notification.customerName || notification.senderName;
-                    item.querySelector("small").textContent = notification.customerPhone || "";
-                    item.querySelector("em").textContent = notification.messageText;
+    function shareBillToWhatsapp() {
+        const msg = encodeURIComponent("রহমান স্টোর থেকে আপনার অর্ডার বিল #SB2505261050 প্রস্তুত। মোট বিল: ৳ ১১০। ধন্যবাদ!");
+        window.open(`https://wa.me/8801712998877?text=${msg}`, '_blank');
+    }
 
-                    const badge = item.querySelector(".chat-unread-badge");
-                    badge.textContent = String((Number(badge.textContent) || 0) + 1);
-                    badge.hidden = false;
-                }
+    function downloadInvoicePdf() {
+        alert('বিল PDF ডাউনলোড হচ্ছে...');
+    }
 
-                inboxList.prepend(item);
-            };
+    function triggerPhotoUpload() {
+        alert('হাতে লেখা ফর্দের ছবি আপলোড করুন - AI অটো পণ্যের তালিকা তৈরি করে নেবে!');
+    }
 
-            const addMessage = message => {
-                const item = document.createElement("article");
-                item.className = `chat-message ${message.senderUserId === currentUserId ? "mine" : "theirs"}`;
-                window.renderChatMessageBody(item, message);
-                const meta = document.createElement("small");
-                meta.textContent = `${message.senderName} · ${new Date(message.sentAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-                item.appendChild(meta);
-                messageList.appendChild(item);
-                messageList.scrollTop = messageList.scrollHeight;
-            };
+    function startVoiceRecord() {
+        alert('ভয়েস রেকর্ড শুরু হয়েছে... মুখে পণ্যের নাম ও পরিমাণ বলুন।');
+    }
 
-            const renderConversation = conversation => {
-                activeConversationId = conversation.id;
-                window.activeChatConversationId = conversation.id;
-                document.body.dataset.activeConversationId = String(conversation.id);
-                title.textContent = conversation.customerName;
-                subtitle.textContent = conversation.customerPhone;
-                messageList.innerHTML = "";
-                conversation.messages.forEach(addMessage);
-                if (!conversation.messages.length) {
-                    messageList.innerHTML = '<p class="empty">Start the conversation.</p>';
-                }
-                input.disabled = false;
-                sendButton.disabled = false;
-                imageButton.disabled = false;
-                callButton.disabled = false;
-                callButton.dataset.callName = conversation.customerName;
-                videoCallButton.disabled = false;
-                videoCallButton.dataset.callName = conversation.customerName;
-                input.focus();
-                inbox.querySelectorAll(".chat-inbox-item").forEach(item => item.classList.toggle("active", Number(item.dataset.conversationId) === conversation.id));
-                const activeBadge = inbox.querySelector(`[data-conversation-id="${conversation.id}"] .chat-unread-badge`);
-                if (activeBadge) activeBadge.hidden = true;
-            };
+    function triggerFileUpload() {
+        alert('ফর্দ বা অর্ডার ফাইল নির্বাচন করুন।');
+    }
 
-            const openConversation = async conversationId => {
-                await window.chatConnectionReady;
-                renderConversation(await window.chatConnection.invoke("OpenConversation", conversationId));
-            };
-
-            inbox?.addEventListener("click", event => {
-                const item = event.target.closest(".chat-inbox-item");
-                if (item) openConversation(Number(item.dataset.conversationId));
-            });
-
-            customerSearch?.addEventListener("input", () => {
-                const query = customerSearch.value.trim().toLowerCase();
-                inboxList.querySelectorAll(".chat-inbox-item").forEach(item => {
-                    item.hidden = query.length > 0 && !item.textContent.toLowerCase().includes(query);
-                });
-            });
-
-            form?.addEventListener("submit", async event => {
-                event.preventDefault();
-                const message = input.value.trim();
-                if (!message || !activeConversationId) return;
-                input.value = "";
-                if (isTyping) {
-                    isTyping = false;
-                    clearTimeout(typingTimeout);
-                    await window.chatConnectionReady;
-                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, false);
-                }
-                await window.chatConnectionReady;
-                await window.chatConnection.invoke("SendMessage", activeConversationId, message);
-            });
-
-            imageButton?.addEventListener("click", () => imageInput.click());
-            imageInput?.addEventListener("change", async () => {
-                const file = imageInput.files?.[0];
-                if (!file || !activeConversationId) return;
-                imageButton.disabled = true;
-                try {
-                    await window.uploadChatImage(activeConversationId, file);
-                } catch (error) {
-                    alert(error.message);
-                } finally {
-                    imageInput.value = "";
-                    imageButton.disabled = false;
-                }
-            });
-
-            window.addEventListener("chat:message", event => {
-                if (event.detail.conversationId !== activeConversationId) return;
-                messageList.querySelector(".empty")?.remove();
-                messageList.querySelector(".chat-typing-indicator")?.remove();
-                addMessage(event.detail);
-                window.chatConnection.invoke("MarkRead", activeConversationId);
-            });
-
-            let typingTimeout;
-            let isTyping = false;
-            input.addEventListener("input", async () => {
-                if (!activeConversationId) return;
-                if (!isTyping) {
-                    isTyping = true;
-                    await window.chatConnectionReady;
-                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, true);
-                }
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(async () => {
-                    isTyping = false;
-                    await window.chatConnectionReady;
-                    await window.chatConnection.invoke("SendTypingStatus", activeConversationId, false);
-                }, 2000);
-            });
-
-            window.addEventListener("chat:typing", event => {
-                const { conversationId, isTyping } = event.detail;
-                if (conversationId !== activeConversationId) return;
-                
-                let indicator = messageList.querySelector(".chat-typing-indicator");
-                if (isTyping) {
-                    if (!indicator) {
-                        indicator = document.createElement("article");
-                        indicator.className = "chat-message theirs chat-typing-indicator";
-                        indicator.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-                        messageList.appendChild(indicator);
-                        messageList.scrollTop = messageList.scrollHeight;
-                    }
-                } else {
-                    indicator?.remove();
-                }
-            });
-
-            window.addEventListener("chat:notification", event => {
-                if (event.detail.conversationId === activeConversationId) {
-                    return;
-                }
-
-                upsertInboxItem(event.detail);
-            });
-
-            window.addEventListener("chat:open-notification", event => openConversation(event.detail.conversationId));
-
-            const firstConversation = inbox?.querySelector(".chat-inbox-item");
-            if (firstConversation) openConversation(Number(firstConversation.dataset.conversationId));
-        })();
-    </script>
+    function sendMessage() {
+        const input = document.getElementById('chatMessageInput');
+        if (!input.value.trim()) return;
+        alert('বার্তা পাঠানো হয়েছে: ' + input.value);
+        input.value = '';
+    }
+</script>
 }

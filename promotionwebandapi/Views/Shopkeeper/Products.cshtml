@@ -141,7 +141,24 @@
                     <p>Productের দাম, SKU এবং বর্তমান stock পরিচালনা করুন।</p>
                 </div>
                 <span class="table-chip">@Model.Products.Count products</span>
-            </header>
+            @if (TempData["ProductSuccess"] is string pSuccess)
+            {
+                <div class="product-message success" style="display:block; margin-bottom: 16px;">@pSuccess</div>
+            }
+            @if (TempData["ProductError"] is string pError)
+            {
+                <div class="product-message error" style="display:block; margin-bottom: 16px;">@pError</div>
+            }
+
+            <section class="panel product-entry-panel" style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 20px; border-radius: 16px; margin-bottom: 24px;">
+                <h3 style="margin-top: 0; color: #1e3a8a;">📁 বাল্ক প্রোডাক্ট আপলোড (Bulk CSV Upload)</h3>
+                <p style="color: #64748b; font-size: 13px;">CSV ফাইল নির্বাচন করে এক ক্লিকে একাধিক প্রোডাক্ট আপলোড করুন। (ফরম্যাট: ProductName, Category, UnitPrice, StockQuantity)</p>
+                <form asp-action="BulkUploadProducts" method="post" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    @Html.AntiForgeryToken()
+                    <input type="file" name="csvFile" accept=".csv" required style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;" />
+                    <button class="product-submit" type="submit" style="min-width: 140px; background: #059669;">আপলোড করুন</button>
+                </form>
+            </section>
 
             <section class="panel product-entry-panel">
                 <h2>নতুন Product যোগ করুন</h2>

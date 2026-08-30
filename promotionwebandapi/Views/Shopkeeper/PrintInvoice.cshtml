@@ -1,0 +1,142 @@
+@{
+    Layout = null;
+    var shop = ViewBag.Shop as PromotionWeb.Models.Shopkeeper;
+    var sale = ViewBag.Sale as PromotionWeb.Models.ShopkeeperTransactionViewModel;
+    var order = ViewBag.Order as PromotionWeb.Models.CustomerOrderMaster;
+}
+
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="utf-8" />
+    <title>ক্যাশ মেমো / ইনভয়েস</title>
+    <style>
+        body { font-family: 'Anek Bangla', Arial, sans-serif; margin: 0; padding: 20px; background: #fff; color: #000; }
+        .invoice-box { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; font-size: 14px; line-height: 20px; }
+        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 4px 0; font-size: 12px; }
+        .meta-table { width: 100%; margin-bottom: 20px; }
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .items-table th, .items-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        .items-table th { background: #f5f5f5; }
+        .total-row { font-weight: bold; font-size: 16px; }
+        .footer-note { text-align: center; margin-top: 30px; font-size: 12px; border-top: 1px dashed #ccc; padding-top: 10px; }
+        @@media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print" style="text-align: center; margin-bottom: 20px;">
+    <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: #fff; border: 0; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ ইনভয়েস প্রিন্ট করুন</button>
+</div>
+
+<div class="invoice-box">
+    <div class="header">
+        <h1>@(shop?.ShopName ?? "আমার ঠিকানা দোকান")</h1>
+        <p>মালিক: @(shop?.OwnerName) · ফোন: @(shop?.Phone)</p>
+        <p>ঠিকানা: @(shop?.Address), @(shop?.Area)</p>
+        <h3>ক্যাশ মেমো / রসিদ</h3>
+    </div>
+
+    @if (sale != null)
+    {
+        <table class="meta-table">
+            <tr>
+                <td><strong>কাস্টমার:</strong> @sale.CustomerName (@sale.CustomerPhone)</td>
+                <td style="text-align: right;"><strong>তারিখ:</strong> @sale.TransactionAt.ToString("dd/MM/yyyy hh:mm tt")</td>
+            </tr>
+            <tr>
+                <td><strong>পেমেন্ট মাধ্যম:</strong> @sale.PaymentMethod</td>
+                <td style="text-align: right;"><strong>অবস্থা:</strong> @sale.Status</td>
+            </tr>
+        </table>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>পণ্য</th>
+                    <th>পরিমাণ</th>
+                    <th>একক মূল্য</th>
+                    <th>মোট</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in sale.Items)
+                {
+                    <tr>
+                        <td>@item.ProductName</td>
+                        <td>@item.Quantity</td>
+                        <td>৳ @item.UnitPrice.ToString("N2")</td>
+                        <td>৳ @(item.Quantity * item.UnitPrice)</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">সর্বমোট:</td>
+                    <td>৳ @sale.SaleAmount.ToString("N2")</td>
+                </tr>
+                @if (sale.CashbackAmount > 0)
+                {
+                    <tr>
+                        <td colspan="3" style="text-align: right; color: green;">ক্যাশব্যাক প্রদান:</td>
+                        <td style="color: green;">৳ @sale.CashbackAmount.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else if (order != null)
+    {
+        <table class="meta-table">
+            <tr>
+                <td><strong>অর্ডার ID:</strong> #@order.Id</td>
+                <td style="text-align: right;"><strong>তারিখ:</strong> @order.OrderDate.ToString("dd/MM/yyyy hh:mm tt")</td>
+            </tr>
+            <tr>
+                <td><strong>কাস্টমার:</strong> @order.CustomerName (@order.CustomerPhone)</td>
+                <td style="text-align: right;"><strong>অবস্থা:</strong> @order.Status</td>
+            </tr>
+        </table>
+
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>পণ্য</th>
+                    <th>পরিমাণ</th>
+                    <th>একক মূল্য</th>
+                    <th>মোট</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in order.Details)
+                {
+                    <tr>
+                        <td>@item.ProductName</td>
+                        <td>@item.Quantity</td>
+                        <td>৳ @item.UnitPrice.ToString("N2")</td>
+                        <td>৳ @(item.Quantity * item.UnitPrice)</td>
+                    </tr>
+                }
+                <tr class="total-row">
+                    <td colspan="3" style="text-align: right;">সর্বমোট:</td>
+                    <td>৳ @order.TotalAmount.ToString("N2")</td>
+                </tr>
+            </tbody>
+        </table>
+    }
+
+    <div class="footer-note">
+        <p>আমাদের দোকান থেকে কেনাকাটা করার জন্য ধন্যবাদ!</p>
+        <small>Powered by Amar Thikanaa Smart Marketplace</small>
+    </div>
+</div>
+
+<script>
+    window.onload = function() {
+        // Auto trigger print dialog if requested
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+@model FieldOfficerDashboardViewModel
+@{
+    ViewData["Title"] = "ফিল্ড ফোর্স রিপোর্টস - Smart Bazar";
+    ViewData["ActivePage"] = "Reports";
+}
+
+<div class="sb-app-layout">
+    <!-- Sidebar -->
+    <partial name="_Sidebar" model="Model" view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Reports" } }' />
+
+    <!-- Main Content -->
+    <main class="sb-main-content">
+        <!-- Top Navigation Bar -->
+        <header class="sb-topbar">
+            <div class="sb-topbar-left">
+                <a href="/FieldForce" class="sb-menu-toggle" style="text-decoration:none; display:flex; align-items:center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                </a>
+                <div class="sb-user-greeting">
+                    <div class="sb-greeting-title">
+                        ফিল্ড ফোর্স অ্যানালিটিক্স ও রিপোর্টস
+                    </div>
+                    <span class="sb-user-role">দোকানের পারফরম্যান্স, বিক্রয় ভলিউম ও কমিশন পরিসংখ্যান</span>
+                </div>
+            </div>
+
+            <div class="sb-topbar-right">
+                <span class="sb-date-badge">
+                    <span class="sb-date-text">অগাস্ট ২০২৬ রিপোর্ট</span>
+                </span>
+            </div>
+        </header>
+
+        <!-- Body Content -->
+        <div class="sb-dashboard-body">
+            <!-- 4 Metric Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                    <span style="color: #64748b; font-size: 13px; font-weight: 700;">মোট অনবোর্ড দোকান</span>
+                    <h3 style="margin: 6px 0 0; color: #0f172a; font-size: 24px;">@Model.Shops.Count টি</h3>
+                    <small style="color: #059669; font-weight: 600;">+১২টি এই মাসে</small>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                    <span style="color: #64748b; font-size: 13px; font-weight: 700;">এরিয়া মোট সেলস</span>
+                    <h3 style="margin: 6px 0 0; color: #059669; font-size: 24px;">৳ ২,৪৮,৫০০</h3>
+                    <small style="color: #64748b;">সকল অনবোর্ড দোকান মিলিয়ে</small>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                    <span style="color: #64748b; font-size: 13px; font-weight: 700;">অর্জিত ফিল্ড কমিশন</span>
+                    <h3 style="margin: 6px 0 0; color: #2563eb; font-size: 24px;">৳ ১২,৪২৫</h3>
+                    <small style="color: #2563eb; font-weight: 600;">৫০/৫০ প্রফিট শেয়ারিং সহ</small>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+                    <span style="color: #64748b; font-size: 13px; font-weight: 700;">সক্রিয় অর্ডার ভলিউম</span>
+                    <h3 style="margin: 6px 0 0; color: #b45309; font-size: 24px;">৩৪০ টি</h3>
+                    <small style="color: #059669; font-weight: 600;">৯৮% ডেলিভারি সাকসেস</small>
+                </div>
+            </div>
+
+            <!-- Shop Wise Performance Table -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
+                    <div>
+                        <span class="sb-badge-pill">পারফরম্যান্স</span>
+                        <h3 style="margin: 4px 0 0; font-size: 16px; font-weight: 800; color: #0f172a;">দোকানভিত্তিক বিক্রয় ও কমিশন রিপোর্ট</h3>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="sb-modern-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                                <th style="padding: 10px 12px; text-align: left;">দোকানের নাম</th>
+                                <th style="padding: 10px 12px; text-align: left;">মালিকের নাম ও ফোন</th>
+                                <th style="padding: 10px 12px; text-align: left;">এরিয়া</th>
+                                <th style="padding: 10px 12px; text-align: left;">টাইপ</th>
+                                <th style="padding: 10px 12px; text-align: right;">মোট সেলস</th>
+                                <th style="padding: 10px 12px; text-align: right;">ফিল্ড কমিশন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Shops.Count > 0)
+                            {
+                                @foreach (var shop in Model.Shops)
+                                {
+                                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                                        <td style="padding: 12px;"><strong>@shop.ShopName</strong></td>
+                                        <td style="padding: 12px;">@shop.OwnerName<br><small style="color: #64748b;">@shop.Phone</small></td>
+                                        <td style="padding: 12px;"><span style="background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">@shop.Area</span></td>
+                                        <td style="padding: 12px;">@shop.ShopType</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: 700; color: #059669;">৳ ১৮,৫০০</td>
+                                        <td style="padding: 12px; text-align: right; font-weight: 700; color: #2563eb;">৳ ৯২৫</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 30px; color: #94a3b8;">
+                                        এখনও কোনো দোকান অনবোর্ড করা হয়নি।
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>

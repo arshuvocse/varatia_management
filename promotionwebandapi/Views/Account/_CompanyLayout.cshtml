@@ -18,6 +18,7 @@
             <a class="@(activePage == "Campaigns" ? "active" : "")" asp-action="Campaigns">প্রচার</a>
             <a class="@(activePage == "Orders" ? "active" : "")" asp-action="Orders">অর্ডার</a>
             <a class="@(activePage == "Shopkeepers" ? "active" : "")" asp-action="Shopkeepers">দোকানদার</a>
+            <a class="@(activePage == "Prices" ? "active" : "")" asp-action="Prices">দাম আপডেট</a>
             <a class="@(activePage == "Delivery" ? "active" : "")" asp-action="Delivery">ডেলিভারি</a>
             <a class="@(activePage == "Products" ? "active" : "")" asp-action="Products">পণ্য</a>
             <a class="@(activePage == "ProductDistribution" ? "active" : "")" asp-action="ProductDistribution">শতাংশ বণ্টন</a>
@@ -51,3 +52,10 @@
         @RenderBody()
     </section>
 </main>
+
+@section Styles {
+    @await RenderSectionAsync("Styles", required: false)
+}
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}
