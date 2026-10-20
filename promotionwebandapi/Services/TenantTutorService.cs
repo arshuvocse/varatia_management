@@ -83,7 +83,7 @@ public sealed class TenantTutorService : ITenantTutorService
                     BadgeBn,
                     BadgeEn,
                     Rating,
-                    Phone,
+                    CAST('' AS nvarchar(50)) AS Phone,
                     DescriptionBn,
                     DescriptionEn,
                     ExperienceBn,

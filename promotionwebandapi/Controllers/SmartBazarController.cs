@@ -2,12 +2,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using PromotionWeb.Contracts;
 using PromotionWeb.Models;
+using PromotionWeb.Services;
 
 namespace PromotionWeb.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class SmartBazarController(IConfiguration configuration) : ControllerBase
+public sealed class SmartBazarController(
+    IConfiguration configuration,
+    CustomerOrderStore orderStore,
+    LoanStore loanStore) : ControllerBase
 {
     private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("DefaultConnection connection string is missing.");
@@ -163,6 +167,155 @@ public sealed class SmartBazarController(IConfiguration configuration) : Control
         });
     }
 
+    [HttpGet("categories")]
+    public ActionResult<IReadOnlyList<ShopCategoryViewModel>> GetCategories()
+    {
+        var categories = orderStore.GetCategories();
+        return Ok(categories);
+    }
+
+    [HttpGet("products")]
+    public ActionResult<object> GetProducts(
+        [FromQuery] string? district = "Dhaka",
+        [FromQuery] string? category = null,
+        [FromQuery] string? search = null)
+    {
+        var products = orderStore.GetProducts(district);
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            products = products.Where(p => p.Category.Equals(category.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            products = products.Where(p => p.Name.ToLowerInvariant().Contains(term) || p.Sku.ToLowerInvariant().Contains(term)).ToList();
+        }
+
+        var pricing = orderStore.GetDistrictPricing(district);
+
+        return Ok(new
+        {
+            district = pricing.DistrictName,
+            pricingConfig = pricing,
+            totalCount = products.Count,
+            products = products
+        });
+    }
+
+    [HttpGet("shops/nearby")]
+    public ActionResult<IReadOnlyList<CustomerShopkeeperOptionViewModel>> GetNearbyShops(
+        [FromQuery] double? lat = null,
+        [FromQuery] double? lng = null,
+        [FromQuery] string? district = "Dhaka",
+        [FromQuery] string? category = null)
+    {
+        var shops = orderStore.GetNearbyShops(lat, lng, district, category);
+        return Ok(shops);
+    }
+
+    [HttpGet("agent/location")]
+    public ActionResult<AgentOfficeLocationViewModel> GetAgentLocation(
+        [FromQuery] string? district = "Dhaka",
+        [FromQuery] double? lat = null,
+        [FromQuery] double? lng = null)
+    {
+        var office = loanStore.GetAgentOfficeForDistrict(district ?? "Dhaka", lat, lng);
+        if (office is null) return NotFound(new { message = "Agent office not found for this district." });
+        return Ok(office);
+    }
+
+    [HttpGet("pricing/{districtName}")]
+    public ActionResult<DistrictPricingDetailViewModel> GetDistrictPricing(string districtName)
+    {
+        var pricing = orderStore.GetDistrictPricing(districtName);
+        return Ok(pricing);
+    }
+
+    [HttpPost("loan/calculate")]
+    public ActionResult<LoanCalculationResult> CalculateLoan([FromBody] LoanApplicationInputModel request)
+    {
+        var result = loanStore.CalculateLoan(request.Amount, request.TenureMonths);
+        return Ok(result);
+    }
+
+    [HttpGet("loan/eligibility/{userId:int}")]
+    public ActionResult<object> GetLoanEligibility(int userId, [FromQuery] string? role = Roles.Customer)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand("SELECT Phone FROM dbo.tbl_Users WHERE Id = @UserId;", connection);
+        cmd.Parameters.AddWithValue("@UserId", userId);
+        connection.Open();
+        var phone = Convert.ToString(cmd.ExecuteScalar()) ?? "";
+
+        var eligibility = loanStore.GetEligibility(userId, role ?? Roles.Customer, phone);
+        var activeLoan = loanStore.GetActiveLoan(userId);
+        var history = loanStore.GetUserLoans(userId);
+
+        return Ok(new
+        {
+            eligibility,
+            activeLoan,
+            loanHistory = history
+        });
+    }
+
+    [HttpPost("loan/apply")]
+    public ActionResult<LoanItemViewModel> ApplyLoan([FromBody] SmartBazarLoanApplyRequest request)
+    {
+        if (request.UserId <= 0) return BadRequest(new { message = "Invalid User ID." });
+        if (request.Amount < 5000 || request.Amount > 50000) return BadRequest(new { message = "Loan amount must be between 5,000 and 50,000 BDT." });
+
+        using var connection = new SqlConnection(_connectionString);
+        using var cmd = new SqlCommand("SELECT Name, Phone, Role FROM dbo.tbl_Users WHERE Id = @UserId;", connection);
+        cmd.Parameters.AddWithValue("@UserId", request.UserId);
+        connection.Open();
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read()) return NotFound(new { message = "User not found." });
+
+        var name = reader.GetString(0);
+        var phone = reader.GetString(1);
+        var role = reader.GetString(2);
+        reader.Close();
+
+        try
+        {
+            var loan = loanStore.ApplyLoan(request.UserId, role, name, phone, new LoanApplicationInputModel
+            {
+                Amount = request.Amount,
+                TenureMonths = request.TenureMonths,
+                Purpose = request.Purpose ?? "ব্যক্তিগত / ব্যবসায়িক জরুরি প্রয়োজন"
+            });
+            return Ok(loan);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("loan/repay")]
+    public ActionResult<object> RepayLoanInstallment([FromBody] SmartBazarLoanRepayRequest request)
+    {
+        if (request.InstallmentId <= 0 || request.UserId <= 0)
+        {
+            return BadRequest(new { message = "Invalid Installment ID or User ID." });
+        }
+
+        try
+        {
+            var success = loanStore.PayInstallment(request.InstallmentId, request.UserId, request.PaymentMethod ?? "Wallet");
+            return success
+                ? Ok(new { success = true, message = "Installment paid successfully." })
+                : BadRequest(new { success = false, message = "Could not process installment payment." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
     [HttpGet("customer/dashboard/{userId:int}")]
     public ActionResult<object> GetCustomerDashboard(int userId)
     {
@@ -285,69 +438,6 @@ public sealed class SmartBazarController(IConfiguration configuration) : Control
         });
     }
 
-    [HttpGet("fieldofficer/dashboard/{userId:int}")]
-    public ActionResult<object> GetFieldOfficerDashboard(int userId)
-    {
-        using var connection = new SqlConnection(_connectionString);
-        using var command = new SqlCommand(
-            """
-            SELECT
-                TotalStores = COUNT(1),
-                ActiveStores = COALESCE(SUM(CASE WHEN u.IsActive = 1 THEN 1 ELSE 0 END), 0)
-            FROM dbo.tbl_Shopkeepers AS s
-            INNER JOIN dbo.tbl_Users AS u ON u.Id = s.UserId
-            WHERE s.FieldOfficerUserId = @UserId;
-            """,
-            connection);
-        command.Parameters.AddWithValue("@UserId", userId);
-
-        connection.Open();
-        using var reader = command.ExecuteReader();
-        if (!reader.Read())
-        {
-            return Ok(new { totalStores = 0, activeStores = 0, totalSales = 0m, ourCommission = 0m, stores = Array.Empty<object>() });
-        }
-
-        return Ok(new
-        {
-            totalStores = reader.GetInt32(reader.GetOrdinal("TotalStores")),
-            activeStores = reader.GetInt32(reader.GetOrdinal("ActiveStores")),
-            totalSales = 0m,
-            ourCommission = 0m,
-            stores = Array.Empty<object>()
-        });
-    }
-
-    [HttpGet("products/categories")]
-    public ActionResult<object> GetProductCategories()
-    {
-        using var connection = new SqlConnection(_connectionString);
-        using var command = new SqlCommand(
-            """
-            SELECT
-                Id,
-                Name,
-                (CompanyPercentage + AgentPercentage + FieldForcePercentage + CustomerPercentage) AS CommissionPercent
-            FROM dbo.tbl_CompanyProducts
-            WHERE IsActive = 1;
-            """,
-            connection);
-
-        connection.Open();
-        using var reader = command.ExecuteReader();
-        var categories = new List<object>();
-        while (reader.Read())
-        {
-            categories.Add(new
-            {
-                id = reader.GetInt32(reader.GetOrdinal("Id")).ToString(),
-                name = reader.GetString(reader.GetOrdinal("Name")),
-                commissionPercent = reader.GetDecimal(reader.GetOrdinal("CommissionPercent"))
-            });
-        }
-        return Ok(categories);
-    }
-
     [HttpPost("shopkeeper/add-balance")]
     public IActionResult AddShopWalletBalance([FromBody] SmartBazarAddBalanceRequest request)
     {
@@ -443,28 +533,6 @@ public sealed class SmartBazarController(IConfiguration configuration) : Control
         }
     }
 
-    [HttpPost("withdraw")]
-    public IActionResult Withdraw([FromBody] SmartBazarWithdrawRequest request)
-    {
-        if (request.Amount <= 0)
-        {
-            return BadRequest(new { message = "Amount must be greater than zero." });
-        }
-
-        return Ok(new { message = "Withdraw request accepted." });
-    }
-
-    [HttpPost("store")]
-    public IActionResult AddStore([FromBody] SmartBazarStoreRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(new { message = "Store name is required." });
-        }
-
-        return Ok(new { message = "Store request accepted." });
-    }
-
     private static string? ValidateRegistration(
         SmartBazarRegisterRequest request,
         string name,
@@ -514,36 +582,17 @@ public sealed class SmartBazarController(IConfiguration configuration) : Control
     }
 }
 
-public sealed class SmartBazarSaleRequest
+public sealed class SmartBazarLoanApplyRequest
 {
-    public string ShopkeeperId { get; init; } = string.Empty;
-    public string CustomerPhone { get; init; } = string.Empty;
-    public decimal Amount { get; init; }
-    public string StoreName { get; init; } = string.Empty;
-    public string CategoryId { get; init; } = string.Empty;
-    public decimal CommissionAmount { get; init; }
+    public int UserId { get; set; }
+    public decimal Amount { get; set; }
+    public int TenureMonths { get; set; }
+    public string? Purpose { get; set; }
 }
 
-public sealed class SmartBazarAddBalanceRequest
+public sealed class SmartBazarLoanRepayRequest
 {
-    public string ShopkeeperId { get; init; } = string.Empty;
-    public decimal Amount { get; init; }
-}
-
-public sealed class SmartBazarWithdrawRequest
-{
-    public string CustomerId { get; init; } = string.Empty;
-    public decimal Amount { get; init; }
-    public string Method { get; init; } = string.Empty;
-    public string Number { get; init; } = string.Empty;
-}
-
-public sealed class SmartBazarStoreRequest
-{
-    public string FieldOfficerId { get; init; } = string.Empty;
-    public string Name { get; init; } = string.Empty;
-    public string Code { get; init; } = string.Empty;
-    public string OwnerName { get; init; } = string.Empty;
-    public string Upazila { get; init; } = string.Empty;
-    public string District { get; init; } = string.Empty;
+    public int InstallmentId { get; set; }
+    public int UserId { get; set; }
+    public string? PaymentMethod { get; set; }
 }

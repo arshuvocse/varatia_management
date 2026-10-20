@@ -279,6 +279,8 @@ public sealed class CompanySettingsViewModel
     public decimal DeliveryCharge { get; init; } = 60;
     public string SupportPhone { get; init; } = "09678-123456";
     public string PaymentGateway { get; init; } = "Cash / Manual";
+    public decimal RegistrationFee { get; init; } = 50.00m;
+    public bool IsRegistrationFeeActive { get; init; } = true;
 }
 
 public sealed class CompanyCampaignInputModel
@@ -295,6 +297,8 @@ public sealed class CompanySettingsInputModel
     public decimal DeliveryCharge { get; set; }
     public string SupportPhone { get; set; } = "";
     public string PaymentGateway { get; set; } = "";
+    public decimal RegistrationFee { get; set; } = 50.00m;
+    public bool IsRegistrationFeeActive { get; set; } = true;
 }
 
 public sealed class CompanyBulletinViewModel

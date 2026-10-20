@@ -89,17 +89,28 @@ public sealed class AgentController(
             return RedirectToAction(nameof(FieldForce));
         }
 
+        string? profilePhotoUrl = null;
+        string? savedFilePath = null;
         try
         {
-            string? profilePhotoUrl = null;
             if (input.ProfilePhoto is { Length: > 0 })
             {
-                var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+                var ext = Path.GetExtension(input.ProfilePhoto.FileName).ToLowerInvariant();
+                if (input.ProfilePhoto.Length > 5 * 1024 * 1024 || ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+                {
+                    TempData["AgentError"] = "প্রোফাইল ছবিটি JPG, PNG বা WEBP হতে হবে এবং সর্বোচ্চ ৫ MB হতে পারবে।";
+                    return RedirectToAction(nameof(FieldForce));
+                }
+
+                var uploads = Path.Combine(environment.ContentRootPath, "uploads", "profiles");
                 Directory.CreateDirectory(uploads);
-                var filename = Guid.NewGuid().ToString() + Path.GetExtension(input.ProfilePhoto.FileName);
+                var filename = Guid.NewGuid().ToString() + ext;
                 var filepath = Path.Combine(uploads, filename);
-                using var stream = new FileStream(filepath, FileMode.Create);
-                await input.ProfilePhoto.CopyToAsync(stream);
+                using (var stream = new FileStream(filepath, FileMode.Create))
+                {
+                    await input.ProfilePhoto.CopyToAsync(stream);
+                }
+                savedFilePath = filepath;
                 profilePhotoUrl = $"/uploads/profiles/{filename}";
             }
 
@@ -108,6 +119,10 @@ public sealed class AgentController(
         }
         catch (InvalidOperationException ex)
         {
+            if (savedFilePath is not null && System.IO.File.Exists(savedFilePath))
+            {
+                System.IO.File.Delete(savedFilePath);
+            }
             TempData["AgentError"] = ex.Message;
         }
         return RedirectToAction(nameof(FieldForce));
@@ -123,9 +138,16 @@ public sealed class AgentController(
 
         if (profilePicture is { Length: > 0 })
         {
-            var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+            if (profilePicture.Length > 5 * 1024 * 1024 || ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+            {
+                TempData["AgentError"] = "প্রোফাইল ছবিটি JPG, PNG বা WEBP হতে হবে এবং সর্বোচ্চ ৫ MB হতে পারবে।";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var uploads = Path.Combine(environment.ContentRootPath, "uploads", "profiles");
             Directory.CreateDirectory(uploads);
-            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filename = Guid.NewGuid().ToString() + ext;
             var filepath = Path.Combine(uploads, filename);
             using var stream = new FileStream(filepath, FileMode.Create);
             await profilePicture.CopyToAsync(stream);

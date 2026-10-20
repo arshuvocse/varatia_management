@@ -1,80 +1,150 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const primary = Color(0xFF1E40AF);
-  static const primaryDark = Color(0xFF1E3A8A);
-  static const accent = Color(0xFFF97316);
-  static const background = Color(0xFFF5F7FA);
+  // Primary Palette
+  static const primary = Color(0xFF4F46E5);
+  static const primaryDark = Color(0xFF4338CA);
+  static const secondary = Color(0xFF7C3AED);
+  static const accent = Color(0xFF06B6D4);
+
+  // Background Colors
+  static const background = Color(0xFFF5F7FF);
+  static const secondaryBackground = Color(0xFFEEF2FF);
   static const surface = Colors.white;
-  static const surfaceSoft = Color(0xFFEFF4FF);
-  static const border = Color(0xFFD8E1F0);
-  static const success = Color(0xFF16A34A);
-  static const warning = Color(0xFFF59E0B);
-  static const danger = Color(0xFFDC2626);
-  static const textPrimary = Color(0xFF0F172A);
+  static const surfaceSoft = Color(0xFFF0ECFF);
+  static const sidebar = Color(0xFFF8FAFF);
+
+  // Borders
+  static const border = Color(0xFFE2E8F0);
+  static const borderLight = Color(0xFFF1F5F9);
+  static const focusBorder = Color(0xFF6366F1);
+
+  // Semantic Colors
+  static const success = Color(0xFF15803D);
+  static const warning = Color(0xFFB45309);
+  static const danger = Color(0xFFB91C1C);
+  static const error = Color(0xFFB91C1C);
+  static const info = Color(0xFF0369A1);
+
+  // Typography
+  static const textPrimary = Color(0xFF172033);
+  static const textSecondary = Color(0xFF475569);
   static const textMuted = Color(0xFF64748B);
+  static const textWhite = Colors.white;
+
+  // Gradients
+  static const primaryGradient = LinearGradient(
+    colors: [Color(0xFF4F46E5), Color(0xFF7C3AED), Color(0xFF06B6D4)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const softGradient = LinearGradient(
+    colors: [Color(0xFFEEF2FF), Color(0xFFF0ECFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const heroGradient = LinearGradient(
+    colors: [Color(0xFFEEF2FF), Color(0xFFF0ECFF), Color(0xFFE0F2FE)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const cardGradient = LinearGradient(
+    colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFF)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 }
 
 class AppRadii {
   AppRadii._();
 
-  static const double card = 20;
-  static const double large = 28;
+  static const double card = 18;
+  static const double large = 26;
   static const double pill = 999;
 }
 
 class AppShadows {
   AppShadows._();
 
+  static const List<BoxShadow> subtle = [
+    BoxShadow(color: Color(0x141E293B), blurRadius: 16, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x0A0F172A), blurRadius: 4, offset: Offset(0, 1)),
+  ];
+
   static const List<BoxShadow> card = [
-    BoxShadow(color: Color(0x141E40AF), blurRadius: 24, offset: Offset(0, 12)),
+    BoxShadow(color: Color(0x121E293B), blurRadius: 20, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x080F172A), blurRadius: 6, offset: Offset(0, 2)),
+  ];
+
+  static const List<BoxShadow> elevated = [
+    BoxShadow(color: Color(0x244F46E5), blurRadius: 28, offset: Offset(0, 12)),
     BoxShadow(color: Color(0x0F0F172A), blurRadius: 8, offset: Offset(0, 2)),
+  ];
+
+  static const List<BoxShadow> glow = [
+    BoxShadow(color: Color(0x384F46E5), blurRadius: 24, offset: Offset(0, 8)),
   ];
 }
 
 class AppTheme {
   AppTheme._();
 
+  static TextStyle _font({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+  }) {
+    return TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+    );
+  }
+
   static ThemeData light() {
     final baseTheme = ThemeData(useMaterial3: true);
-    final textTheme = GoogleFonts.poppinsTextTheme(baseTheme.textTheme)
-        .copyWith(
-          headlineLarge: GoogleFonts.poppins(
+    final textTheme = baseTheme.textTheme.apply(fontFamily: 'Poppins').copyWith(
+          headlineLarge: _font(
             fontSize: 34,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             height: 1.12,
           ),
-          headlineSmall: GoogleFonts.poppins(
+          headlineSmall: _font(
             fontSize: 28,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             height: 1.18,
           ),
-          titleLarge: GoogleFonts.poppins(
+          titleLarge: _font(
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
           ),
-          titleMedium: GoogleFonts.poppins(
+          titleMedium: _font(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
-          bodyLarge: GoogleFonts.poppins(
+          bodyLarge: _font(
             fontSize: 15,
             fontWeight: FontWeight.w500,
             color: AppColors.textPrimary,
             height: 1.55,
           ),
-          bodyMedium: GoogleFonts.poppins(
+          bodyMedium: _font(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: AppColors.textMuted,
             height: 1.5,
           ),
-          labelLarge: GoogleFonts.poppins(
+          labelLarge: _font(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -86,7 +156,7 @@ class AppTheme {
           brightness: Brightness.light,
         ).copyWith(
           primary: AppColors.primary,
-          secondary: AppColors.accent,
+          secondary: AppColors.secondary,
           surface: AppColors.surface,
           error: AppColors.danger,
           outline: AppColors.border,
@@ -136,7 +206,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.card),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+          borderSide: const BorderSide(color: AppColors.focusBorder, width: 1.6),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -145,7 +215,7 @@ class AppTheme {
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => GoogleFonts.poppins(
+          (states) => _font(
             fontSize: 12,
             height: 1,
             color: states.contains(WidgetState.selected)
@@ -161,12 +231,12 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          minimumSize: const Size(0, 56),
+          minimumSize: const Size(0, 54),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.card),
           ),
-          textStyle: GoogleFonts.poppins(
+          textStyle: _font(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -174,13 +244,13 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryDark,
+          foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.border),
-          minimumSize: const Size(0, 54),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.card),
           ),
-          textStyle: GoogleFonts.poppins(
+          textStyle: _font(
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -188,8 +258,8 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.primaryDark,
-        contentTextStyle: GoogleFonts.poppins(color: Colors.white),
+        backgroundColor: AppColors.textPrimary,
+        contentTextStyle: _font(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.card),
         ),
@@ -203,11 +273,11 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.pill),
         ),
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: _font(
           fontWeight: FontWeight.w600,
           color: AppColors.textPrimary,
         ),
-        secondaryLabelStyle: GoogleFonts.poppins(
+        secondaryLabelStyle: _font(
           fontWeight: FontWeight.w600,
           color: Colors.white,
         ),

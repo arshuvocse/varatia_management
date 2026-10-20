@@ -22,6 +22,7 @@ class _EntrySignUpScreenState extends State<EntrySignUpScreen> {
       RegistrationApiService();
 
   bool _isSubmitting = false;
+  bool _agreedToTerms = false;
   String? _errorMessage;
 
   @override
@@ -151,6 +152,13 @@ class _EntrySignUpScreenState extends State<EntrySignUpScreen> {
       );
     }
 
+    if (!_agreedToTerms) {
+      return context.tr(
+        bn: 'শর্তাবলী এবং গোপনীয়তা নীতি মেনে নেওয়া আবশ্যক।',
+        en: 'You must accept the Terms of Service and Privacy Policy.',
+      );
+    }
+
     return null;
   }
 
@@ -175,8 +183,8 @@ class _EntrySignUpScreenState extends State<EntrySignUpScreen> {
       eyebrow: context.tr(bn: 'New account', en: 'New account'),
       title: context.tr(bn: 'Sign Up', en: 'Sign Up'),
       subtitle: context.tr(
-        bn: 'Create a lightweight account as Admin, Property Owner, or Tenant.',
-        en: 'Create a lightweight account as Admin, Property Owner, or Tenant.',
+        bn: 'আমার ঠিকানা কমিউনিটিতে যোগ দিন এবং বাসা ভাড়া ও শিক্ষক পোস্ট করুন।',
+        en: 'Join Amar Thikanaa community to discover & publish rentals and tutoring posts.',
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -196,8 +204,8 @@ class _EntrySignUpScreenState extends State<EntrySignUpScreen> {
             textInputAction: TextInputAction.next,
             label: context.tr(bn: 'Phone Number', en: 'Phone Number'),
             hint: context.tr(
-              bn: 'Enter phone number',
-              en: 'Enter phone number',
+              bn: 'Enter phone number (e.g. 017xxxxxxxx)',
+              en: 'Enter phone number (e.g. 017xxxxxxxx)',
             ),
             icon: Icons.phone_android_rounded,
             keyboardType: TextInputType.phone,
@@ -221,6 +229,29 @@ class _EntrySignUpScreenState extends State<EntrySignUpScreen> {
             hint: context.tr(bn: 'Re-enter password', en: 'Re-enter password'),
             icon: Icons.verified_user_outlined,
             obscureText: true,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Checkbox(
+                value: _agreedToTerms,
+                onChanged: _isSubmitting
+                    ? null
+                    : (val) => setState(() => _agreedToTerms = val ?? false),
+              ),
+              Expanded(
+                child: Text(
+                  context.tr(
+                    bn: 'আমি ব্যবহারের শর্তাবলী ও গোপনীয়তা নীতি মেনে নিচ্ছি',
+                    en: 'I agree to the Terms of Service and Privacy Policy',
+                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 12.5),
+                ),
+              ),
+            ],
           ),
           if (_errorMessage != null) ...[
             const SizedBox(height: 16),

@@ -7,6 +7,8 @@ import '../../core/utils/app_language.dart';
 import '../../viewmodels/app_view_models.dart';
 import '../widgets/app_widgets.dart';
 import 'account_screens.dart';
+import 'payment/user_payment_history_screen.dart';
+import 'subscription/subscription_matchmaking_screen.dart';
 import 'support_screens.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -135,6 +137,42 @@ class SettingsScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute<void>(
                       builder: (_) => const ChangePasswordScreen(),
+                    ),
+                  );
+                },
+              ),
+              _SettingsTile(
+                icon: Icons.history_rounded,
+                title: context.tr(
+                  bn: 'পেমেন্ট ও লেনদেন হিস্ট্রি',
+                  en: 'Payment & Transaction History',
+                ),
+                subtitle: context.tr(
+                  bn: 'রেজিস্ট্রেশন ফি, মাসিক চার্জ ও ভাড়ার বিবরণ',
+                  en: 'Registration fee, monthly charge, and rent receipts',
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const UserPaymentHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+              _SettingsTile(
+                icon: Icons.verified_outlined,
+                title: context.tr(
+                  bn: 'ম্যাচমেকিং সাবস্ক্রিপশন সার্ভিস',
+                  en: 'Matchmaking Subscription Service',
+                ),
+                subtitle: context.tr(
+                  bn: 'ফ্ল্যাট, ভাড়াটিয়া, গৃহশিক্ষক বা টিউশন নিশ্চিত সন্ধান',
+                  en: 'Guaranteed matchmaking for flats, tenants, tutors, or tuition',
+                ),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SubscriptionMatchmakingScreen(),
                     ),
                   );
                 },

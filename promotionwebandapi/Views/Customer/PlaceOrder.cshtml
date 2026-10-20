@@ -1,824 +1,479 @@
 @model CustomerDashboardViewModel
 @using System.Text.Json
 @{
-    ViewData["Title"] = "অর্ডার করুন";
+    ViewData["Title"] = "স্মার্ট ই-কমার্স ও অর্ডার";
     ViewData["ActivePage"] = "PlaceOrder";
-    var customerInitial = string.IsNullOrWhiteSpace(Model.CustomerName)
-        ? "C"
-        : Model.CustomerName.Trim()[..1].ToUpperInvariant();
+    var customerInitial = string.IsNullOrWhiteSpace(Model.CustomerName) ? "C" : Model.CustomerName.Trim()[..1].ToUpperInvariant();
     var productsJson = JsonSerializer.Serialize(Model.Products);
-    var initialOrderItemsJson = JsonSerializer.Serialize(Model.Order.Items
-        .Where(item => item.ProductId is not null && item.Quantity is > 0));
+    var shopsJson = JsonSerializer.Serialize(Model.Shopkeepers);
+    var categoriesJson = JsonSerializer.Serialize(Model.Categories);
+    var districtPricingJson = JsonSerializer.Serialize(Model.DistrictPricing);
+    var initialOrderItemsJson = JsonSerializer.Serialize(Model.Order.Items.Where(item => item.ProductId is not null && item.Quantity is > 0));
 }
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+        --accent-gradient: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+        --card-radius: 16px;
+    }
+    .ecommerce-shell { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+    .cat-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 14px; scrollbar-width: none; }
+    .cat-pill { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #334155; white-space: nowrap; cursor: pointer; transition: all 0.2s; }
+    .cat-pill:hover, .cat-pill.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+    .section-tab-strip { display: flex; gap: 6px; border-bottom: 2px solid #e2e8f0; margin-bottom: 15px; overflow-x: auto; }
+    .section-tab { padding: 9px 16px; border: none; background: transparent; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap; }
+    .section-tab.active { color: #0f766e; border-bottom-color: #0f766e; }
+    
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+    .product-card { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--card-radius); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+    .product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.06); border-color: #cbd5e1; }
+    .product-card-img { width: 100%; height: 120px; object-fit: contain; background: #f8fafc; border-radius: 10px; margin-bottom: 10px; }
+    .product-card-cat { font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 4px; }
+    .product-card-title { font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.35; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; height: 35px; }
+    .product-card-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8px; }
+    .product-card-price { font-size: 16px; font-weight: 800; color: #0f766e; }
+    .product-card-breakdown { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .btn-add-cart { background: #0f766e; color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background 0.2s; }
+    .btn-add-cart:hover { background: #115e59; }
+
+    .checkout-sidebar { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--card-radius); padding: 18px; position: sticky; top: 80px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+    .cart-summary-line { display: flex; justify-content: space-between; font-size: 13px; color: #475569; margin-bottom: 8px; }
+    .cart-summary-line.total { font-size: 17px; font-weight: 800; color: #0f172a; border-top: 2px dashed #cbd5e1; padding-top: 10px; margin-top: 10px; }
+
+    @@media (max-width: 900px) {
+        .ecommerce-shell { grid-template-columns: 1fr; }
+        .product-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+        .checkout-sidebar { position: static; }
+    }
+</style>
 
 <main class="app-page shop-theme shop-portal-page customer-portal-page">
     <div class="shop-portal-shell">
         <partial name="_Sidebar" model="Model" />
 
         <section class="shop-page-content">
-            <header class="shop-page-header">
-                <div>
-                    <span>NEW ORDER</span>
-                    <h1>অর্ডার করুন</h1>
-                    <p>Select products and then choose the nearest shopkeeper.</p>
-                </div>
-                <a class="btn-light" asp-action="Shops">View nearest shops</a>
-            </header>
-
-            <form asp-controller="Customer" asp-action="PlaceOrder" method="post" id="customer-order-form"
-                  class="shop-sale-layout customer-order-layout">
-                <div class="shop-sale-main">
-                    
-                    <section class="panel sale-product-panel customer-product-panel">
-                        <div class="panel-title-row">
-                            <div>
-                                <h2>Product</h2>
-                                <p>Name, SKU অথবা category লিখে product খুঁজুন।</p>
-                            </div>
-                            <span class="table-chip" id="customer-cart-count">0 items</span>
-                        </div>
-
-                        <div asp-validation-summary="ModelOnly" class="validation"></div>
-                        
-                        <!-- 8 Core Categories Horizontal Scroll Strip -->
-                        <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scrollbar-width: none;">
-                            <button type="button" class="cat-pill active" onclick="selectQuickCategory('')">🌟 সকল পণ্য</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('মুদির দোকান')">🛒 মুদি দোকান</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('কসমেটিক্স')">💄 কসমেটিক্স</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('ফার্মেসি')">💊 ফার্মেসি</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('জামা কাপড়')">👕 জামা কাপড়</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('জুতার দোকান')">👟 জুতার দোকান</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('কাঁচা বাজার')">🥬 কাঁচা বাজার</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('ইলেকট্রনিক্স শপ')">⚡ ইলেকট্রনিক্স</button>
-                            <button type="button" class="cat-pill" onclick="selectQuickCategory('মোবাইল ফোনের দোকান')">📱 মোবাইল শপ</button>
-                        </div>
-
-                        <!-- District Pricing & Margin Auto-Calculation Notification -->
-                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #166534;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 16px;">🏷️</span>
-                                <span><strong>জেলা ভিত্তিক স্বয়ংক্রিয় মূল্য:</strong> পাইকারি বেস দর + জেলা পরিবহন খরচ + দোকানদার ও কোম্পানির মার্জিন সমন্বিত।</span>
-                            </div>
-                            <span style="background: #dcfce7; color: #15803d; font-weight: 800; padding: 2px 8px; border-radius: 6px;">১০০% স্বচ্ছ দর</span>
-                        </div>
-
-                        <div class="product-filter-row" style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <select id="category-filter" style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font: inherit;">
-                                <option value="">সকল ক্যাটাগরি</option>
-                            </select>
-                            <div style="position: relative; flex: 2;">
-                                <span class="search-field-icon" aria-hidden="true" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;">⌕</span>
-                                <input id="product-search" type="search" placeholder="পণ্য বা ব্র্যান্ড খুঁজুন..."
-                                       autocomplete="off" style="width: 100%; padding: 10px 10px 10px 35px; border: 1px solid #cbd5e1; border-radius: 10px; outline: none; font: inherit;" />
-                            </div>
-                        </div>
-
-                        <div id="product-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; max-height: 350px; overflow-y: auto; padding: 4px;">
-                        </div>
-
-                        <div class="sale-cart-empty customer-cart-empty" id="customer-cart-empty">
-                            <strong>কোনো product যোগ করা হয়নি</strong>
-                            <span>উপরের search থেকে product select করুন।</span>
-                        </div>
-
-                        <div class="sale-cart-wrap customer-order-cart" id="customer-cart-wrap" hidden>
-                            <table class="sale-cart-table">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>একক মূল্য</th>
-                                        <th>পরিমাণ</th>
-                                        <th>মোট</th>
-                                        <th><span class="visually-hidden">কাজ</span></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="customer-cart-body"></tbody>
-                            </table>
-                        </div>
-
-                    </section>
-
-                    <section class="panel sale-customer-panel">
-                        <div class="panel-title-row">
-                            <div>
-                                <h2>Selected Shopkeeper</h2>
-                                <p>Choose a product first. The nearest shops carrying it will appear.</p>
-                            </div>
-                            <button class="btn-light" id="change-shopkeeper-btn" type="button" disabled>Change shop</button>
-                        </div>
-                        <p class="location-status" id="customer-location-status">Select a product to find the nearest available shopkeeper.</p>
-
-                        <input asp-for="Order.ShopkeeperId" type="hidden" id="selected-shopkeeper-id" />
-                        <input asp-for="Order.CustomerLatitude" type="hidden" id="customer-latitude" />
-                        <input asp-for="Order.CustomerLongitude" type="hidden" id="customer-longitude" />
-
-                        <div class="selected-shop-box">
-                            <span>Selected shopkeeper</span>
-                            <strong id="selected-shop-name">No shopkeeper selected</strong>
-                            <span asp-validation-for="Order.ShopkeeperId" class="validation"></span>
-                        </div>
-                    </section>
+            <!-- Top Controls: District Selector & GPS Button -->
+            <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span style="font-size: 18px;">📍</span>
+                    <label style="font-weight: 700; font-size: 13px; color: #334155;">আপনার জেলা / এলাকা:</label>
+                    <select id="district-selector" onchange="onDistrictChange(this.value)" style="padding: 6px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600; font-size: 13px; outline: none; background: #f8fafc; color: #0f766e;">
+                        <option value="Dhaka" selected="@(Model.SelectedDistrict == "Dhaka")">ঢাকা</option>
+                        <option value="Chattogram" selected="@(Model.SelectedDistrict == "Chattogram")">চট্টগ্রাম</option>
+                        <option value="Sylhet" selected="@(Model.SelectedDistrict == "Sylhet")">সিলেট</option>
+                        <option value="Rajshahi" selected="@(Model.SelectedDistrict == "Rajshahi")">রাজশাহী</option>
+                        <option value="Khulna" selected="@(Model.SelectedDistrict == "Khulna")">খুলনা</option>
+                        <option value="Barishal" selected="@(Model.SelectedDistrict == "Barishal")">বরিশাল</option>
+                        <option value="Rangpur" selected="@(Model.SelectedDistrict == "Rangpur")">রংপুর</option>
+                        <option value="Mymensingh" selected="@(Model.SelectedDistrict == "Mymensingh")">ময়মনসিংহ</option>
+                        <option value="Cumilla" selected="@(Model.SelectedDistrict == "Cumilla")">কুমিল্লা</option>
+                        <option value="Bogura" selected="@(Model.SelectedDistrict == "Bogura")">বগুড়া</option>
+                        <option value="Gazipur" selected="@(Model.SelectedDistrict == "Gazipur")">গাজীপুর</option>
+                        <option value="Narayanganj" selected="@(Model.SelectedDistrict == "Narayanganj")">নারায়ণগঞ্জ</option>
+                        <option value="Cox's Bazar" selected="@(Model.SelectedDistrict == "Cox's Bazar")">কক্সবাজার</option>
+                    </select>
                 </div>
 
-                <aside class="panel sale-checkout-panel customer-checkout-panel">
-                    <span class="customer-avatar">@customerInitial</span>
-                    <h2>অর্ডারের সারসংক্ষেপ</h2>
-                    <p class="customer-checkout-copy">Confirm the selected shop and product totals.</p>
-                    <div class="checkout-shop">
-                        <span>Deliver from</span>
-                        <strong id="checkout-shop-name">Not selected</strong>
-                    </div>
-                    <div class="sale-calculation" aria-live="polite">
-                        <div><span>পণ্যের মোট মূল্য</span><strong id="customer-total-নমুনা">৳ 0.00</strong></div>
-                        <div><span>ডিসকাউন্ট</span><strong id="customer-discount-নমুনা">৳ 0.00</strong></div>
-                        <div><span>ডেলিভারি চার্জ</span><strong id="customer-delivery-charge-display" style="color: #059669;">৳ 0.00</strong></div>
-                        <hr style="margin: 6px 0; border: 0; border-top: 1px solid #e2e8f0;" />
-                        <div><span>সর্বমোট পরিশোধ</span><strong id="customer-net-নমুনা" style="font-size: 19px; color: #059669;">৳ 0.00</strong></div>
-                    </div>
-                    <small>3% discount applies to orders of ৳1,000 or more.</small>
-
-                    <!-- Delivery System: Model A vs Model B -->
-                    <label style="display:block; margin-top: 14px; margin-bottom: 6px; font-weight: 700; color: #1e293b;">ডেলিভারি সিস্টেম (Delivery Option)</label>
-                    <div class="sb-cust-delivery-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
-                        <label class="sb-cust-delivery-card active" onclick="selectDeliveryModel(this, 'পিকআপ', 0)">
-                            <input type="radio" name="CustDeliveryRadio" value="পিকআপ" checked style="display:none;" />
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 20px;">🏬</span>
-                                <div>
-                                    <strong style="display:block; font-size: 12px; color: #0f172a;">Customer Pickup</strong>
-                                    <small style="font-size: 10px; color: #64748b;">দোকান থেকে সংগ্রহ</small>
-                                </div>
-                            </div>
-                            <span class="sb-badge-free" style="margin-top: 6px; display: inline-block; font-size: 10px; font-weight: 800; color: #16a34a; background: #dcfce7; padding: 2px 6px; border-radius: 6px;">চার্জ: ৳০ (ফ্রি)</span>
-                        </label>
-
-                        <label class="sb-cust-delivery-card" onclick="selectDeliveryModel(this, 'হোম ডেলিভারি', 30)">
-                            <input type="radio" name="CustDeliveryRadio" value="হোম ডেলিভারি" style="display:none;" />
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 20px;">🛵</span>
-                                <div>
-                                    <strong style="display:block; font-size: 12px; color: #0f172a;">Home Delivery</strong>
-                                    <small style="font-size: 10px; color: #64748b;">ঠিকানায় ডেলিভারি</small>
-                                </div>
-                            </div>
-                            <span class="sb-badge-fee" style="margin-top: 6px; display: inline-block; font-size: 10px; font-weight: 800; color: #2563eb; background: #eff6ff; padding: 2px 6px; border-radius: 6px;">চার্জ: +৳৩০</span>
-                        </label>
-                    </div>
-                    <input asp-for="Order.DeliveryType" type="hidden" id="cust-order-delivery-type" value="পিকআপ" />
-                    <input asp-for="Order.DeliveryCharge" type="hidden" id="cust-order-delivery-charge" value="0" />
-
-                    <!-- Payment Options -->
-                    <label style="display:block; margin-top: 10px; margin-bottom: 6px; font-weight: 700; color: #1e293b;">পেমেন্ট মাধ্যম (Payment Option)</label>
-                    <div class="sb-cust-pay-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px;">
-                        <label class="sb-cust-pay-card active" onclick="selectCustPayOption(this, 'ক্যাশ')">
-                            <input type="radio" name="CustPayOptionRadio" value="ক্যাশ" checked style="display:none;" />
-                            <span style="font-size: 18px;">💵</span>
-                            <strong style="font-size: 12px; margin-top: 2px;">Cash</strong>
-                            <small style="font-size: 9.5px; color: #64748b;">ক্যাশ</small>
-                        </label>
-
-                        <label class="sb-cust-pay-card" onclick="selectCustPayOption(this, 'অনলাইন পেমেন্ট')">
-                            <input type="radio" name="CustPayOptionRadio" value="অনলাইন পেমেন্ট" style="display:none;" />
-                            <span style="font-size: 18px;">📱</span>
-                            <strong style="font-size: 12px; margin-top: 2px;">Online</strong>
-                            <small style="font-size: 9.5px; color: #64748b;">বিকাশ/নগদ</small>
-                        </label>
-
-                        <label class="sb-cust-pay-card" onclick="selectCustPayOption(this, 'বকেয়া')">
-                            <input type="radio" name="CustPayOptionRadio" value="বকেয়া" style="display:none;" />
-                            <span style="font-size: 18px;">📒</span>
-                            <strong style="font-size: 12px; margin-top: 2px;">বাকি</strong>
-                            <small style="font-size: 9.5px; color: #64748b;">ক্রেডিট খাতা</small>
-                        </label>
-                    </div>
-                    <input asp-for="Order.PaymentMethod" type="hidden" id="cust-order-payment-method" value="ক্যাশ" />
-
-                    <label asp-for="Order.Remarks">ডেলিভারি নোট / ঠিকানা মন্তব্য</label>
-                    <input asp-for="Order.Remarks" placeholder="পিকআপ সময় বা ডেলিভারির ঠিকানা/নির্দেশনা" />
-                    <button class="btn-primary sale-submit-button" id="customer-order-submit" type="submit">
-                        <span class="order-submit-spinner" aria-hidden="true"></span>
-                        <span class="order-submit-text">অর্ডার নিশ্চিত করুন</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn-light" onclick="detectGPSLocation()" style="font-size: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
+                        <span>🎯</span>
+                        <span id="gps-status-text">নিকটস্থ দোকান খুঁজুন (GPS)</span>
                     </button>
-                </aside>
+                    <a asp-action="Loan" class="btn-primary" style="background: linear-gradient(135deg, #e11d48, #be123c); padding: 6px 14px; font-size: 12px; text-decoration: none; border-radius: 8px;">
+                        ⚡ তাৎক্ষণিক লোন
+                    </a>
+                </div>
+            </div>
+
+            <!-- District Pricing & Margin Breakdown Notice -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #166534;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">🏷️</span>
+                    <span><strong>স্বচ্ছ জেলা ভিত্তিক মূল্য:</strong> বেস পাইকারি দর + জেলা পরিবহন খরচ + কোম্পানি ও দোকানদার মার্জিন সমন্বিত।</span>
+                </div>
+                <span id="district-charge-badge" style="background: #dcfce7; color: #15803d; font-weight: 800; padding: 3px 8px; border-radius: 6px;">
+                    ডেলিভারি চার্জ: ৳@Model.DistrictPricing.DefaultDeliveryCharge.ToString("N0")
+                </span>
+            </div>
+
+            <!-- 8 Business Categories Horizontal Strip -->
+            <div class="cat-strip">
+                <button type="button" class="cat-pill active" onclick="selectQuickCategory('')">
+                    <span>🌟</span> সকল পণ্য (@Model.Products.Count)
+                </button>
+                @foreach (var cat in Model.Categories)
+                {
+                    <button type="button" class="cat-pill" onclick="selectQuickCategory('@cat.Name')">
+                        <span>@cat.Icon</span> @cat.BanglaName (@cat.ProductCount)
+                    </button>
+                }
+            </div>
+
+            <!-- Dynamic Browsing Tabs & Search Row -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                <div class="section-tab-strip" style="margin-bottom: 0;">
+                    <button type="button" class="section-tab active" onclick="switchSectionTab('all')">🌟 সকল পণ্য</button>
+                    <button type="button" class="section-tab" onclick="switchSectionTab('popular')">🔥 জনপ্রিয় পণ্য</button>
+                    <button type="button" class="section-tab" onclick="switchSectionTab('recommended')">🎯 আপনার জন্য</button>
+                    <button type="button" class="section-tab" onclick="switchSectionTab('shops')">🏪 নিকটস্থ দোকান (@Model.Shopkeepers.Count)</button>
+                </div>
+
+                <div style="position: relative; min-width: 240px; flex: 1; max-width: 380px;">
+                    <input id="product-search" type="search" placeholder="পণ্য, ব্র্যান্ড বা SKU খুঁজুন..."
+                           oninput="onSearchInput(this.value)"
+                           style="width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #cbd5e1; border-radius: 999px; font-size: 13px; outline: none; background: #fff;" />
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px;">🔍</span>
+                </div>
+            </div>
+
+            <!-- Main Layout: Product Grid + Checkout Sidebar -->
+            <form asp-action="PlaceOrder" method="post" id="customer-order-form">
+                @Html.AntiForgeryToken()
+                <input asp-for="Order.ShopkeeperId" type="hidden" id="selected-shopkeeper-id" />
+                <input asp-for="Order.CustomerLatitude" type="hidden" id="customer-latitude" />
+                <input asp-for="Order.CustomerLongitude" type="hidden" id="customer-longitude" />
+                <input asp-for="Order.DistrictName" type="hidden" id="order-district-name" value="@Model.SelectedDistrict" />
+
+                <div class="ecommerce-shell">
+                    <!-- Products or Nearby Shops Section -->
+                    <div>
+                        <!-- Nearby Shops Panel (Hidden by default, shown on tab click) -->
+                        <div id="nearby-shops-view" style="display: none; margin-bottom: 20px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px;">
+                                @foreach (var shop in Model.Shopkeepers)
+                                {
+                                    <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.2s;"
+                                         onclick="selectShopkeeperById(@shop.Id, '@shop.ShopName')">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 6px;">
+                                            <strong style="font-size: 14px; color: #0f172a;">@shop.ShopName</strong>
+                                            @if (shop.DistanceKm.HasValue)
+                                            {
+                                                <span style="background: #eff6ff; color: #2563eb; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                                                    📍 @shop.DistanceKm.Value.ToString("0.0") কি.মি.
+                                                </span>
+                                            }
+                                        </div>
+                                        <div style="font-size: 12px; color: #64748b; margin-bottom: 6px;">
+                                            🏷️ @shop.ShopType | 👤 @shop.OwnerName
+                                        </div>
+                                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+                                            📍 @shop.Address, @shop.ThanaName, @shop.DistrictName
+                                        </div>
+                                        <button type="button" class="btn-light" style="width: 100%; font-size: 11px; padding: 5px; font-weight: 700; color: #0f766e;">
+                                            দোকান নির্বাচন করুন
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Product Grid -->
+                        <div id="product-grid-container" class="product-grid">
+                            <!-- Populated dynamically by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Checkout & Cart Sidebar -->
+                    <div class="checkout-sidebar">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                            <strong style="font-size: 16px; color: #0f172a;">🛒 আপনার কার্ট</strong>
+                            <span id="cart-item-count-badge" class="table-chip">0 টি পণ্য</span>
+                        </div>
+
+                        <!-- Selected Shopkeeper Box -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+                            <small style="color: #64748b; display: block; font-size: 11px; font-weight: 600;">নির্বাচিত দোকানদার:</small>
+                            <strong id="selected-shop-display" style="font-size: 13px; color: #0f766e; display: block; margin-top: 2px;">
+                                @(Model.Shopkeepers.FirstOrDefault()?.ShopName ?? "দোকানদার নির্বাচন করুন")
+                            </strong>
+                            <small id="selected-shop-distance" style="font-size: 11px; color: #64748b; display: block; margin-top: 2px;"></small>
+                        </div>
+
+                        <!-- Cart Items List -->
+                        <div id="cart-items-list" style="max-height: 220px; overflow-y: auto; margin-bottom: 14px;">
+                            <p id="cart-empty-text" style="font-size: 12px; color: #94a3b8; text-align: center; padding: 20px 0;">কার্ট খালি। পণ্য যোগ করুন।</p>
+                        </div>
+
+                        <!-- Delivery Options -->
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">ডেলিভারি মাধ্যম:</label>
+                            <select asp-for="Order.DeliveryType" id="delivery-type-select" onchange="onDeliveryTypeChange(this.value)"
+                                    style="width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 600;">
+                                <option value="হোম ডেলিভারি">হোম ডেলিভারি (চার্জ প্রযোজ্য)</option>
+                                <option value="পিকআপ">দোকান থেকে সংগ্রহ (ফ্রি)</option>
+                            </select>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div style="margin-bottom: 14px;">
+                            <label style="font-size: 12px; font-weight: 700; color: #334155; display: block; margin-bottom: 4px;">পেমেন্ট পদ্ধতি:</label>
+                            <select asp-for="Order.PaymentMethod" style="width: 100%; padding: 6px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 600;">
+                                <option value="ক্যাশ">ক্যাশ অন ডেলিভারি / ক্যাশ</option>
+                                <option value="ওয়ালেট">স্মার্ট ওয়ালেট (ব্যালেন্স: ৳@Model.WalletBalance.ToString("N0"))</option>
+                                <option value="বিকাশ">বিকাশ / নগদ / রকেট</option>
+                            </select>
+                        </div>
+
+                        <!-- Transparent Cost Breakdown -->
+                        <div class="cart-summary-line">
+                            <span>পণ্যের সাবটোটাল:</span>
+                            <strong id="summary-subtotal">৳০.০০</strong>
+                        </div>
+                        <div class="cart-summary-line">
+                            <span>ডেলিভারি চার্জ:</span>
+                            <strong id="summary-delivery">৳@Model.DistrictPricing.DefaultDeliveryCharge.ToString("N0")</strong>
+                        </div>
+                        <div class="cart-summary-line">
+                            <span>সার্ভিস চার্জ:</span>
+                            <strong id="summary-service">৳@Model.DistrictPricing.ServiceCharge.ToString("N0")</strong>
+                        </div>
+                        <div class="cart-summary-line total">
+                            <span>সর্বমোট প্রদেয়:</span>
+                            <strong id="summary-grandtotal" style="color: #0f766e;">৳০.০০</strong>
+                        </div>
+
+                        <!-- Order Place Button -->
+                        <button type="submit" id="place-order-submit-btn" class="btn-primary"
+                                style="width: 100%; margin-top: 14px; padding: 12px; font-size: 14px; font-weight: 800; border-radius: 10px; background: #0f766e;" disabled>
+                            অর্ডার নিশ্চিত করুন
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden inputs for form submission -->
+                <div id="hidden-order-inputs"></div>
             </form>
         </section>
     </div>
 </main>
 
-<dialog class="quantity-modal" id="quantity-modal">
-    <form method="dialog" id="quantity-form">
-        <div class="quantity-modal-header">
-            <div>
-                <small>ADD PRODUCT</small>
-                <h2 id="modal-product-name">Product</h2>
-                <p id="modal-product-details"></p>
-            </div>
-            <button class="modal-close-button" type="button" id="modal-close" aria-label="Close">×</button>
-        </div>
-        <label for="modal-quantity">পরিমাণ</label>
-        <div class="modal-quantity-control">
-            <button type="button" id="modal-quantity-minus" aria-label="Decrease quantity">−</button>
-            <input id="modal-quantity" type="number" value="1" min="1" inputmode="numeric" />
-            <button type="button" id="modal-quantity-plus" aria-label="Increase quantity">＋</button>
-        </div>
-        <div class="modal-stock-message" id="modal-stock-message"></div>
-        <div class="quantity-modal-total">
-            <span>Line total</span>
-            <strong id="modal-line-total">৳ 0.00</strong>
-        </div>
-        <div class="quantity-modal-actions">
-            <button class="btn-light" type="button" id="modal-cancel">Cancelled</button>
-            <button class="btn-primary" type="submit">Add to cart</button>
-        </div>
-    </form>
-</dialog>
-
-<dialog class="quantity-modal shopkeeper-selection-modal" id="shopkeeper-modal">
-    <div class="quantity-modal-header">
-        <div>
-            <small>NEAREST AVAILABLE SHOPS</small>
-            <h2 id="shopkeeper-modal-title">Select a shopkeeper</h2>
-            <p id="shopkeeper-modal-copy">Nearest shops carrying this product are shown first.</p>
-        </div>
-        <button class="modal-close-button" type="button" id="shopkeeper-modal-close" aria-label="Close">×</button>
-    </div>
-    <div class="shopkeeper-location-row">
-        <p class="location-status" id="shopkeeper-location-status">Finding your nearest available shop...</p>
-        <button class="btn-light location-btn" id="customer-location-btn" type="button">
-            <span class="location-spinner"></span>Refresh location
-        </button>
-    </div>
-    <div class="customer-shop-list customer-shop-strip" id="customer-shop-list">
-        @foreach (var shop in Model.Shopkeepers)
-        {
-            <article data-shop-id="@shop.Id"
-                     data-latitude="@shop.Latitude"
-                     data-longitude="@shop.Longitude"
-                     data-shop-name="@shop.ShopName">
-                <div>
-                    <strong>@shop.ShopName</strong>
-                    <span>@shop.Area, @shop.ThanaName</span>
-                    <small>@shop.Address</small>
-                    <small>@shop.Phone</small>
-                </div>
-                <div class="shop-select-side">
-                    <b class="distance-label">Distance unknown</b>
-                    <button class="btn-primary select-shop-btn" type="button">Select shop</button>
-                    <a class="btn-light" asp-action="Chat" asp-route-shopkeeperId="@shop.Id">Live chat</a>
-                </div>
-            </article>
-        }
-        <p class="empty" id="shopkeeper-modal-empty" hidden>No shopkeeper currently has this product in stock.</p>
-    </div>
-</dialog>
-
-<style>
-    #product-grid {
-        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)) !important;
-        gap: 14px !important;
-        max-height: 520px !important;
-    }
-
-    .customer-product-image {
-        width: 100%;
-        height: 160px;
-        margin-bottom: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border-radius: 10px;
-        background: #f8fafc;
-    }
-
-    .customer-product-image img {
-        width: 100%;
-        height: 100%;
-        display: block;
-        object-fit: contain;
-    }
-
-    .shopkeeper-selection-modal {
-        width: min(760px, calc(100vw - 28px));
-        max-width: 760px;
-    }
-
-    .sale-submit-button.is-loading {
-        cursor: wait;
-        gap: 9px;
-        opacity: .82;
-    }
-
-    .order-submit-spinner {
-        width: 17px;
-        height: 17px;
-        display: none;
-        flex: 0 0 auto;
-        border: 2px solid rgba(255, 255, 255, .45);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: order-submit-spin .7s linear infinite;
-    }
-
-    .sale-submit-button.is-loading .order-submit-spinner {
-        display: inline-block;
-    }
-
-    @@keyframes order-submit-spin {
-        to { transform: rotate(360deg); }
-    }
-
-    .shopkeeper-selection-modal .customer-shop-list {
-        max-height: min(60vh, 560px);
-        overflow-y: auto;
-        margin-top: 16px;
-    }
-
-    .shopkeeper-location-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-    }
-
-    @@media (max-width: 640px) {
-        #product-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        }
-
-        .customer-product-image {
-            height: 130px;
-        }
-
-        .shopkeeper-location-row {
-            align-items: stretch;
-            flex-direction: column;
-        }
-    }
-
-    .cat-pill {
-        white-space: nowrap;
-        padding: 8px 16px;
-        border-radius: 999px;
-        border: 1px solid #cbd5e1;
-        background: #fff;
-        font-weight: 700;
-        font-size: 13px;
-        color: #334155;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
-    }
-    .cat-pill:hover, .cat-pill.active {
-        background: #2563eb;
-        color: #fff;
-        border-color: #2563eb;
-        box-shadow: 0 4px 10px rgba(37,99,235,0.25);
-    }
-</style>
-
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        window.selectQuickCategory = function(category) {
-            document.querySelectorAll('.cat-pill').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('onclick')?.includes(`'${category}'`));
-            });
-            const sel = document.getElementById('category-filter');
-            if (sel) {
-                sel.value = category;
-                sel.dispatchEvent(new Event('change'));
-            }
-        };
+<script>
+    const allProducts = @Html.Raw(productsJson);
+    const allShops = @Html.Raw(shopsJson);
+    let districtPricing = @Html.Raw(districtPricingJson);
+    
+    let activeCategory = '';
+    let activeTab = 'all';
+    let searchQuery = '';
+    let cart = {}; // { productId: { product, quantity } }
 
-        (() => {
-            const products = @Html.Raw(productsJson);
-            const initialOrderItems = @Html.Raw(initialOrderItemsJson);
-            const customerOrderForm = document.getElementById("customer-order-form");
-            const customerOrderSubmit = document.getElementById("customer-order-submit");
-            const customerOrderSubmitText = customerOrderSubmit.querySelector(".order-submit-text");
-            const cart = new Map();
-            const shops = [...document.querySelectorAll("#customer-shop-list article")];
-            const shopList = document.getElementById("customer-shop-list");
-            const locationButton = document.getElementById("customer-location-btn");
-            const locationStatus = document.getElementById("customer-location-status");
-            const shopkeeperLocationStatus = document.getElementById("shopkeeper-location-status");
-            const shopkeeperModal = document.getElementById("shopkeeper-modal");
-            const shopkeeperModalEmpty = document.getElementById("shopkeeper-modal-empty");
-            const changeShopkeeperButton = document.getElementById("change-shopkeeper-btn");
-            const selectedShopId = document.getElementById("selected-shopkeeper-id");
-            const selectedShopName = document.getElementById("selected-shop-name");
-            const checkoutShopName = document.getElementById("checkout-shop-name");
-            const customerLatitude = document.getElementById("customer-latitude");
-            const customerLongitude = document.getElementById("customer-longitude");
-            const cartBody = document.getElementById("customer-cart-body");
-            const cartWrap = document.getElementById("customer-cart-wrap");
-            const cartEmpty = document.getElementById("customer-cart-empty");
-            
-            let selectedProduct = null;
-            const productSearch = document.getElementById("product-search");
-            const categoryFilter = document.getElementById("category-filter");
-            const productGrid = document.getElementById("product-grid");
-            const cartCount = document.getElementById("customer-cart-count");
-            const modal = document.getElementById("quantity-modal");
-            const modalQuantity = document.getElementById("modal-quantity");
-            let isOrderSubmitting = false;
-            let pendingProductForShopSelection = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        if (allShops.length > 0) {
+            selectShopkeeperById(allShops[0].Id, allShops[0].ShopName);
+        }
+        renderProducts();
+    });
 
-            const parseAmount = value => Number((value || "").replace(/[^\d.]/g, "")) || 0;
-            const formatCurrency = value => `৳ ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-            const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
-                "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-            })[character]);
-            const toRad = value => value * Math.PI / 180;
-            const distanceKm = (lat1, lon1, lat2, lon2) => {
-                const radius = 6371;
-                const dLat = toRad(lat2 - lat1);
-                const dLon = toRad(lon2 - lon1);
-                const a = Math.sin(dLat / 2) ** 2
-                    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-                return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            };
+    function selectQuickCategory(cat) {
+        activeCategory = cat;
+        document.querySelectorAll('.cat-pill').forEach(el => el.classList.remove('active'));
+        event?.currentTarget?.classList.add('active');
+        renderProducts();
+    }
 
-            const populateCategories = () => {
-                const categories = [...new Set(products.map(p => p.Category))].filter(Boolean);
-                categoryFilter.innerHTML = `<option value="">All Categories</option>` +
-                    categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
-            };
-            populateCategories();
+    function switchSectionTab(tab) {
+        activeTab = tab;
+        document.querySelectorAll('.section-tab').forEach(el => el.classList.remove('active'));
+        event?.currentTarget?.classList.add('active');
 
-            const renderProductGrid = () => {
-                const query = productSearch.value.trim().toLowerCase();
-                const category = categoryFilter.value;
-                const activeShopId = Number(selectedShopId.value || 0);
-                const categoryImages = {
-                    'মুদির দোকান': 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80',
-                    'ফার্মেসি': 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80',
-                    'কসমেটিকস': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80',
-                    'ইলেকট্রনিক্স': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=900&q=80'
-                };
-                const matches = products.filter(product => {
-                    const matchQuery = !query || product.Name.toLowerCase().includes(query) || (product.Sku || "").toLowerCase().includes(query);
-                    const matchCategory = !category || product.Category === category;
-                    const matchShop = !activeShopId || (product.AvailableShopkeeperIds || []).includes(activeShopId);
-                    return matchQuery && matchCategory && matchShop;
-                });
+        const shopsView = document.getElementById('nearby-shops-view');
+        const productGrid = document.getElementById('product-grid-container');
 
-                productGrid.innerHTML = matches.map(product => {
-                    const isSelected = cart.has(product.Id);
-                    const bgColor = isSelected ? '#e0f2fe' : '#fff';
-                    const borderColor = isSelected ? '#0ea5e9' : '#e2e8f0';
-                    const imageUrl = product.ImageUrl || categoryImages[product.Category];
-                    return `
-                      <button type="button" class="product-card" data-product-id="${product.Id}" style="padding: 16px; border: 1px solid ${borderColor}; border-radius: 12px; background: ${bgColor}; text-align: left; cursor: pointer; display: flex; flex-direction: column; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s; position: relative; min-height: 310px;">
-                          ${isSelected ? '<div style="position: absolute; top: 12px; right: 12px; background: #0ea5e9; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">&#10003;</div>' : ''}
-                          <div class="customer-product-image">
-                              ${imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(product.Name)}" loading="lazy" />` : '<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #cbd5e1;"><svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg></div>'}
-                          </div>
-                          <strong style="font-size: 0.95rem; color: #0f172a; display: block; line-height: 1.3; margin-bottom: 4px;">${escapeHtml(product.Name)}</strong>
-                          <small style="color: #94a3b8; font-size: 0.8rem; display: block; margin-bottom: 12px;">${escapeHtml(product.Sku)}</small>
-                          
-                          <div style="border-top: 1px dashed #e2e8f0; width: 100%; margin-bottom: 12px; margin-top: auto;"></div>
-                          
-                          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                              <b style="color: #0ea5e9; font-size: 1rem;">${formatCurrency(product.UnitPrice)}</b>
-                          </div>
-                      </button>`;
-                }).join("");
-                
-                if (matches.length === 0) {
-                    productGrid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: #64748b; border: 1px dashed #cbd5e1; border-radius: 10px;">কোনো product পাওয়া যায়নি</div>`;
-                }
-            };
+        if (tab === 'shops') {
+            shopsView.style.display = 'block';
+            productGrid.style.display = 'none';
+        } else {
+            shopsView.style.display = 'none';
+            productGrid.style.display = 'grid';
+            renderProducts();
+        }
+    }
 
-            const updateModalTotal = () => {
-                if (!selectedProduct) return;
-                const quantity = Math.max(1, Number(modalQuantity.value) || 1);
-                modalQuantity.value = quantity;
-                document.getElementById("modal-line-total").textContent = formatCurrency(quantity * selectedProduct.UnitPrice);
-            };
+    function onSearchInput(val) {
+        searchQuery = (val || '').trim().toLowerCase();
+        renderProducts();
+    }
 
-            const openQuantityModal = product => {
-                selectedProduct = product;
-                const currentInCart = cart.get(product.Id)?.quantity || 1;
-                document.getElementById("modal-product-name").textContent = product.Name;
-                document.getElementById("modal-product-details").textContent =
-                    `${product.Sku} · ${product.Category} · ${formatCurrency(product.UnitPrice)}`;
-                modalQuantity.value = currentInCart;
-                updateModalTotal();
-                modal.showModal();
-                requestAnimationFrame(() => modalQuantity.select());
-            };
+    function onDistrictChange(district) {
+        window.location.href = `/Customer/PlaceOrder?district=${encodeURIComponent(district)}`;
+    }
 
-            const addProductToCart = product => {
-                if (!cart.has(product.Id)) {
-                    cart.set(product.Id, { product, quantity: 1 });
-                }
-                renderCart();
-                renderProductGrid();
-            };
-
-            productSearch.addEventListener("input", renderProductGrid);
-            categoryFilter.addEventListener("change", renderProductGrid);
-            productGrid.addEventListener("click", event => {
-                const button = event.target.closest(".product-card");
-                if (!button) return;
-                const product = products.find(item => item.Id === Number(button.dataset.productId));
-                if (!product) return;
-                if (!selectedShopId.value) {
-                    openShopkeeperModal(product);
-                    return;
-                }
-                addProductToCart(product);
-            });
-
-            document.getElementById("modal-close").addEventListener("click", () => modal.close());
-            document.getElementById("modal-cancel").addEventListener("click", () => modal.close());
-            document.getElementById("modal-quantity-minus").addEventListener("click", () => {
-                modalQuantity.value = Math.max(1, Number(modalQuantity.value) - 1);
-                updateModalTotal();
-            });
-            document.getElementById("modal-quantity-plus").addEventListener("click", () => {
-                modalQuantity.value = Number(modalQuantity.value) + 1;
-                updateModalTotal();
-            });
-            modalQuantity.addEventListener("input", updateModalTotal);
-            document.getElementById("quantity-form").addEventListener("submit", event => {
-                event.preventDefault();
-                if (!selectedProduct) return;
-                const quantity = Math.max(1, Number(modalQuantity.value) || 1);
-                cart.set(selectedProduct.Id, { product: selectedProduct, quantity });
-                renderCart();
-                renderProductGrid();
-                modal.close();
-            });
-
-            const selectShop = (shop, preserveCart = false) => {
-                const previousShopId = Number(selectedShopId.value || 0);
-                const nextShopId = Number(shop.dataset.shopId);
-                if (!preserveCart && previousShopId && previousShopId !== nextShopId) {
-                    cart.clear();
-                    renderCart();
-                }
-                selectedShopId.value = shop.dataset.shopId;
-                selectedShopName.textContent = shop.dataset.shopName;
-                checkoutShopName.textContent = shop.dataset.shopName;
-                shops.forEach(item => item.classList.toggle("is-selected", item === shop));
-                changeShopkeeperButton.disabled = false;
-                locationStatus.textContent = `${shop.dataset.shopName} selected. Showing only this shop's products.`;
-                categoryFilter.value = "";
-                productSearch.value = "";
-                renderProductGrid();
-            };
-
-            shops.forEach(shop =>
-                shop.querySelector(".select-shop-btn")?.addEventListener("click", () => {
-                    selectShop(shop);
-                    if (pendingProductForShopSelection) {
-                        addProductToCart(pendingProductForShopSelection);
-                        pendingProductForShopSelection = null;
-                    }
-                    shopkeeperModal.close();
-                }));
-
-            const filterModalShops = product => {
-                const availableShopIds = new Set(product?.AvailableShopkeeperIds || []);
-                let visibleCount = 0;
-                shops.forEach(shop => {
-                    const isAvailable = availableShopIds.has(Number(shop.dataset.shopId));
-                    shop.hidden = !isAvailable;
-                    if (isAvailable) visibleCount += 1;
-                });
-                shopkeeperModalEmpty.hidden = visibleCount !== 0;
-                locationButton.disabled = visibleCount === 0;
-            };
-
-            const sortShopsByLocation = (latitude, longitude) => {
-                shops.map(shop => {
-                    const distance = distanceKm(latitude, longitude, parseAmount(shop.dataset.latitude), parseAmount(shop.dataset.longitude));
-                    shop.dataset.distance = String(distance);
-                    shop.querySelector(".distance-label").textContent = `${distance.toFixed(2)} km away`;
-                    return { shop, distance };
-                }).sort((a, b) => a.distance - b.distance).forEach(item => shopList.appendChild(item.shop));
-            };
-
-            const requestCustomerLocation = () => {
-                if (!navigator.geolocation) {
-                    shopkeeperLocationStatus.textContent = "Browser geolocation is unavailable. Available shops are listed below.";
-                    shopList.hidden = false;
-                    return;
-                }
-                shopList.hidden = true;
-                locationButton.disabled = true;
-                locationButton.classList.add("is-loading");
-                shopkeeperLocationStatus.textContent = "Detecting your location...";
-                navigator.geolocation.getCurrentPosition(position => {
-                    const { latitude, longitude } = position.coords;
-                    customerLatitude.value = latitude.toFixed(6);
-                    customerLongitude.value = longitude.toFixed(6);
-                    sortShopsByLocation(latitude, longitude);
-                    shopkeeperLocationStatus.textContent = "Nearest available shopkeepers are shown first.";
-                    shopList.hidden = false;
-                    locationButton.disabled = false;
-                    locationButton.classList.remove("is-loading");
-                }, () => {
-                    shopkeeperLocationStatus.textContent = "Location permission was not granted. Select an available shop manually.";
-                    shopList.hidden = false;
-                    locationButton.disabled = false;
-                    locationButton.classList.remove("is-loading");
-                }, { enableHighAccuracy: true, timeout: 10000 });
-            };
-
-            const openShopkeeperModal = product => {
-                pendingProductForShopSelection = product;
-                document.getElementById("shopkeeper-modal-title").textContent = `Shopkeepers for ${product.Name}`;
-                document.getElementById("shopkeeper-modal-copy").textContent = "Select a nearest shop. Its complete available product list will load next.";
-                filterModalShops(product);
-                shopkeeperModal.showModal();
-                if (customerLatitude.value && customerLongitude.value) {
-                    sortShopsByLocation(Number(customerLatitude.value), Number(customerLongitude.value));
-                    shopkeeperLocationStatus.textContent = "Nearest available shopkeepers are shown first.";
-                    shopList.hidden = false;
-                } else {
-                    requestCustomerLocation();
-                }
-            };
-
-            locationButton.addEventListener("click", requestCustomerLocation);
-            document.getElementById("shopkeeper-modal-close").addEventListener("click", () => shopkeeperModal.close());
-            changeShopkeeperButton.addEventListener("click", () => {
-                const firstCartProduct = cart.values().next().value?.product;
-                if (firstCartProduct) {
-                    openShopkeeperModal(firstCartProduct);
-                    return;
-                }
-                selectedShopId.value = "";
-                selectedShopName.textContent = "No shopkeeper selected";
-                checkoutShopName.textContent = "Not selected";
-                changeShopkeeperButton.disabled = true;
-                shops.forEach(shop => shop.classList.remove("is-selected"));
-                locationStatus.textContent = "Select a product to find the nearest available shopkeeper.";
-                renderProductGrid();
-            });
-
-            const updateOrderTotal = () => {
-                const items = [...cart.values()];
-                const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-                const total = items.reduce((sum, item) => sum + item.product.UnitPrice * item.quantity, 0);
-                const discount = total >= 1000 ? total * 0.03 : 0;
-                const deliveryCharge = Number(document.getElementById("cust-order-delivery-charge")?.value || 0);
-                document.getElementById("customer-total-নমুনা").textContent = formatCurrency(total);
-                document.getElementById("customer-discount-নমুনা").textContent = formatCurrency(discount);
-                const deliveryDisplay = document.getElementById("customer-delivery-charge-display");
-                if (deliveryDisplay) {
-                    deliveryDisplay.textContent = formatCurrency(deliveryCharge);
-                }
-                const netAmount = Math.max(0, total - discount + deliveryCharge);
-                document.getElementById("customer-net-নমুনা").textContent = formatCurrency(netAmount);
-                cartCount.textContent = `${itemCount} item${itemCount === 1 ? "" : "s"}`;
-            };
-
-            const renderCart = () => {
-                const items = [...cart.values()];
-                cartEmpty.hidden = items.length > 0;
-                cartWrap.hidden = items.length === 0;
-                cartBody.innerHTML = items.map((item, index) => `
-                    <tr>
-                        <td>
-                            <strong>${escapeHtml(item.product.Name)}</strong>
-                            <small>${escapeHtml(item.product.Sku)} · ${escapeHtml(item.product.Category)}</small>
-                            <input type="hidden" name="Order.Items[${index}].ProductId" value="${item.product.Id}" />
-                        </td>
-                        <td>${formatCurrency(item.product.UnitPrice)}</td>
-                        <td>
-                            <div class="cart-quantity-control">
-                                <button type="button" data-action="decrease" data-product-id="${item.product.Id}" aria-label="Decrease quantity">−</button>
-                                <input type="number" name="Order.Items[${index}].Quantity" value="${item.quantity}" min="1"
-                                       data-action="quantity" data-product-id="${item.product.Id}" aria-label="${escapeHtml(item.product.Name)} quantity" />
-                                <button type="button" data-action="increase" data-product-id="${item.product.Id}" aria-label="Increase quantity">+</button>
-                            </div>
-                        </td>
-                        <td><strong>${formatCurrency(item.product.UnitPrice * item.quantity)}</strong></td>
-                        <td><button class="cart-remove-button" type="button" data-action="remove" data-product-id="${item.product.Id}" aria-label="Remove ${escapeHtml(item.product.Name)}">×</button></td>
-                    </tr>`).join("");
-                updateOrderTotal();
-            };
-
-            cartBody.addEventListener("click", event => {
-                const button = event.target.closest("button[data-action]");
-                if (!button) return;
-                const productId = Number(button.dataset.productId);
-                const item = cart.get(productId);
-                if (!item) return;
-                if (button.dataset.action === "remove") cart.delete(productId);
-                if (button.dataset.action === "decrease") item.quantity = Math.max(1, item.quantity - 1);
-                if (button.dataset.action === "increase") item.quantity += 1;
-                renderCart();
-                renderProductGrid();
-            });
-
-            cartBody.addEventListener("change", event => {
-                const input = event.target.closest('input[data-action="quantity"]');
-                if (!input) return;
-                const item = cart.get(Number(input.dataset.productId));
-                if (!item) return;
-                item.quantity = Math.max(1, Number(input.value) || 1);
-                renderCart();
-                renderProductGrid();
-            });
-
-            customerOrderForm.addEventListener("submit", event => {
-                if (isOrderSubmitting) {
-                    event.preventDefault();
-                    return;
-                }
-
-                const passesBrowserValidation = customerOrderForm.checkValidity();
-                const passesJqueryValidation = !window.jQuery
-                    || !window.jQuery.validator
-                    || window.jQuery(customerOrderForm).valid();
-                if (!passesBrowserValidation || !passesJqueryValidation) return;
-
-                isOrderSubmitting = true;
-                customerOrderSubmit.disabled = true;
-                customerOrderSubmit.classList.add("is-loading");
-                customerOrderSubmit.setAttribute("aria-busy", "true");
-                customerOrderSubmitText.textContent = "অর্ডার হচ্ছে...";
-            });
-
-            initialOrderItems.forEach(item => {
-                const product = products.find(productItem => productItem.Id === item.ProductId);
-                if (product) cart.set(product.Id, { product, quantity: item.Quantity });
-            });
-            const initialSelectedShop = shops.find(shop => shop.dataset.shopId === selectedShopId.value);
-            if (initialSelectedShop) selectShop(initialSelectedShop, true);
-            
-            renderProductGrid();
-            renderCart();
-
-            window.triggerOrderRecalc = updateOrderTotal;
-        })();
-
-        function selectDeliveryModel(card, type, charge) {
-            document.querySelectorAll('.sb-cust-delivery-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            document.getElementById('cust-order-delivery-type').value = type;
-            document.getElementById('cust-order-delivery-charge').value = charge;
-            if (window.triggerOrderRecalc) window.triggerOrderRecalc();
+    function detectGPSLocation() {
+        const btnText = document.getElementById('gps-status-text');
+        if (!navigator.geolocation) {
+            alert('আপনার ব্রাউজারে লোকেশন সার্ভিস সাপোর্ট করে না।');
+            return;
         }
 
-        function selectCustPayOption(card, method) {
-            document.querySelectorAll('.sb-cust-pay-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            document.getElementById('cust-order-payment-method').value = method;
+        btnText.innerText = 'লোকেশন খোঁজা হচ্ছে...';
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                document.getElementById('customer-latitude').value = lat;
+                document.getElementById('customer-longitude').value = lon;
+                btnText.innerText = 'GPS লোকেশন সক্রিয়';
+                window.location.href = `/Customer/PlaceOrder?district=@Model.SelectedDistrict&lat=${lat}&lon=${lon}`;
+            },
+            (err) => {
+                btnText.innerText = 'লোকেশন পাওয়া যায়নি';
+                alert('লোকেশন পারমিশন পাওয়া যায়নি। ম্যানুয়ালি জেলা সিলেক্ট করুন।');
+            },
+            { timeout: 10000 }
+        );
+    }
+
+    function selectShopkeeperById(id, name) {
+        document.getElementById('selected-shopkeeper-id').value = id;
+        document.getElementById('selected-shop-display').innerText = name;
+        const shop = allShops.find(s => s.Id === id);
+        if (shop && shop.DistanceKm != null) {
+            document.getElementById('selected-shop-distance').innerText = `📍 দূরত্ব: ${shop.DistanceKm.toFixed(1)} কি.মি.`;
         }
-    </script>
-    <style>
-        .sb-cust-delivery-card {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 10px 10px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
+        updateSubmitButtonState();
+    }
+
+    function renderProducts() {
+        const container = document.getElementById('product-grid-container');
+        let filtered = allProducts;
+
+        if (activeCategory) {
+            filtered = filtered.filter(p => p.Category === activeCategory);
         }
-        .sb-cust-delivery-card:hover {
-            border-color: #a7f3d0;
-            background: #ecfdf5;
+
+        if (searchQuery) {
+            filtered = filtered.filter(p => p.Name.toLowerCase().includes(searchQuery) || p.Sku.toLowerCase().includes(searchQuery));
         }
-        .sb-cust-delivery-card.active {
-            border-color: #059669;
-            background: #ecfdf5;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+
+        if (activeTab === 'popular') {
+            filtered = filtered.filter(p => p.IsPopular);
+        } else if (activeTab === 'recommended') {
+            filtered = filtered.filter(p => p.IsRecommended);
         }
-        .sb-cust-pay-card {
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 8px 4px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #94a3b8;">কোনো পণ্য পাওয়া যায়নি।</div>`;
+            return;
         }
-        .sb-cust-pay-card:hover {
-            border-color: #a7f3d0;
-            background: #ecfdf5;
+
+        container.innerHTML = filtered.map(p => `
+            <div class="product-card">
+                <div>
+                    <img src="${p.ImageUrl || '/images/amar_thikanaa_icon.png'}" alt="${p.Name}" class="product-card-img" onerror="this.src='/images/amar_thikanaa_icon.png'" />
+                    <span class="product-card-cat">${p.Category}</span>
+                    <h3 class="product-card-title" title="${p.Name}">${p.Name}</h3>
+                    <small style="color: #64748b; font-size: 11px;">একক: ${p.Uom}</small>
+                </div>
+                <div>
+                    <div class="product-card-breakdown">বেস ৳${p.BasePrice.toFixed(0)} + জেলা/মার্জিন ৳${(p.DistrictAdjustment + p.CompanyMargin + p.ShopkeeperMargin).toFixed(0)}</div>
+                    <div class="product-card-price-row">
+                        <div class="product-card-price">৳${p.UnitPrice.toFixed(0)}</div>
+                        <button type="button" class="btn-add-cart" onclick="addToCart(${p.Id})">
+                            <span>+</span> যোগ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function addToCart(productId) {
+        const product = allProducts.find(p => p.Id === productId);
+        if (!product) return;
+
+        if (cart[productId]) {
+            cart[productId].quantity++;
+        } else {
+            cart[productId] = { product, quantity: 1 };
         }
-        .sb-cust-pay-card.active {
-            border-color: #059669;
-            background: #ecfdf5;
-            box-shadow: 0 4px 10px rgba(5, 150, 105, 0.15);
+        renderCart();
+    }
+
+    function updateCartQuantity(productId, delta) {
+        if (!cart[productId]) return;
+        cart[productId].quantity += delta;
+        if (cart[productId].quantity <= 0) {
+            delete cart[productId];
         }
-        .sb-cust-pay-card.active strong {
-            color: #059669;
+        renderCart();
+    }
+
+    function renderCart() {
+        const list = document.getElementById('cart-items-list');
+        const emptyText = document.getElementById('cart-empty-text');
+        const badge = document.getElementById('cart-item-count-badge');
+        const hiddenInputs = document.getElementById('hidden-order-inputs');
+
+        const items = Object.values(cart);
+        badge.innerText = `${items.length} টি পণ্য`;
+
+        if (items.length === 0) {
+            list.innerHTML = '';
+            list.appendChild(emptyText);
+            emptyText.style.display = 'block';
+            updateSummary(0);
+            hiddenInputs.innerHTML = '';
+            updateSubmitButtonState();
+            return;
         }
-    </style>
+
+        emptyText.style.display = 'none';
+        let subtotal = 0;
+        let html = '';
+        let inputsHtml = '';
+
+        items.forEach((item, idx) => {
+            const lineTotal = item.product.UnitPrice * item.quantity;
+            subtotal += lineTotal;
+
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px;">
+                    <div style="flex: 1; padding-right: 6px;">
+                        <strong style="color: #0f172a; display: block;">${item.product.Name}</strong>
+                        <span style="color: #0f766e; font-weight: 700;">৳${item.product.UnitPrice.toFixed(0)}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" onclick="updateCartQuantity(${item.product.Id}, -1)" style="width: 22px; height: 22px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">-</button>
+                        <span style="font-weight: 700;">${item.quantity}</span>
+                        <button type="button" onclick="updateCartQuantity(${item.product.Id}, 1)" style="width: 22px; height: 22px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">+</button>
+                    </div>
+                </div>
+            `;
+
+            inputsHtml += `
+                <input type="hidden" name="Order.Items[${idx}].ProductId" value="${item.product.Id}" />
+                <input type="hidden" name="Order.Items[${idx}].Quantity" value="${item.quantity}" />
+            `;
+        });
+
+        list.innerHTML = html;
+        hiddenInputs.innerHTML = inputsHtml;
+        updateSummary(subtotal);
+        updateSubmitButtonState();
+    }
+
+    function onDeliveryTypeChange(type) {
+        renderCart();
+    }
+
+    function updateSummary(subtotal) {
+        const deliveryType = document.getElementById('delivery-type-select').value;
+        const deliveryCharge = deliveryType === 'হোম ডেলিভারি' ? districtPricing.DefaultDeliveryCharge : 0.0;
+        const serviceCharge = subtotal > 0 ? districtPricing.ServiceCharge : 0.0;
+        const grandTotal = subtotal > 0 ? subtotal + deliveryCharge + serviceCharge : 0.0;
+
+        document.getElementById('summary-subtotal').innerText = `৳${subtotal.toFixed(2)}`;
+        document.getElementById('summary-delivery').innerText = `৳${deliveryCharge.toFixed(2)}`;
+        document.getElementById('summary-service').innerText = `৳${serviceCharge.toFixed(2)}`;
+        document.getElementById('summary-grandtotal').innerText = `৳${grandTotal.toFixed(2)}`;
+    }
+
+    function updateSubmitButtonState() {
+        const hasShop = !!document.getElementById('selected-shopkeeper-id').value;
+        const hasItems = Object.keys(cart).length > 0;
+        document.getElementById('place-order-submit-btn').disabled = !(hasShop && hasItems);
+    }
+</script>
 }

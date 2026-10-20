@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 class SavedPostDto {
   final int id;
@@ -35,7 +36,7 @@ class SavedPostsApiService {
     required String postId,
     required String postType,
   }) async {
-    final uri = Uri.parse('\${ApiConfig.baseUrl}/api/SavedPosts/toggle');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/SavedPosts/toggle');
     final response = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},
@@ -55,12 +56,17 @@ class SavedPostsApiService {
   }
 
   Future<List<SavedPostDto>> getSavedPosts(String userId) async {
-    final uri = Uri.parse('\${ApiConfig.baseUrl}/api/SavedPosts/$userId');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/SavedPosts/$userId');
     final response = await _client.get(uri);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((json) => SavedPostDto.fromJson(json)).toList();
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .map((json) => SavedPostDto.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return <SavedPostDto>[];
     } else {
       throw Exception('Failed to fetch saved posts');
     }

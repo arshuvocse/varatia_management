@@ -610,6 +610,9 @@ BEGIN
         s.ShopName,
         s.OwnerName,
         s.Phone,
+        s.NidNumber,
+        s.ProfilePhotoPath,
+        s.BillboardPhotoPath,
         s.DivisionId,
         dv.Name AS DivisionName,
         s.DistrictId,
@@ -653,6 +656,9 @@ BEGIN
         s.ShopName,
         s.OwnerName,
         s.Phone,
+        s.NidNumber,
+        s.ProfilePhotoPath,
+        s.BillboardPhotoPath,
         s.DivisionId,
         dv.Name AS DivisionName,
         s.DistrictId,
@@ -698,7 +704,8 @@ BEGIN
         Role,
         ShopCode,
         ParentUserId,
-        CreatedAt
+        CreatedAt,
+        ProfilePictureUrl
     FROM dbo.tbl_Users
     WHERE Role = N'FieldOfficer'
       AND ParentUserId = @AgentUserId

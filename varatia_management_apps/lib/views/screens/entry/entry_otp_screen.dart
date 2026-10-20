@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/app_context.dart';
 import '../../../data/services/registration_api_service.dart';
 import '../../widgets/app_widgets.dart';
+import '../payment/registration_fee_gate.dart';
 import 'entry_routes.dart';
 
 class EntryOtpScreen extends StatefulWidget {
@@ -87,6 +88,10 @@ class _EntryOtpScreenState extends State<EntryOtpScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(result.message)));
+
+      await ensureRegistrationFeePaid(context, userId: session.userId);
+      if (!mounted) return;
+
       _navigateAfterAuthentication(session.role);
     } on RegistrationApiException catch (error) {
       if (mounted) {

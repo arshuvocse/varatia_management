@@ -6,7 +6,7 @@
 
 <div class="sb-app-layout">
     <!-- Sidebar -->
-    <partial name="_Sidebar" model="Model" view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Profile" } }' />
+    <partial name="_Sidebar" model="Model" />
 
     <!-- Main Content -->
     <main class="sb-main-content">
@@ -48,7 +48,7 @@
                                 @(string.IsNullOrWhiteSpace(Model.OfficerName) ? "F" : Model.OfficerName[..1].ToUpperInvariant())
                             </div>
                         }
-                        <h3>@(string.IsNullOrWhiteSpace(Model.OfficerName) ? "মোঃ রফিকুল ইসলাম" : Model.OfficerName)</h3>
+                        <h3>@(string.IsNullOrWhiteSpace(Model.OfficerName) ? "ফিল্ড অফিসার" : Model.OfficerName)</h3>
                         <span class="sb-profile-tag">🛡️ ভেরিফাইড ফিল্ড অফিসার</span>
                         <small style="display: block; color: #64748b; font-size: 12px; margin-top: 4px;">ল্যান্ডিং পেজে এই ছবিটি প্রদর্শিত হবে</small>
                     </div>
@@ -111,10 +111,89 @@
                         </a>
                     </div>
                 </div>
+
+                <div class="sb-profile-details-card" style="margin-top: 24px;">
+                    <div class="sb-card-header">
+                        <span class="sb-badge-pill">SECURITY</span>
+                        <h3 style="margin-top: 4px;">পাসওয়ার্ড পরিবর্তন</h3>
+                    </div>
+
+                    <form id="fo-change-password-form" style="max-width: 420px; display: grid; gap: 14px; margin-top: 16px;" data-managed-loading="true">
+                        @Html.AntiForgeryToken()
+                        <div>
+                            <label for="fo-old-password" style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155; font-size: 13px;">বর্তমান পাসওয়ার্ড</label>
+                            <input id="fo-old-password" name="OldPassword" type="password" required autocomplete="current-password" style="width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit;" />
+                        </div>
+                        <div>
+                            <label for="fo-new-password" style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155; font-size: 13px;">নতুন পাসওয়ার্ড</label>
+                            <input id="fo-new-password" name="NewPassword" type="password" required minlength="4" autocomplete="new-password" style="width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit;" />
+                        </div>
+                        <div>
+                            <label for="fo-confirm-password" style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155; font-size: 13px;">নতুন পাসওয়ার্ড নিশ্চিত করুন</label>
+                            <input id="fo-confirm-password" name="ConfirmPassword" type="password" required minlength="4" autocomplete="new-password" style="width: 100%; min-height: 42px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit;" />
+                        </div>
+                        <button type="submit" style="justify-self: start; min-width: 180px; min-height: 42px; border: 0; border-radius: 8px; background: #10b981; color: #fff; font-weight: 800; cursor: pointer;">পাসওয়ার্ড সংরক্ষণ করুন</button>
+                    </form>
+                    <div id="fo-password-message" role="alert" hidden style="margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-weight: 700;"></div>
+                </div>
             </div>
         </div>
     </main>
 </div>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById("fo-change-password-form");
+            const button = form.querySelector('button[type="submit"]');
+            const message = document.getElementById("fo-password-message");
+
+            const showMessage = (text, isSuccess) => {
+                message.textContent = text;
+                message.style.background = isSuccess ? "#dcfce7" : "#fee2e2";
+                message.style.color = isSuccess ? "#166534" : "#991b1b";
+                message.hidden = false;
+            };
+
+            form.addEventListener("submit", async event => {
+                event.preventDefault();
+                const oldPassword = document.getElementById("fo-old-password").value;
+                const newPassword = document.getElementById("fo-new-password").value;
+                const confirmPassword = document.getElementById("fo-confirm-password").value;
+
+                if (newPassword !== confirmPassword) {
+                    showMessage("নতুন পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মেলেনি।", false);
+                    return;
+                }
+
+                button.disabled = true;
+                const originalText = button.textContent;
+                button.textContent = "সংরক্ষণ হচ্ছে...";
+                message.hidden = true;
+
+                try {
+                    const response = await fetch('@Url.Action("ChangePassword", "FieldOfficer")', {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "RequestVerificationToken": form.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।");
+                    showMessage(result.message, true);
+                    form.reset();
+                } catch (error) {
+                    showMessage(error.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।", false);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+        })();
+    </script>
+}
 
 @section Styles {
 <style>

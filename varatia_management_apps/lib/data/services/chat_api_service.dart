@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../../core/config/api_config.dart';
 
 class TenantChatConversationDto {
   final int id;
@@ -74,15 +75,18 @@ class TenantChatApiService {
     String userId,
   ) async {
     final uri = Uri.parse(
-      '\${ApiConfig.baseUrl}/api/TenantChat/conversations/$userId',
+      '${ApiConfig.baseUrl}/api/TenantChat/conversations/$userId',
     );
     final response = await _client.get(uri);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList
-          .map((json) => TenantChatConversationDto.fromJson(json))
-          .toList();
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .map((json) => TenantChatConversationDto.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return <TenantChatConversationDto>[];
     } else {
       throw Exception('Failed to fetch chat conversations');
     }
@@ -90,15 +94,18 @@ class TenantChatApiService {
 
   Future<List<TenantChatMessageDto>> getMessages(int conversationId) async {
     final uri = Uri.parse(
-      '\${ApiConfig.baseUrl}/api/TenantChat/conversations/$conversationId/messages',
+      '${ApiConfig.baseUrl}/api/TenantChat/conversations/$conversationId/messages',
     );
     final response = await _client.get(uri);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList
-          .map((json) => TenantChatMessageDto.fromJson(json))
-          .toList();
+      final dynamic decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .map((json) => TenantChatMessageDto.fromJson(json as Map<String, dynamic>))
+            .toList();
+      }
+      return const [];
     } else {
       throw Exception('Failed to fetch chat messages');
     }
@@ -111,7 +118,7 @@ class TenantChatApiService {
     required String senderUserId,
     required String messageText,
   }) async {
-    final uri = Uri.parse('\${ApiConfig.baseUrl}/api/TenantChat/messages');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/TenantChat/messages');
     final response = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},

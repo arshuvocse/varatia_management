@@ -106,6 +106,92 @@ public sealed class PaymentsController : ControllerBase
         }
     }
 
+    [HttpGet("registration-fee")]
+    public async Task<ActionResult<RegistrationFeeInfoResponse>> GetRegistrationFee(CancellationToken cancellationToken)
+    {
+        var response = await _paymentService.GetRegistrationFeeInfoAsync(cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet("registration-status")]
+    public async Task<ActionResult<RegistrationFeeStatusResponse>> GetRegistrationStatus(
+        [FromQuery] string userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return BadRequest(new { message = "User ID is required." });
+            }
+
+            var response = await _paymentService.GetRegistrationFeeStatusAsync(userId, cancellationToken);
+            return Ok(response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("registration-fee/initiate")]
+    public async Task<ActionResult<InitiatePaymentResponse>> InitiateRegistrationFeePayment(
+        [FromBody] InitiateRegistrationPaymentRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.UserId))
+            {
+                return BadRequest(new { message = "User ID is required." });
+            }
+
+            var response = await _paymentService.InitiateRegistrationFeePaymentAsync(
+                request.UserId,
+                GetPublicBaseUrl(),
+                cancellationToken);
+
+            return Ok(response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpGet("user-history")]
+    public async Task<ActionResult<UserPaymentHistoryResponse>> GetUserPaymentHistory(
+        [FromQuery] string userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return BadRequest(new { message = "User ID is required." });
+            }
+
+            var response = await _paymentService.GetUserPaymentHistoryAsync(userId, cancellationToken);
+            return Ok(response);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+    }
+
     [AcceptVerbs("GET", "POST")]
     [Route("success")]
     [IgnoreAntiforgeryToken]

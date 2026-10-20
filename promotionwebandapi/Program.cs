@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -40,17 +41,30 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddSignalR();
 
 var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "DataProtectionKeys");
+bool canWriteDataProtection = false;
 try
 {
     if (!Directory.Exists(dataProtectionPath))
     {
         Directory.CreateDirectory(dataProtectionPath);
     }
+    var probeFile = Path.Combine(dataProtectionPath, $".probe_{Guid.NewGuid():N}.tmp");
+    File.WriteAllText(probeFile, "probe");
+    File.Delete(probeFile);
+    canWriteDataProtection = true;
+}
+catch
+{
+    canWriteDataProtection = false;
+}
+
+if (canWriteDataProtection)
+{
     builder.Services.AddDataProtection()
         .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
         .SetApplicationName("SmartBazar");
 }
-catch (Exception)
+else
 {
     builder.Services.AddDataProtection()
         .SetApplicationName("SmartBazar");
@@ -151,8 +165,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 builder.Services.AddSingleton<SqlConnectionFactory>();
 builder.Services.AddSingleton<PasswordHasher>();
+builder.Services.AddScoped<IPostingEntitlementService, PostingEntitlementService>();
+builder.Services.AddScoped<IContactRequestService, ContactRequestService>();
 builder.Services.AddHttpClient<ISmsOtpService, BulkSmsBdOtpService>();
 builder.Services.AddHttpClient<IMonthlyPaymentService, MonthlyPaymentService>();
+builder.Services.AddHttpClient<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IFlatOwnerProfileService, FlatOwnerProfileService>();
@@ -176,6 +193,7 @@ builder.Services.AddScoped<IPostChatService, PostChatService>();
 builder.Services.AddScoped<IAdminChatService, AdminChatService>();
 builder.Services.AddScoped<ISavedPostsService, SavedPostsService>();
 builder.Services.AddScoped<ITenantChatService, TenantChatService>();
+builder.Services.AddScoped<IVaratiaAdminService, VaratiaAdminService>();
 builder.Services.AddSingleton<IMessageRealtimeService, MessageRealtimeService>();
 
 var app = builder.Build();
@@ -204,6 +222,27 @@ if (!Directory.Exists(uploadsPath))
             uploadsPath);
     }
 }
+
+// One-time, idempotent migration of files uploaded under the old wwwroot/uploads
+// location (served publicly by default) into the non-wwwroot uploads/ root that
+// now serves everything behind the auth-gated /uploads middleware below. Both
+// roots share the same "/uploads/..." URL prefix, so DB-stored paths are unaffected.
+MigrateLegacyWwwrootUploads(app.Environment.ContentRootPath, uploadsPath, app.Logger);
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads"))
+    {
+        var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        if (!authResult.Succeeded)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+    }
+
+    await next();
+});
 app.UseStaticFiles();
 if (Directory.Exists(uploadsPath))
 {
@@ -317,4 +356,123 @@ app.MapHub<PostChatHub>("/hubs/post-chat");
 app.MapHub<AdminChatHub>("/hubs/admin-chat");
 app.MapHub<LiveSupportHub>("/hubs/live-support");
 
+app.MapGet("/diagnostics", async (HttpContext ctx, IConfiguration config) =>
+{
+    var report = new Dictionary<string, object?>();
+    report["timeUtc"] = DateTime.UtcNow;
+    report["environment"] = app.Environment.EnvironmentName;
+    report["contentRoot"] = app.Environment.ContentRootPath;
+    
+    // 1. Check DataProtectionKeys directory
+    var dpPath = Path.Combine(app.Environment.ContentRootPath, "DataProtectionKeys");
+    try
+    {
+        var testFile = Path.Combine(dpPath, $".test_{Guid.NewGuid():N}.tmp");
+        await File.WriteAllTextAsync(testFile, "test");
+        File.Delete(testFile);
+        report["dataProtectionKeys_Writable"] = true;
+    }
+    catch (Exception ex)
+    {
+        report["dataProtectionKeys_Writable"] = false;
+        report["dataProtectionKeys_Error"] = ex.Message;
+    }
+
+    // 2. Check Database connection
+    var connStr = config.GetConnectionString("DefaultConnection") 
+                  ?? config.GetConnectionString("VaratiaManagementDb");
+    report["connectionString"] = System.Text.RegularExpressions.Regex.Replace(connStr ?? "", "(?i)password=[^;]+", "Password=***");
+    try
+    {
+        using var conn = new Microsoft.Data.SqlClient.SqlConnection(connStr);
+        await conn.OpenAsync();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM dbo.Users;";
+        var userCount = await cmd.ExecuteScalarAsync();
+        report["database_Connected"] = true;
+        report["database_UserCount"] = userCount;
+    }
+    catch (Exception ex)
+    {
+        report["database_Connected"] = false;
+        report["database_Error"] = ex.Message;
+        report["database_StackTrace"] = ex.StackTrace;
+    }
+
+    return Results.Ok(report);
+});
+
 app.Run();
+
+static void MigrateLegacyWwwrootUploads(string contentRootPath, string uploadsRoot, ILogger logger)
+{
+    var legacyRoot = Path.Combine(contentRootPath, "wwwroot", "uploads");
+    if (!Directory.Exists(legacyRoot))
+    {
+        return;
+    }
+
+    try
+    {
+        foreach (var sourceFile in Directory.EnumerateFiles(legacyRoot, "*", SearchOption.AllDirectories))
+        {
+            var relativePath = Path.GetRelativePath(legacyRoot, sourceFile);
+            var targetFile = Path.Combine(uploadsRoot, relativePath);
+
+            try
+            {
+                var targetDir = Path.GetDirectoryName(targetFile);
+                if (!string.IsNullOrEmpty(targetDir))
+                {
+                    Directory.CreateDirectory(targetDir);
+                }
+
+                if (File.Exists(targetFile))
+                {
+                    logger.LogWarning(
+                        "Skipped migrating {SourceFile}: a file already exists at {TargetFile}.",
+                        sourceFile,
+                        targetFile);
+                    continue;
+                }
+
+                File.Move(sourceFile, targetFile);
+            }
+            catch (Exception exception) when (exception is UnauthorizedAccessException or IOException)
+            {
+                logger.LogWarning(
+                    exception,
+                    "Failed to migrate legacy upload {SourceFile} to {TargetFile}.",
+                    sourceFile,
+                    targetFile);
+            }
+        }
+
+        // Remove now-empty directories under the legacy root, deepest first, then the root itself.
+        foreach (var directory in Directory.EnumerateDirectories(legacyRoot, "*", SearchOption.AllDirectories)
+            .OrderByDescending(path => path.Length))
+        {
+            try
+            {
+                if (Directory.Exists(directory) && !Directory.EnumerateFileSystemEntries(directory).Any())
+                {
+                    Directory.Delete(directory);
+                }
+            }
+            catch (Exception exception) when (exception is UnauthorizedAccessException or IOException)
+            {
+                logger.LogWarning(exception, "Failed to remove empty legacy upload directory {Directory}.", directory);
+            }
+        }
+
+        if (!Directory.EnumerateFileSystemEntries(legacyRoot).Any())
+        {
+            Directory.Delete(legacyRoot);
+            logger.LogInformation("Migrated legacy wwwroot/uploads files into {UploadsRoot} and removed the old directory.", uploadsRoot);
+        }
+    }
+    catch (Exception exception) when (exception is UnauthorizedAccessException or IOException)
+    {
+        logger.LogWarning(exception, "Failed to migrate legacy uploads from {LegacyRoot} to {UploadsRoot}.", legacyRoot, uploadsRoot);
+    }
+}

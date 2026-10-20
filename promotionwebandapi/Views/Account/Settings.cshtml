@@ -12,8 +12,80 @@
         <label>কমিশন হার (%)<input name="CommissionRate" type="number" min="0" step="0.01" value="@Model.Settings.CommissionRate" /></label>
         <label>ক্যাশব্যাক হার (%)<input name="CashbackRate" type="number" min="0" step="0.01" value="@Model.Settings.CashbackRate" /></label>
         <label>ডেলিভারি চার্জ (টাকা)<input name="DeliveryCharge" type="number" min="0" step="0.01" value="@Model.Settings.DeliveryCharge" /></label>
+        <label>ব্যবহারকারী রেজিস্ট্রেশন ফি (টাকা)<input name="RegistrationFee" type="number" min="0" step="1" value="@Model.Settings.RegistrationFee" /></label>
+        <label style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+            <input name="IsRegistrationFeeActive" type="checkbox" value="true" @(Model.Settings.IsRegistrationFeeActive ? "checked" : "") style="width: auto;" />
+            <input name="IsRegistrationFeeActive" type="hidden" value="false" />
+            <span>রেজিস্ট্রেশন ফি সক্রিয় রাখুন (Active)</span>
+        </label>
         <label>সহায়তার ফোন<input name="SupportPhone" value="@Model.Settings.SupportPhone" /></label>
         <label>পেমেন্ট মাধ্যম<input name="PaymentGateway" value="@Model.Settings.PaymentGateway" /></label>
         <button type="submit">সেটিংস সংরক্ষণ</button>
     </form>
 </section>
+
+<section class="company-section">
+    <div class="company-section-heading"><div><span>SECURITY</span><h2>পাসওয়ার্ড পরিবর্তন</h2></div></div>
+    <form id="company-change-password-form" class="company-card company-settings-form" data-managed-loading="true">
+        @Html.AntiForgeryToken()
+        <label>বর্তমান পাসওয়ার্ড<input id="company-old-password" name="OldPassword" type="password" required autocomplete="current-password" /></label>
+        <label>নতুন পাসওয়ার্ড<input id="company-new-password" name="NewPassword" type="password" required minlength="4" autocomplete="new-password" /></label>
+        <label>নতুন পাসওয়ার্ড নিশ্চিত করুন<input id="company-confirm-password" name="ConfirmPassword" type="password" required minlength="4" autocomplete="new-password" /></label>
+        <button type="submit">পাসওয়ার্ড পরিবর্তন করুন</button>
+    </form>
+    <div id="company-password-message" role="alert" hidden style="margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-weight: 700;"></div>
+</section>
+
+@section Scripts {
+    <script>
+        (() => {
+            const form = document.getElementById("company-change-password-form");
+            const button = form.querySelector('button[type="submit"]');
+            const message = document.getElementById("company-password-message");
+
+            const showMessage = (text, isSuccess) => {
+                message.textContent = text;
+                message.style.background = isSuccess ? "#dcfce7" : "#fee2e2";
+                message.style.color = isSuccess ? "#166534" : "#991b1b";
+                message.hidden = false;
+            };
+
+            form.addEventListener("submit", async event => {
+                event.preventDefault();
+                const oldPassword = document.getElementById("company-old-password").value;
+                const newPassword = document.getElementById("company-new-password").value;
+                const confirmPassword = document.getElementById("company-confirm-password").value;
+
+                if (newPassword !== confirmPassword) {
+                    showMessage("নতুন পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মেলেনি।", false);
+                    return;
+                }
+
+                button.disabled = true;
+                const originalText = button.textContent;
+                button.textContent = "সংরক্ষণ হচ্ছে...";
+                message.hidden = true;
+
+                try {
+                    const response = await fetch('@Url.Action("ChangePassword", "Account")', {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "RequestVerificationToken": form.querySelector('input[name="__RequestVerificationToken"]').value
+                        },
+                        body: JSON.stringify({ oldPassword, newPassword, confirmPassword })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।");
+                    showMessage(result.message, true);
+                    form.reset();
+                } catch (error) {
+                    showMessage(error.message || "পাসওয়ার্ড পরিবর্তন করা যায়নি।", false);
+                } finally {
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            });
+        })();
+    </script>
+}

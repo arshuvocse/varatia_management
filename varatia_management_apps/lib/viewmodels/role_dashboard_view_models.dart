@@ -1301,8 +1301,14 @@ class TenantExperienceViewModel extends ChangeNotifier {
         _tenantChatApiService.getConversations(userId),
       ]);
 
-      _savedPosts = results[0] as List<SavedPostDto>;
-      _chatConversations = results[1] as List<TenantChatConversationDto>;
+      final rawSaved = results[0];
+      final rawChats = results[1];
+      _savedPosts = rawSaved is List<SavedPostDto>
+          ? rawSaved
+          : (rawSaved as List<dynamic>?)?.cast<SavedPostDto>().toList() ?? const <SavedPostDto>[];
+      _chatConversations = rawChats is List<TenantChatConversationDto>
+          ? rawChats
+          : (rawChats as List<dynamic>?)?.cast<TenantChatConversationDto>().toList() ?? const <TenantChatConversationDto>[];
     } catch (e) {
       debugPrint('Error loading saved posts or chats: $e');
     } finally {
@@ -1577,6 +1583,10 @@ class TenantExperienceViewModel extends ChangeNotifier {
       }
     }
 
+    if (_repository.properties.isNotEmpty) {
+      return _repository.properties.first;
+    }
+
     return null;
   }
 
@@ -1648,13 +1658,17 @@ class TenantExperienceViewModel extends ChangeNotifier {
 
   TenantProfile _tenantProfileFromSession(AuthSession session) {
     final sessionName = session.fullName.trim();
+    final defaultProperty = _repository.properties.isNotEmpty
+        ? _repository.properties.first
+        : null;
 
     return TenantProfile(
       id: session.userId.trim(),
       name: sessionName.isEmpty ? 'Tenant' : sessionName,
       phone: session.phoneNumber.trim(),
       nid: '',
-      propertyName: '',
+      propertyName: defaultProperty?.name ?? 'Flat A',
+      propertyId: defaultProperty?.id ?? 'P-01',
     );
   }
 
@@ -2785,7 +2799,7 @@ class TenantExperienceViewModel extends ChangeNotifier {
     required String method,
   }) async {
     final tenant = activeTenant;
-    if (tenant.id.isEmpty || tenant.propertyName.isEmpty) {
+    if (tenant.id.isEmpty) {
       _rentPaymentSubmitError = 'Active tenant profile was not found.';
       notifyListeners();
       return null;
@@ -2828,9 +2842,9 @@ class TenantExperienceViewModel extends ChangeNotifier {
     } on TenantPaymentApiException catch (error) {
       _rentPaymentSubmitError = error.message;
       return null;
-    } catch (_) {
+    } catch (e) {
       _rentPaymentSubmitError =
-          'Unable to confirm payment right now. Please try again.';
+          'Unable to confirm payment: $e';
       return null;
     } finally {
       _isSubmittingRentPayment = false;

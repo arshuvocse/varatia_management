@@ -14,8 +14,10 @@ class EntryLoginScreen extends StatefulWidget {
 }
 
 class _EntryLoginScreenState extends State<EntryLoginScreen> {
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController =
+      TextEditingController(text: '01855667788');
+  final TextEditingController _passwordController =
+      TextEditingController(text: 'Password123');
   final RegistrationApiService _registrationApiService =
       RegistrationApiService();
 
@@ -156,10 +158,11 @@ class _EntryLoginScreenState extends State<EntryLoginScreen> {
   }
 
   void _navigateAfterAuthentication(EntryUserRole? role) {
-    final routeName = role == null ? AppRoutes.role : AppRoutes.home;
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(routeName, (route) => false, arguments: role);
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.home,
+      (route) => false,
+      arguments: role ?? EntryUserRole.tenant,
+    );
   }
 
   @override
@@ -176,8 +179,8 @@ class _EntryLoginScreenState extends State<EntryLoginScreen> {
       eyebrow: context.tr(bn: 'আবার স্বাগতম', en: 'Welcome back'),
       title: context.tr(bn: 'লগইন', en: 'Login'),
       subtitle: context.tr(
-        bn: 'সাইন ইন করে আপনার রোল নির্বাচন করুন।',
-        en: 'Sign in to choose your role.',
+        bn: 'আমার ঠিকানা কমিউনিটি ফিডে সাইন ইন করুন।',
+        en: 'Sign in to access Amar Thikanaa community feed.',
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -61,12 +61,14 @@ public sealed class LoanItemViewModel
     public decimal RemainingAmount { get; init; }
     public decimal PaidAmount => TotalPayable - RemainingAmount;
     public double ProgressPercent => TotalPayable > 0 ? (double)(PaidAmount / TotalPayable * 100m) : 0;
+    public double ProgressPercentage => ProgressPercent;
     public string Purpose { get; init; } = "";
-    public string Status { get; init; } = "Approved"; // Pending, Approved, Completed, Rejected
+    public string Status { get; init; } = "Approved"; // Pending, Approved, Disbursed, Completed, Rejected
     public DateTime AppliedAt { get; init; }
     public DateTime? ApprovedAt { get; init; }
     public DateTime? DisbursedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
+    public string? AdminNotes { get; init; }
 
     public LoanInstallmentItemViewModel? NextDueInstallment { get; init; }
     public IReadOnlyList<LoanInstallmentItemViewModel> Installments { get; init; } = [];
@@ -116,6 +118,180 @@ public sealed class ShopkeeperLoanDashboardViewModel
     public string? ErrorMessage { get; init; }
 }
 
+public sealed class AdminLoanManagementViewModel
+{
+    public IReadOnlyList<LoanItemViewModel> Loans { get; init; } = [];
+    public string? FilterStatus { get; init; }
+    public string? FilterRole { get; init; }
+    public decimal TotalDisbursed => Loans.Where(l => l.Status is "Approved" or "Disbursed" or "Completed").Sum(l => l.LoanAmount);
+    public decimal TotalOutstanding => Loans.Where(l => l.Status is "Approved" or "Disbursed").Sum(l => l.RemainingAmount);
+    public int ActiveLoanCount => Loans.Count(l => l.Status is "Approved" or "Disbursed");
+    public LoanConfigRowViewModel? Config { get; init; }
+    public string? SuccessMessage { get; init; }
+    public string? ErrorMessage { get; init; }
+}
+
+public sealed class LoanConfigRowViewModel
+{
+    public int Id { get; init; }
+    public string ConfigKey { get; init; } = "";
+    public decimal MinAmount { get; init; }
+    public decimal MaxAmount { get; init; }
+    public decimal AnnualInterestRate { get; init; }
+    public decimal ProcessingFeePercent { get; init; }
+    public decimal MinProcessingFee { get; init; }
+    public string AllowedTenures { get; init; } = "3,6,9,12";
+    public bool IsActive { get; init; }
+}
+
+public sealed class LoanConfigInputModel
+{
+    [Required]
+    public int Id { get; set; }
+
+    [Required, Range(500, 1_000_000)]
+    public decimal MinAmount { get; set; }
+
+    [Required, Range(500, 1_000_000)]
+    public decimal MaxAmount { get; set; }
+
+    [Required, Range(0, 100)]
+    public decimal AnnualInterestRate { get; set; }
+
+    [Required, Range(0, 100)]
+    public decimal ProcessingFeePercent { get; set; }
+
+    [Required, Range(0, 100_000)]
+    public decimal MinProcessingFee { get; set; }
+
+    [Required, RegularExpression(@"^\d+(,\d+)*$", ErrorMessage = "কমা দিয়ে আলাদা মাসের সংখ্যা দিন, যেমন 3,6,9,12")]
+    public string AllowedTenures { get; set; } = "3,6,9,12";
+
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class DistrictPricingConfigRowViewModel
+{
+    public int Id { get; init; }
+    public string DistrictName { get; init; } = "";
+    public decimal TransportMultiplier { get; init; }
+    public decimal DistrictAdjustmentAmount { get; init; }
+    public decimal DefaultDeliveryCharge { get; init; }
+    public decimal ServiceCharge { get; init; }
+    public decimal PlatformCharge { get; init; }
+    public decimal ShopkeeperMarginPercent { get; init; }
+    public decimal CompanyMarginPercent { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public sealed class DistrictPricingConfigInputModel
+{
+    [Required]
+    public int Id { get; set; }
+
+    [Required, Range(0, 1000)]
+    public decimal DistrictAdjustmentAmount { get; set; }
+
+    [Required, Range(0, 100_000)]
+    public decimal DefaultDeliveryCharge { get; set; }
+
+    [Required, Range(0, 10_000)]
+    public decimal ServiceCharge { get; set; }
+
+    [Required, Range(0, 10_000)]
+    public decimal PlatformCharge { get; set; }
+
+    [Required, Range(0, 100)]
+    public decimal ShopkeeperMarginPercent { get; set; }
+
+    [Required, Range(0, 100)]
+    public decimal CompanyMarginPercent { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class DistrictPricingConfigCreateInputModel
+{
+    [Required, MaxLength(100)]
+    public string DistrictName { get; set; } = "";
+
+    [Required, Range(0, 1000)]
+    public decimal DistrictAdjustmentAmount { get; set; }
+
+    [Required, Range(0, 100_000)]
+    public decimal DefaultDeliveryCharge { get; set; } = 40m;
+
+    [Required, Range(0, 10_000)]
+    public decimal ServiceCharge { get; set; } = 10m;
+
+    [Required, Range(0, 10_000)]
+    public decimal PlatformCharge { get; set; } = 5m;
+
+    [Required, Range(0, 100)]
+    public decimal ShopkeeperMarginPercent { get; set; } = 10m;
+
+    [Required, Range(0, 100)]
+    public decimal CompanyMarginPercent { get; set; } = 5m;
+}
+
+public sealed class ShopCategoryAdminRowViewModel
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
+    public string BanglaName { get; init; } = "";
+    public string Icon { get; init; } = "🛍️";
+    public string? Description { get; init; }
+    public int DisplayOrder { get; init; }
+    public bool IsActive { get; init; }
+    public int ProductCount { get; init; }
+}
+
+public sealed class ShopCategoryInputModel
+{
+    [Required]
+    public int Id { get; set; }
+
+    [Required, MaxLength(100)]
+    public string BanglaName { get; set; } = "";
+
+    [Required, MaxLength(50)]
+    public string Icon { get; set; } = "🛍️";
+
+    [MaxLength(250)]
+    public string? Description { get; set; }
+
+    [Required, Range(0, 999)]
+    public int DisplayOrder { get; set; }
+
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed class ShopCategoryCreateInputModel
+{
+    [Required, MaxLength(100)]
+    public string Name { get; set; } = "";
+
+    [Required, MaxLength(100)]
+    public string BanglaName { get; set; } = "";
+
+    [Required, MaxLength(50)]
+    public string Icon { get; set; } = "🛍️";
+
+    [MaxLength(250)]
+    public string? Description { get; set; }
+
+    [Range(0, 999)]
+    public int DisplayOrder { get; set; }
+}
+
+public sealed class PlatformSettingsViewModel
+{
+    public IReadOnlyList<DistrictPricingConfigRowViewModel> DistrictPricing { get; init; } = [];
+    public IReadOnlyList<ShopCategoryAdminRowViewModel> ShopCategories { get; init; } = [];
+    public string? SuccessMessage { get; init; }
+    public string? ErrorMessage { get; init; }
+}
+
 public sealed class AgentOfficeLocationViewModel
 {
     public int AgentId { get; init; }
@@ -133,6 +309,7 @@ public sealed class AgentOfficeLocationViewModel
     public decimal? Latitude { get; init; }
     public decimal? Longitude { get; init; }
     public string? ProfilePictureUrl { get; init; }
+    public double? DistanceKm { get; set; }
 
     public string FullDisplayAddress => string.Join(", ",
         new[] { OfficeName, OfficeAddress, RoadNo, AreaName, Thana, DistrictName }

@@ -10,6 +10,15 @@ public interface IMonthlyPaymentService
         int year,
         CancellationToken cancellationToken);
     Task<InitiatePaymentResponse> InitiatePaymentAsync(string userId, string baseUrl, CancellationToken cancellationToken);
+    Task<InitiatePaymentResponse> InitiatePostingPaymentAsync(
+        string userId,
+        decimal amount,
+        string baseUrl,
+        CancellationToken cancellationToken);
+    Task<RegistrationFeeInfoResponse> GetRegistrationFeeInfoAsync(CancellationToken cancellationToken);
+    Task<RegistrationFeeStatusResponse> GetRegistrationFeeStatusAsync(string userId, CancellationToken cancellationToken);
+    Task<InitiatePaymentResponse> InitiateRegistrationFeePaymentAsync(string userId, string baseUrl, CancellationToken cancellationToken);
+    Task<UserPaymentHistoryResponse> GetUserPaymentHistoryAsync(string userId, CancellationToken cancellationToken);
     Task<MonthlyPaymentCallbackResult> ProcessCallbackAsync(
         MonthlyPaymentCallbackData callbackData,
         CancellationToken cancellationToken);

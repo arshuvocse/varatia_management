@@ -67,7 +67,7 @@ class BrandTitle extends StatelessWidget {
           TextSpan(
             text: 'Thikanaa',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.success,
+              color: AppColors.secondary,
               fontWeight: FontWeight.w700,
               fontSize: fontSize,
             ),
@@ -459,7 +459,7 @@ class EntryScaffold extends StatelessWidget {
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFFEAF0FF), Color(0xFFF5F7FA), Color(0xFFFFF2E8)],
+            colors: [Color(0xFFF5F7FF), Color(0xFFEEF2FF), Color(0xFFF0ECFF)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -506,7 +506,7 @@ class EntryScaffold extends StatelessWidget {
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(AppRadii.large),
                   border: Border.all(color: AppColors.border),
-                  boxShadow: AppShadows.card,
+                  boxShadow: AppShadows.elevated,
                 ),
                 child: child,
               ),
@@ -621,4 +621,97 @@ void showComingSoonSnackBar(BuildContext context, String featureName) {
       ),
     ),
   );
+}
+
+class GlossyCard extends StatelessWidget {
+  const GlossyCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(18),
+    this.margin,
+    this.gradient,
+    this.onTap,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? margin;
+  final Gradient? gradient;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget card = Container(
+      margin: margin,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: gradient == null ? AppColors.surface : null,
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.card,
+      ),
+      child: child,
+    );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          child: card,
+        ),
+      );
+    }
+    return card;
+  }
+}
+
+class GradientButton extends StatelessWidget {
+  const GradientButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.height = 54,
+    this.width,
+    this.gradient = AppColors.primaryGradient,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final double height;
+  final double? width;
+  final Gradient gradient;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width ?? double.infinity,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: onPressed == null ? null : gradient,
+        color: onPressed == null ? const Color(0xFFCBD5E1) : null,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        boxShadow: onPressed == null ? null : AppShadows.elevated,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+          child: Center(
+            child: DefaultTextStyle(
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

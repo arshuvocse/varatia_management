@@ -14,23 +14,20 @@ import '../../../core/utils/local_lang.dart';
 import '../../../data/models/app_models.dart';
 import '../../../viewmodels/role_dashboard_view_models.dart';
 import '../../widgets/app_widgets.dart';
-import 'tenant_home_landing_sections.dart';
+import '../../widgets/social_post_card.dart';
+import '../../../data/services/tenant_tutor_api_service.dart';
+import 'tenant_general_post_details_screen.dart';
 
 import '../tenant_reference_pages.dart';
 import '../role_dashboards.dart';
-import 'monthly_service_charge_gate.dart';
-import 'amar_elaka/amar_elaka_welcome_page.dart';
-import 'tenant_pickup_service_screen.dart';
+import '../property_screen.dart';
+import '../reports_screen.dart';
+import '../settings_screen.dart';
 import 'tenant_marketplace_welcome_page.dart';
-import 'secure_deal/tenant_secure_deal_screen.dart';
-import 'smart_bazar/smart_bazar_welcome_page.dart';
 import 'tenant_tutor_welcome_page.dart';
-import 'tenant_pickup_service_welcome_page.dart';
-import 'tenant_amar_elaka_screen.dart';
 import '../../../data/services/auth_session_service.dart';
 import '../../../data/services/chat_api_service.dart';
 import '../entry/entry_routes.dart';
-import '../emergency_sos/emergency_sos_screen.dart';
 import '../phone_verification/phone_verification_info_screen.dart';
 
 const _tenantSurfaceShadow = <BoxShadow>[
@@ -110,11 +107,41 @@ class _TenantReferenceHomePage extends StatefulWidget {
 
 class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
   late final TextEditingController _searchController;
+  final TenantTutorApiService _tutorApiService = TenantTutorApiService();
+  List<TenantTutorPost> _tutorPosts = const [];
+  bool _isLoadingTutors = false;
+  String _selectedCategoryFilter = 'all';
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
+    unawaited(_loadTutorPosts());
+  }
+
+  Future<void> _loadTutorPosts() async {
+    if (!mounted) return;
+    setState(() => _isLoadingTutors = true);
+    try {
+      final res = await _tutorApiService.getPosts();
+      if (mounted) {
+        setState(() {
+          _tutorPosts = res.posts;
+          _isLoadingTutors = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingTutors = false);
+      }
+    }
+  }
+
+  Future<void> _refreshFeed() async {
+    await Future.wait([
+      context.read<TenantExperienceViewModel>().loadGeneralPosts(),
+      _loadTutorPosts(),
+    ]);
   }
 
   @override
@@ -162,10 +189,15 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
     final session = await AuthSessionService().readSession();
     if (!mounted) return;
 
-    if (session != null && session.role == EntryUserRole.owner) {
-      Navigator.of(context).pushNamed(AppRoutes.postComposer);
+    if (session != null || ApiConfig.isDemoMode) {
+      final created = await Navigator.of(
+        context,
+      ).pushNamed(AppRoutes.postComposer);
+      if (created == true && mounted) {
+        unawaited(_refreshFeed());
+      }
     } else {
-      Navigator.of(context).pushNamed(AppRoutes.tenantAuthBridge);
+      Navigator.of(context).pushNamed(AppRoutes.login);
     }
   }
 
@@ -191,106 +223,10 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
       return;
     }
 
-    final canOpen = await ensureMonthlyServiceChargePaid(
-      context,
-      userId: session.userId,
-      serviceName: context.tr(bn: 'শিক্ষক সার্ভিস', en: 'Tutor Service'),
-    );
-    if (!mounted || !canOpen) return;
-
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => const TenantTutorTeachLearnPage(),
       ),
-    );
-  }
-
-  void _openAmarElakaPage() async {
-    final session = await AuthSessionService().readSession();
-    if (!mounted) return;
-
-    if (session == null) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const AmarElakaWelcomePage()),
-      );
-      return;
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const TenantAmarElakaScreen()),
-    );
-  }
-
-  void _openSecureDealPage() async {
-    final session = await AuthSessionService().readSession();
-    if (!mounted) return;
-
-    if (session == null) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SecureDealWelcomePage()),
-      );
-      return;
-    }
-
-    final canOpen = await ensureMonthlyServiceChargePaid(
-      context,
-      userId: session.userId,
-      serviceName: context.tr(bn: 'সিকিউর ডিল', en: 'Secure Deal'),
-    );
-    if (!mounted || !canOpen) return;
-
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const SecureDealHomePage()));
-  }
-
-  void _openPickupServicePage() async {
-    final session = await AuthSessionService().readSession();
-    if (!mounted) return;
-
-    if (session == null) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => const TenantPickupServiceWelcomePage(),
-        ),
-      );
-      return;
-    }
-
-    final canOpen = await ensureMonthlyServiceChargePaid(
-      context,
-      userId: session.userId,
-      serviceName: context.tr(bn: 'পিকআপ সার্ভিস', en: 'Pickup Service'),
-    );
-    if (!mounted || !canOpen) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => const TenantPickupServiceScreen(),
-      ),
-    );
-  }
-
-  void _openSmartBazarPage() async {
-    final session = await AuthSessionService().readSession();
-    if (!mounted) return;
-
-    if (session == null) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SmartBazarWelcomePage()),
-      );
-      return;
-    }
-
-    final canOpen = await ensureMonthlyServiceChargePaid(
-      context,
-      userId: session.userId,
-      serviceName: context.tr(bn: 'স্মার্ট বাজার', en: 'Smart Bazar'),
-    );
-    if (!mounted || !canOpen) return;
-
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const SmartBazarWelcomePage()),
     );
   }
 
@@ -309,24 +245,57 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
         _openSearchTab();
         return;
       case _TenantQuickActionType.teacher:
+      case _TenantQuickActionType.offerTeaching:
         _openTutorTeachLearnPage();
         return;
-      case _TenantQuickActionType.pickup:
-        _openPickupServicePage();
+      case _TenantQuickActionType.propertyManagement:
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const PropertyScreen()));
         return;
-      case _TenantQuickActionType.secureDeal:
-        _openSecureDealPage();
-        return;
-      case _TenantQuickActionType.amarElaka:
-        _openAmarElakaPage();
-        return;
-      case _TenantQuickActionType.smartBazar:
-        _openSmartBazarPage();
-        return;
-      case _TenantQuickActionType.sos:
+      case _TenantQuickActionType.tenantManagement:
         Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const EmergencySosScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: Text(context.tr(bn: 'ভাড়াটিয়া তালিকা', en: 'Tenants')),
+              ),
+              body: const SafeArea(child: OwnerTenantsPage()),
+            ),
+          ),
         );
+        return;
+      case _TenantQuickActionType.billing:
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: Text(context.tr(bn: 'ভাড়া ও বিল', en: 'Rent & Bills')),
+              ),
+              body: const SafeArea(child: TenantRentPaymentPage()),
+            ),
+          ),
+        );
+        return;
+      case _TenantQuickActionType.maintenance:
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              backgroundColor: AppColors.background,
+              appBar: AppBar(
+                title: Text(context.tr(bn: 'রক্ষণাবেক্ষণ', en: 'Maintenance')),
+              ),
+              body: const SafeArea(child: TenantMaintenanceRequestPage()),
+            ),
+          ),
+        );
+        return;
+      case _TenantQuickActionType.reports:
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const ReportsScreen()));
         return;
       case _TenantQuickActionType.phoneVerification:
         Navigator.of(context).push(
@@ -334,6 +303,12 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
             builder: (_) => const PhoneVerificationInfoScreen(),
           ),
         );
+        return;
+      case _TenantQuickActionType.pickup:
+      case _TenantQuickActionType.secureDeal:
+      case _TenantQuickActionType.amarElaka:
+      case _TenantQuickActionType.smartBazar:
+      case _TenantQuickActionType.sos:
         return;
     }
   }
@@ -363,176 +338,735 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
           end: Alignment.bottomRight,
         ),
       ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 132),
-        physics: const BouncingScrollPhysics(),
-        children: [
-          _HomeFadeSlide(
-            child: _LandingInspiredTenantHero(
-              controller: _searchController,
-              onSubmitted: (_) => _openSearchTab(),
-              onSearchTap: _openSearchTab,
-              onRequestTap: _openMarketplaceWelcome,
-              onRentTap: () => _openCategory(MarketplaceCategory.rent),
-              onSaleTap: () => _openCategory(MarketplaceCategory.sale),
-              onTutorTap: _openTutorTeachLearnPage,
-              onPickupTap: _openPickupServicePage,
+      child: RefreshIndicator(
+        onRefresh: _refreshFeed,
+        color: AppColors.primary,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 132),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          children: [
+            _buildTopBrandHeader(),
+            const SizedBox(height: 6),
+            _buildQuickCategoryStories(),
+            const SizedBox(height: 6),
+            _HomeFadeSlide(
+              delay: 80,
+              child: _TenantBulletinTicker(message: bulletinMessage),
             ),
-          ),
-          const SizedBox(height: 12),
-          _HomeFadeSlide(
-            delay: 80,
-            child: _TenantBulletinTicker(message: bulletinMessage),
-          ),
-          const SizedBox(height: 18),
-          _HomeSectionTitle(
-            title: context.tr(bn: 'দ্রুত সার্ভিস', en: 'Quick Services'),
-            subtitle: context.tr(
-              bn: 'আপনার প্রয়োজনের সব সার্ভিস',
-              en: 'Everything you need in one place',
-            ),
-          ),
-          const SizedBox(height: 12),
-          _HomeFadeSlide(
-            delay: 120,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth >= 430 ? 3 : 2;
+            const SizedBox(height: 12),
 
-                return GridView.builder(
-                  itemCount: _tenantQuickActions.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    mainAxisExtent: 136,
+            // Facebook-style interactive composer bar
+            _buildFacebookComposerCard(),
+            const SizedBox(height: 14),
+
+            // Category filter chips
+            _buildCategoryFilterTabs(),
+            const SizedBox(height: 16),
+
+            // Feed Header
+            Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
                   ),
-                  itemBuilder: (context, index) {
-                    final item = _tenantQuickActions[index];
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  context.tr(bn: 'কমিউনিটি নিউজফিড', en: 'Community Newsfeed'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  child: InkWell(
+                    onTap: _refreshFeed,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.refresh_rounded, size: 16, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            context.tr(bn: 'রিফ্রেশ', en: 'Refresh'),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
 
-                    return _QuickActionCard(
-                      item: item,
-                      onTap: () => _handleQuickAction(item.type),
-                    );
-                  },
-                );
-              },
+            // Live Community Feed with SocialPostCards
+            _buildCommunityFeed(tenantViewModel),
+            const SizedBox(height: 24),
+
+            // Quick Services Grid
+            _HomeSectionTitle(
+              title: context.tr(bn: 'দ্রুত সার্ভিস', en: 'Quick Services'),
+              subtitle: context.tr(
+                bn: 'আপনার প্রয়োজনের সব সার্ভিস',
+                en: 'Everything you need in one place',
+              ),
+            ),
+            const SizedBox(height: 12),
+            _HomeFadeSlide(
+              delay: 120,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth >= 430 ? 3 : 2;
+
+                  return GridView.builder(
+                    itemCount: _tenantQuickActions.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 136,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = _tenantQuickActions[index];
+
+                      return _QuickActionCard(
+                        item: item,
+                        onTap: () => _handleQuickAction(item.type),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+            const _TenantServiceExplainerBanner(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopBrandHeader() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+      child: Row(
+        children: [
+          Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.circular(13),
+              boxShadow: AppShadows.subtle,
+            ),
+            child: const Center(
+              child: Icon(Icons.home_work_rounded, color: Colors.white, size: 22),
             ),
           ),
-          const SizedBox(height: 18),
-          const _HomeFadeSlide(
-            delay: 140,
-            child: _TenantServiceExplainerBanner(),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'আমার',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  Text(
+                    'ঠিকানা',
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.secondary,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on_rounded, size: 12, color: AppColors.primary),
+                  const SizedBox(width: 3),
+                  Text(
+                    context.tr(bn: 'ঢাকা, বাংলাদেশ', en: 'Dhaka, Bangladesh'),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(height: 24),
-          const _HomeFadeSlide(
-            delay: 160,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF0F766E),
-                Color(0xFF064E3B),
-                Color(0xFF047857),
-                Color(0xFF34D399),
-              ],
-              shadowColor: Color(0xFF047857),
-              child: TenantLandingStatsSection(),
-            ),
+          const Spacer(),
+          _buildHeaderIconButton(
+            icon: Icons.search_rounded,
+            onTap: _openSearchTab,
+            tooltip: 'সার্চ',
           ),
-          const _HomeFadeSlide(
-            delay: 200,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF4338CA),
-                Color(0xFF3730A3),
-                Color(0xFF4F46E5),
-                Color(0xFF818CF8),
-              ],
-              shadowColor: Color(0xFF4338CA),
-              child: TenantLandingServicesSection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 240,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF0369A1),
-                Color(0xFF0C4A6E),
-                Color(0xFF0284C7),
-                Color(0xFF38BDF8),
-              ],
-              shadowColor: Color(0xFF0284C7),
-              child: TenantLandingGrocerySection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 280,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFFBE185D),
-                Color(0xFF831843),
-                Color(0xFFDB2777),
-                Color(0xFFF472B6),
-              ],
-              shadowColor: Color(0xFFDB2777),
-              child: TenantLandingHowItWorksSection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 320,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFFB45309),
-                Color(0xFF78350F),
-                Color(0xFFD97706),
-                Color(0xFFFBBF24),
-              ],
-              shadowColor: Color(0xFFD97706),
-              child: TenantLandingAudienceSection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 360,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF6D28D9),
-                Color(0xFF4C1D95),
-                Color(0xFF7C3AED),
-                Color(0xFFA78BFA),
-              ],
-              shadowColor: Color(0xFF7C3AED),
-              child: TenantLandingFaqSection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 400,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF0F766E),
-                Color(0xFF134E4A),
-                Color(0xFF14B8A6),
-                Color(0xFF5EEAD4),
-              ],
-              shadowColor: Color(0xFF14B8A6),
-              child: TenantLandingContactSection(),
-            ),
-          ),
-          const _HomeFadeSlide(
-            delay: 440,
-            child: _GlossySectionWrapper(
-              colors: [
-                Color(0xFF334155),
-                Color(0xFF0F172A),
-                Color(0xFF475569),
-                Color(0xFF94A3B8),
-              ],
-              shadowColor: Color(0xFF475569),
-              child: TenantLandingFooterSection(),
-            ),
+          const SizedBox(width: 8),
+          _buildHeaderIconButton(
+            icon: Icons.notifications_none_rounded,
+            onTap: () {
+              Scaffold.of(context).openEndDrawer();
+            },
+            tooltip: 'মেনু ও নোটিফিকেশন',
+            hasBadge: true,
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeaderIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required String tooltip,
+    bool hasBadge = false,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.subtle,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(icon, size: 20, color: AppColors.textPrimary),
+              if (hasBadge)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.danger,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickCategoryStories() {
+    final stories = [
+      {
+        'label': 'ফ্ল্যাট ভাড়া',
+        'icon': Icons.apartment_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFF4F46E5), Color(0xFF6366F1)]),
+        'onTap': () => setState(() => _selectedCategoryFilter = 'rent'),
+      },
+      {
+        'label': 'ফ্ল্যাট বিক্রি',
+        'icon': Icons.real_estate_agent_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFF9333EA)]),
+        'onTap': () => _openCategory(MarketplaceCategory.sale),
+      },
+      {
+        'label': 'বাসা চাই',
+        'icon': Icons.person_search_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFFD97706), Color(0xFFF59E0B)]),
+        'onTap': () => setState(() => _selectedCategoryFilter = 'flat_wanted'),
+      },
+      {
+        'label': 'শিক্ষক সার্ভিস',
+        'icon': Icons.school_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFF059669), Color(0xFF10B981)]),
+        'onTap': _openTutorTeachLearnPage,
+      },
+      {
+        'label': 'স্মার্ট বাজার',
+        'icon': Icons.shopping_bag_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)]),
+        'onTap': () => _handleQuickAction(_TenantQuickActionType.smartBazar),
+      },
+      {
+        'label': 'পিকআপ',
+        'icon': Icons.local_shipping_rounded,
+        'gradient': const LinearGradient(colors: [Color(0xFFE11D48), Color(0xFFF43F5E)]),
+        'onTap': () => _handleQuickAction(_TenantQuickActionType.pickup),
+      },
+    ];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      height: 94,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: stories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final item = stories[index];
+          return InkWell(
+            onTap: item['onTap'] as VoidCallback?,
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              width: 68,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      gradient: item['gradient'] as Gradient?,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (item['gradient'] as LinearGradient).colors.first.withValues(alpha: 0.28),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Icon(
+                        item['icon'] as IconData?,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item['label'] as String,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFacebookComposerCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        boxShadow: AppShadows.card,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: _openPostComposer,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.secondaryBackground,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE0E7FF)),
+              ),
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 15,
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppColors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      context.tr(
+                        bn: 'আপনার কি বাসা ভাড়া দরকার নাকি শিক্ষক চাই? পোস্ট করুন...',
+                        en: 'Looking for a flat or tutor? Write a post...',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildComposerActionChip(
+                  icon: Icons.apartment_rounded,
+                  iconColor: const Color(0xFF4F46E5),
+                  bgColor: const Color(0xFFEEF2FF),
+                  label: context.tr(bn: 'বাসা ভাড়া', en: 'Rental'),
+                  onTap: _openPostComposer,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildComposerActionChip(
+                  icon: Icons.school_rounded,
+                  iconColor: const Color(0xFF059669),
+                  bgColor: const Color(0xFFECFDF5),
+                  label: context.tr(bn: 'শিক্ষক', en: 'Tutor'),
+                  onTap: _openTutorTeachLearnPage,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _buildComposerActionChip(
+                  icon: Icons.add_photo_alternate_rounded,
+                  iconColor: const Color(0xFFD97706),
+                  bgColor: const Color(0xFFFEF3C7),
+                  label: context.tr(bn: 'ছবি পোস্ট', en: 'Photos'),
+                  onTap: _openPostComposer,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComposerActionChip({
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: iconColor, size: 15),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: iconColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryFilterTabs() {
+    final categories = <Map<String, dynamic>>[
+      {'id': 'all', 'label': 'সব পোস্ট', 'icon': Icons.auto_awesome_rounded},
+      {'id': 'rent', 'label': 'ফ্ল্যাট ভাড়া', 'icon': Icons.apartment_rounded},
+      {'id': 'flat_wanted', 'label': 'বাসা চাই', 'icon': Icons.person_search_rounded},
+      {'id': 'sublet', 'label': 'রুম ও সাবলেট', 'icon': Icons.meeting_room_rounded},
+      {'id': 'seat_rent', 'label': 'সিট ভাড়া', 'icon': Icons.bed_rounded},
+      {'id': 'bachelor', 'label': 'ব্যাচেলর মেস', 'icon': Icons.groups_rounded},
+      {'id': 'tutor_available', 'label': 'শিক্ষক দিচ্ছি', 'icon': Icons.school_rounded},
+      {'id': 'looking_tutor', 'label': 'শিক্ষক চাই', 'icon': Icons.menu_book_rounded},
+    ];
+
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          final isSelected = _selectedCategoryFilter == cat['id'];
+          return InkWell(
+            onTap: () {
+              setState(() => _selectedCategoryFilter = cat['id'] as String);
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: isSelected ? AppColors.primaryGradient : null,
+                color: isSelected ? null : AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.transparent : AppColors.border,
+                ),
+                boxShadow: isSelected ? AppShadows.subtle : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    cat['icon'] as IconData,
+                    size: 15,
+                    color: isSelected ? Colors.white : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    cat['label'] as String,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontSize: 12,
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCommunityFeed(TenantExperienceViewModel tenantViewModel) {
+    final isFeedLoading =
+        (tenantViewModel.isLoadingGeneralPosts &&
+            tenantViewModel.generalPosts.isEmpty) ||
+        (_isLoadingTutors && _tutorPosts.isEmpty);
+    if (isFeedLoading) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        alignment: Alignment.center,
+        child: const Column(
+          children: [
+            CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            SizedBox(height: 12),
+            Text(
+              'পোস্ট লোড হচ্ছে...',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final generalPosts = tenantViewModel.generalPosts;
+    final generalItems = generalPosts
+        .map(
+          (p) => SocialPostData.fromGeneralPost(
+            p,
+            isSaved: tenantViewModel.isPostSaved(p.id.toString(), 'general'),
+          ),
+        )
+        .toList();
+
+    final tutorItems = _tutorPosts
+        .map(
+          (tp) => SocialPostData.fromTutor(
+            tp,
+            isSaved: tenantViewModel.isPostSaved(tp.id, 'TutorPost'),
+          ),
+        )
+        .toList();
+
+    var feedList = <SocialPostData>[...generalItems, ...tutorItems];
+
+    if (_selectedCategoryFilter != 'all') {
+      feedList = feedList.where((post) {
+        if (_selectedCategoryFilter == 'rent') {
+          return post.category.toLowerCase() == 'rent';
+        }
+        if (_selectedCategoryFilter == 'flat_wanted') {
+          return post.category.toLowerCase() == 'flat_wanted' ||
+              post.category.toLowerCase() == 'looking_flat';
+        }
+        if (_selectedCategoryFilter == 'sublet') {
+          final cat = post.category.toLowerCase();
+          return cat == 'sublet' ||
+              cat == 'sublet_wanted' ||
+              cat == 'room_rent' ||
+              cat == 'room_wanted';
+        }
+        if (_selectedCategoryFilter == 'seat_rent') {
+          return post.category.toLowerCase() == 'seat_rent';
+        }
+        if (_selectedCategoryFilter == 'bachelor') {
+          return post.category.toLowerCase() == 'bachelor';
+        }
+        if (_selectedCategoryFilter == 'tutor_available') {
+          return post.category.toLowerCase() == 'tutor_available';
+        }
+        if (_selectedCategoryFilter == 'looking_tutor') {
+          return post.category.toLowerCase() == 'looking_tutor';
+        }
+        return true;
+      }).toList();
+    }
+
+    if (feedList.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          children: [
+            const Icon(Icons.feed_outlined, size: 48, color: Color(0xFF94A3B8)),
+            const SizedBox(height: 12),
+            const Text(
+              'এই ক্যাটাগরিতে এখনো কোনো পোস্ট নেই',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'সবার আগে আপনার বাসা বা শিক্ষা সংক্রান্ত পোস্টটি শেয়ার করুন।',
+              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _openPostComposer,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('নতুন পোস্ট দিন'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: feedList.map((post) {
+        return SocialPostCard(
+          post: post,
+          onTap: () {
+            if (post.rawObject is GeneralPostItem) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TenantGeneralPostDetailsScreen(
+                    listing: mapGeneralPostToShowcase(
+                      post.rawObject as GeneralPostItem,
+                    ),
+                  ),
+                ),
+              );
+            } else if (post.rawObject is TenantShowcaseListingData) {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TenantGeneralPostDetailsScreen(
+                    listing: post.rawObject as TenantShowcaseListingData,
+                  ),
+                ),
+              );
+            }
+          },
+          onBookmarkToggle: () async {
+            await tenantViewModel.toggleSavedPost(
+              post.id.toString(),
+              post.postType,
+            );
+          },
+        );
+      }).toList(),
     );
   }
 }
@@ -753,85 +1287,253 @@ class _RentalServiceOptionCard extends StatelessWidget {
   }
 }
 
-class _TenantChatHubPage extends StatelessWidget {
+class _TenantChatHubPage extends StatefulWidget {
   const _TenantChatHubPage();
+
+  @override
+  State<_TenantChatHubPage> createState() => _TenantChatHubPageState();
+}
+
+class _TenantChatHubPageState extends State<_TenantChatHubPage> {
+  String _selectedFilter = 'all';
+
+  Widget _buildFilterChip(String id, String label) {
+    final isSelected = _selectedFilter == id;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: () => setState(() => _selectedFilter = id),
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppColors.primaryGradient : null,
+            color: isSelected ? null : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+            ),
+            boxShadow: isSelected ? AppShadows.subtle : null,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TenantExperienceViewModel>();
     final chats = viewModel.chatConversations;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
-      children: [
-        ScreenHeader(
-          title: context.tr(bn: 'চ্যাট', en: 'Chat'),
-          subtitle: context.tr(
-            bn: 'মালিক, এজেন্ট এবং সাপোর্টের সাথে কথোপকথন এখানে দেখুন।',
-            en: 'View conversations with owners, agents, and support here.',
-          ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            _ChatFilterChip(
-              label: context.tr(bn: 'সকল', en: 'All'),
-              isSelected: true,
-            ),
-            _ChatFilterChip(
-              label: context.tr(bn: 'মালিক', en: 'Owner'),
-              isSelected: false,
-            ),
-            _ChatFilterChip(
-              label: context.tr(bn: 'এজেন্ট', en: 'Agent'),
-              isSelected: false,
-            ),
-            _ChatFilterChip(
-              label: context.tr(bn: 'সাপোর্ট', en: 'Support'),
-              isSelected: false,
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        if (viewModel.isLoadingChats)
-          const Center(child: CircularProgressIndicator())
-        else if (chats.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Text(
-                context.tr(
-                  bn: 'আপনার কোনো কথোপকথন নেই।',
-                  en: 'You have no conversations.',
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4F46E5), Color(0xFF6366F1)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: AppShadows.subtle,
                 ),
-                style: const TextStyle(color: Color(0xFF6E7683)),
+                child: const Icon(
+                  Icons.chat_bubble_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr(bn: 'ইনবক্স ও চ্যাট', en: 'Messages & Chat'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      context.tr(
+                        bn: 'মালিক, এজেন্ট ও সাপোর্টের সাথে যোগাযোগ করুন',
+                        en: 'Connect directly with owners, agents, and support',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Filter row
+          SizedBox(
+            height: 36,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                _buildFilterChip('all', context.tr(bn: '💬 সব চ্যাট', en: 'All')),
+                _buildFilterChip(
+                  'owner',
+                  context.tr(bn: '🏢 বাড়িওয়ালা', en: 'Owner'),
+                ),
+                _buildFilterChip(
+                  'tutor',
+                  context.tr(bn: '🎓 শিক্ষক', en: 'Tutor'),
+                ),
+                _buildFilterChip(
+                  'support',
+                  context.tr(bn: '🎧 সাপোর্ট', en: 'Support'),
+                ),
+              ],
             ),
-          )
-        else
-          ...chats.map((conversation) {
-            final previewData = _TenantChatPreviewData(
-              name: conversation.ownerName ?? 'Owner',
-              message: LocalizedText(
-                bn: conversation.lastMessage ?? '',
-                en: conversation.lastMessage ?? '',
+          ),
+          const SizedBox(height: 18),
+
+          if (viewModel.isLoadingChats)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
               ),
-              time: LocalizedText(
-                bn: '',
-                en: '',
-              ), // To be implemented with intl
-              color: AppColors.primary,
-              unreadCount: 0,
-              conversation: conversation,
-            );
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ChatPreviewCard(chat: previewData),
-            );
-          }),
-      ],
+            )
+          else if (chats.isEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFF1F5F9)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF4F46E5).withValues(alpha: 0.15),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.mark_chat_unread_outlined,
+                      size: 32,
+                      color: Color(0xFF4F46E5),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(
+                      bn: 'আপনার কোনো সক্রিয় বার্তা নেই',
+                      en: 'No Conversations Yet',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(
+                      bn: 'যেসব বাড়িওয়ালা বা শিক্ষকের পোস্ট দেখেছেন, সেখানে "নম্বর চান" বা "চ্যাট" বাটনে ক্লিক করে বার্তা আদান-প্রদান করতে পারেন।',
+                      en: 'Contact owners or tutors directly from listings using the chat or call buttons.',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textMuted,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      context.read<RoleShellViewModel>().selectTab(0);
+                    },
+                    icon: const Icon(Icons.explore_rounded, size: 18),
+                    label: Text(
+                      context.tr(
+                        bn: 'নিউজফিড দেখুন',
+                        en: 'Browse Newsfeed',
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...chats.map((conversation) {
+              final previewData = _TenantChatPreviewData(
+                name: conversation.ownerName ?? 'Owner',
+                message: LocalizedText(
+                  bn: conversation.lastMessage ?? '',
+                  en: conversation.lastMessage ?? '',
+                ),
+                time: LocalizedText(
+                  bn: '',
+                  en: '',
+                ),
+                color: AppColors.primary,
+                unreadCount: 0,
+                conversation: conversation,
+              );
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _ChatPreviewCard(chat: previewData),
+              );
+            }),
+        ],
+      ),
     );
   }
 }
@@ -854,20 +1556,20 @@ class _TenantBottomNavigationBar extends StatelessWidget {
         child: DecoratedBox(
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFFFFFFF), Color(0xFFF8FBFF)],
+              colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFF)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white, width: 1.4),
+            border: Border.all(color: Colors.white, width: 1.6),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x1C1E40AF),
-                blurRadius: 26,
-                offset: Offset(0, 14),
+                color: Color(0x184F46E5),
+                blurRadius: 28,
+                offset: Offset(0, 12),
               ),
               BoxShadow(
-                color: Color(0x0A0F172A),
+                color: Color(0x0A1E293B),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -969,23 +1671,17 @@ class _BottomNavItem extends StatelessWidget {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               height: 34,
-              width: isSelected ? 46 : 34,
+              width: isSelected ? 48 : 34,
               decoration: BoxDecoration(
-                gradient: isSelected
-                    ? const LinearGradient(
-                        colors: [Color(0xFF1D4ED8), Color(0xFF06B6D4)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isSelected ? null : const Color(0xFFF3F7FB),
+                gradient: isSelected ? AppColors.primaryGradient : null,
+                color: isSelected ? null : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: isSelected
                     ? const [
                         BoxShadow(
-                          color: Color(0x332563EB),
+                          color: Color(0x384F46E5),
                           blurRadius: 14,
-                          offset: Offset(0, 7),
+                          offset: Offset(0, 6),
                         ),
                       ]
                     : null,
@@ -1040,8 +1736,9 @@ class _HomeFadeSlide extends StatelessWidget {
   }
 }
 
-class _LandingInspiredTenantHero extends StatelessWidget {
-  const _LandingInspiredTenantHero({
+class LandingInspiredTenantHero extends StatelessWidget {
+  const LandingInspiredTenantHero({
+    super.key,
     required this.controller,
     required this.onSubmitted,
     required this.onSearchTap,
@@ -1049,7 +1746,6 @@ class _LandingInspiredTenantHero extends StatelessWidget {
     required this.onRentTap,
     required this.onSaleTap,
     required this.onTutorTap,
-    required this.onPickupTap,
   });
 
   final TextEditingController controller;
@@ -1059,10 +1755,12 @@ class _LandingInspiredTenantHero extends StatelessWidget {
   final VoidCallback onRentTap;
   final VoidCallback onSaleTap;
   final VoidCallback onTutorTap;
-  final VoidCallback onPickupTap;
 
   @override
   Widget build(BuildContext context) {
+    if (context.mounted) {
+      return const SizedBox.shrink();
+    }
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -1224,8 +1922,8 @@ class _LandingInspiredTenantHero extends StatelessWidget {
                             opacity: 0.0,
                             child: Text(
                               context.tr(
-                                bn: 'বাসা, শিক্ষক, পিকআপ, নিরাপত্তা ও স্থানীয় সেবা এক জায়গায় খুঁজুন',
-                                en: 'Find housing, tutors, pickup, safety & local services in one place',
+                                bn: 'বাসা ভাড়া ও শিক্ষক সেবা এক জায়গায় খুঁজুন',
+                                en: 'Find housing & tutor services in one place',
                               ),
                             ),
                           ),
@@ -1234,8 +1932,8 @@ class _LandingInspiredTenantHero extends StatelessWidget {
                               animatedTexts: [
                                 TypewriterAnimatedText(
                                   context.tr(
-                                    bn: 'বাসা, শিক্ষক, পিকআপ, নিরাপত্তা ও স্থানীয় সেবা এক জায়গায় খুঁজুন',
-                                    en: 'Find housing, tutors, pickup, safety & local services in one place',
+                                    bn: 'বাসা ভাড়া ও শিক্ষক সেবা এক জায়গায় খুঁজুন',
+                                    en: 'Find housing & tutor services in one place',
                                   ),
                                   speed: const Duration(milliseconds: 100),
                                 ),
@@ -1277,16 +1975,22 @@ class _LandingInspiredTenantHero extends StatelessWidget {
                           onTap: onRentTap,
                         ),
                         _HeroServiceChip(
-                          label: context.tr(bn: 'বিক্রি', en: 'Sale'),
+                          label: context.tr(bn: 'লিস্টিং', en: 'Listing'),
                           onTap: onSaleTap,
                         ),
                         _HeroServiceChip(
-                          label: context.tr(bn: 'শিক্ষক', en: 'Tutor'),
+                          label: context.tr(
+                            bn: 'শিক্ষক খুঁজুন',
+                            en: 'Find Tutor',
+                          ),
                           onTap: onTutorTap,
                         ),
                         _HeroServiceChip(
-                          label: context.tr(bn: 'পিকআপ', en: 'Pickup'),
-                          onTap: onPickupTap,
+                          label: context.tr(
+                            bn: 'পড়াতে চাই',
+                            en: 'Offer Teaching',
+                          ),
+                          onTap: onTutorTap,
                         ),
                       ],
                     ),
@@ -1985,6 +2689,12 @@ class _TenantAccountNavigationDrawer extends StatelessWidget {
                 const TenantMaintenanceRequestPage(),
               ),
             ),
+            _TenantDrawerMenuItem(
+              title: 'Teach / Learn Tutor',
+              icon: Icons.school_rounded,
+              onTap: () =>
+                  _openDrawerPage(context, const TenantTutorTeachLearnPage()),
+            ),
             const SizedBox(height: 8),
             const Divider(color: Color(0xFFE3E8F2)),
             const SizedBox(height: 8),
@@ -2015,11 +2725,6 @@ class _OwnerAccountNavigationDrawer extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _showComingSoon(BuildContext context, String label) {
-    Navigator.of(context).pop();
-    showComingSoonSnackBar(context, context.demoText(label));
   }
 
   @override
@@ -2078,12 +2783,18 @@ class _OwnerAccountNavigationDrawer extends StatelessWidget {
             _TenantDrawerMenuItem(
               title: 'Property List',
               icon: Icons.home_work_rounded,
-              onTap: () => _showComingSoon(context, 'Property List'),
+              onTap: () => _openOwnerPage(context, const PropertyScreen()),
             ),
             _TenantDrawerMenuItem(
               title: 'Reports',
               icon: Icons.analytics_rounded,
-              onTap: () => _showComingSoon(context, 'Reports'),
+              onTap: () => _openOwnerPage(context, const ReportsScreen()),
+            ),
+            _TenantDrawerMenuItem(
+              title: 'Teach / Learn Tutor',
+              icon: Icons.school_rounded,
+              onTap: () =>
+                  _openOwnerPage(context, const TenantTutorTeachLearnPage()),
             ),
             const SizedBox(height: 8),
             const Divider(color: Color(0xFFE3E8F2)),
@@ -2091,7 +2802,7 @@ class _OwnerAccountNavigationDrawer extends StatelessWidget {
             _TenantDrawerMenuItem(
               title: 'Settings',
               icon: Icons.settings_rounded,
-              onTap: () => _showComingSoon(context, 'Owner Settings'),
+              onTap: () => _openOwnerPage(context, const SettingsScreen()),
             ),
           ],
         ),
@@ -4248,33 +4959,6 @@ class _BuildingArtwork extends StatelessWidget {
   }
 }
 
-class _ChatFilterChip extends StatelessWidget {
-  const _ChatFilterChip({required this.label, required this.isSelected});
-
-  final String label;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primary : Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: isSelected ? AppColors.primary : const Color(0xFFE3E8F2),
-        ),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: isSelected ? Colors.white : AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
 
 class _ChatPreviewCard extends StatelessWidget {
   const _ChatPreviewCard({required this.chat});
@@ -4392,12 +5076,18 @@ enum _TenantQuickActionType {
   sale,
   search,
   teacher,
+  offerTeaching,
+  propertyManagement,
+  tenantManagement,
+  billing,
+  maintenance,
+  reports,
+  phoneVerification,
   pickup,
   secureDeal,
   amarElaka,
   smartBazar,
   sos,
-  phoneVerification,
 }
 
 enum TenantListingArtworkStyle { livingRoom, bedroom, diningRoom, building }
@@ -4513,52 +5203,58 @@ const _tenantQuickActions = <_TenantQuickActionData>[
   ),
   _TenantQuickActionData(
     type: _TenantQuickActionType.teacher,
-    title: LocalizedText(bn: 'শিক্ষক', en: 'Tutor'),
-    subtitle: LocalizedText(bn: 'দিচ্ছি / নিচ্ছি', en: 'Teach / Learn'),
+    title: LocalizedText(bn: 'শিক্ষক খুঁজুন', en: 'Find Tutor'),
+    subtitle: LocalizedText(bn: 'শিক্ষক প্রয়োজন', en: 'Need a teacher'),
     icon: Icons.school_rounded,
     color: Color(0xFF14B8A6),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.pickup,
-    title: LocalizedText(bn: 'পিকআপ সার্ভিস', en: 'Pickup Service'),
-    subtitle: LocalizedText(bn: 'সার্ভিস বুক করুন', en: 'Book service'),
-    icon: Icons.airport_shuttle_rounded,
-    color: Color(0xFFF97316),
+    type: _TenantQuickActionType.offerTeaching,
+    title: LocalizedText(bn: 'পড়াতে চাই', en: 'Offer Tuition'),
+    subtitle: LocalizedText(bn: 'টিউশন পোস্ট দিন', en: 'Post tuition offer'),
+    icon: Icons.edit_note_rounded,
+    color: Color(0xFF0D9488),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.secureDeal,
-    title: LocalizedText(bn: 'সিকিউর ডিল', en: 'Secure Deal'),
-    subtitle: LocalizedText(bn: 'এসক্রো পেমেন্ট', en: 'Escrow payment'),
-    icon: Icons.verified_user_rounded,
+    type: _TenantQuickActionType.propertyManagement,
+    title: LocalizedText(bn: 'প্রপার্টি ও ফ্ল্যাট', en: 'Properties'),
+    subtitle: LocalizedText(
+      bn: 'বিল্ডিং ও ফ্ল্যাট তালিকা',
+      en: 'Buildings & Units',
+    ),
+    icon: Icons.home_work_rounded,
     color: Color(0xFF4338CA),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.amarElaka,
-    title: LocalizedText(bn: 'আমার এলাকা', en: 'Amar eLaka'),
-    subtitle: LocalizedText(bn: 'এলাকার তথ্য দেখুন', en: 'Explore your area'),
-    icon: Icons.location_city_rounded,
-    color: Color(0xFF0EA5E9),
+    type: _TenantQuickActionType.tenantManagement,
+    title: LocalizedText(bn: 'ভাড়াটিয়া তথ্য', en: 'Tenants'),
+    subtitle: LocalizedText(bn: 'ভাড়াটিয়া ব্যবস্থাপনা', en: 'Manage tenants'),
+    icon: Icons.people_alt_rounded,
+    color: Color(0xFF0284C7),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.smartBazar,
-    title: LocalizedText(bn: 'স্মার্ট বাজার', en: 'Smart Bazar'),
-    subtitle: LocalizedText(bn: 'অনলাইন কেনাকাটা', en: 'Shop online'),
-    icon: Icons.storefront_rounded,
-    color: Color(0xFFEC4899),
+    type: _TenantQuickActionType.billing,
+    title: LocalizedText(bn: 'বিল ও ভাড়া', en: 'Bills & Rent'),
+    subtitle: LocalizedText(bn: 'ভাড়া আদায় ও পেমেন্ট', en: 'Rent & Payments'),
+    icon: Icons.account_balance_wallet_rounded,
+    color: Color(0xFF16A34A),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.sos,
-    title: LocalizedText(bn: 'SOS', en: 'SOS'),
-    subtitle: LocalizedText(bn: 'জরুরি সাহায্য', en: 'Emergency'),
-    icon: Icons.sos_rounded,
-    color: Color(0xFFEF4444), // Red color for SOS
+    type: _TenantQuickActionType.maintenance,
+    title: LocalizedText(bn: 'রক্ষণাবেক্ষণ', en: 'Maintenance'),
+    subtitle: LocalizedText(bn: 'সার্ভিস ও কমপ্লেইন', en: 'Repairs & Requests'),
+    icon: Icons.build_circle_rounded,
+    color: Color(0xFFD97706),
   ),
   _TenantQuickActionData(
-    type: _TenantQuickActionType.phoneVerification,
-    title: LocalizedText(bn: 'ফোন ভেরিফাই', en: 'Phone Verify'),
-    subtitle: LocalizedText(bn: 'নিরাপদ ফোন চেক', en: 'Safe phone check'),
-    icon: Icons.verified_user_rounded,
-    color: Color(0xFF0F6AA8),
+    type: _TenantQuickActionType.reports,
+    title: LocalizedText(bn: 'রিপোর্ট ও হিসাব', en: 'Reports'),
+    subtitle: LocalizedText(
+      bn: 'আয় ও ব্যয়ের সামারি',
+      en: 'Income & Expense summary',
+    ),
+    icon: Icons.analytics_rounded,
+    color: Color(0xFF7C3AED),
   ),
 ];
 

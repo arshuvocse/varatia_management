@@ -25,6 +25,12 @@ public sealed class ShopkeeperWalletCreditService(IConfiguration configuration)
             connection.Open();
 
             using (var command = new SqlCommand("""
+                -- Also ensured by CustomerOrderStore.EnsureSchema(); duplicated here (idempotent) because
+                -- DeliveryStore can trigger this service's schema setup first, before CompanyMarginAmount exists.
+                IF COL_LENGTH(N'dbo.tbl_CustomerOrders', N'CompanyMarginAmount') IS NULL
+                    ALTER TABLE dbo.tbl_CustomerOrders ADD CompanyMarginAmount DECIMAL(18,2) NOT NULL
+                        CONSTRAINT DF_tbl_CustomerOrders_CompanyMarginAmount_2 DEFAULT (0);
+
                 IF COL_LENGTH(N'dbo.tbl_CustomerOrderProducts', N'CommissionPercentage') IS NULL
                     ALTER TABLE dbo.tbl_CustomerOrderProducts
                     ADD CommissionPercentage DECIMAL(5,2) NOT NULL
@@ -49,7 +55,7 @@ public sealed class ShopkeeperWalletCreditService(IConfiguration configuration)
                         CONSTRAINT FK_tbl_ShopkeeperWalletCreditLogs_tbl_Shopkeepers FOREIGN KEY (ShopkeeperId) REFERENCES dbo.tbl_Shopkeepers(Id)
                     );
                 END;
-                """, connection))
+                """, connection) { CommandTimeout = 120 })
             {
                 command.ExecuteNonQuery();
             }
@@ -81,18 +87,35 @@ public sealed class ShopkeeperWalletCreditService(IConfiguration configuration)
 
                         UPDATE dbo.tbl_CustomerOrders SET WalletCreditedAt = SYSUTCDATETIME() WHERE Id = @OrderId;
 
+                        -- New district-priced SmartBazar orders (sp_CustomerOrder_Create) already know their
+                        -- exact company cut per line (stored as tbl_CustomerOrders.CompanyMarginAmount at order
+                        -- time, since district margin % varies per district and cannot be represented by the
+                        -- single global tbl_CompanyProducts percentage below). Use it when present so the
+                        -- "Company Margin" shown to the customer at checkout is the same amount actually
+                        -- collected here. Fall back to the legacy product-distribution percentage split for
+                        -- older/other order paths that never populate CompanyMarginAmount.
                         DECLARE @CommissionAmount DECIMAL(18,2);
-                        SELECT @CommissionAmount = ISNULL(SUM(ROUND(d.Quantity *
-                            CASE WHEN d.UnitPrice > inventory.PurchasePrice THEN d.UnitPrice - inventory.PurchasePrice ELSE 0 END *
-                            (COALESCE(companyProduct.CompanyPercentage, 0)
-                             + COALESCE(companyProduct.AgentPercentage, 0)
-                             + COALESCE(companyProduct.FieldForcePercentage, 0)
-                             + COALESCE(companyProduct.CustomerPercentage, 0)) / 100.0, 2)), 0)
-                        FROM dbo.tbl_CustomerOrderDetails d
-                        INNER JOIN dbo.tbl_CustomerOrders o ON o.Id = d.OrderMasterId
-                        INNER JOIN dbo.tbl_Products inventory ON inventory.ShopkeeperId = o.ShopkeeperId AND inventory.Sku = d.Sku
-                        INNER JOIN dbo.tbl_CompanyProducts companyProduct ON companyProduct.ProductCode = d.Sku AND companyProduct.IsActive = 1
-                        WHERE d.OrderMasterId = @OrderId;
+                        DECLARE @StoredCompanyMargin DECIMAL(18,2);
+                        SELECT @StoredCompanyMargin = CompanyMarginAmount FROM dbo.tbl_CustomerOrders WHERE Id = @OrderId;
+
+                        IF @StoredCompanyMargin IS NOT NULL AND @StoredCompanyMargin > 0
+                        BEGIN
+                            SET @CommissionAmount = @StoredCompanyMargin;
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT @CommissionAmount = ISNULL(SUM(ROUND(d.Quantity *
+                                CASE WHEN d.UnitPrice > inventory.PurchasePrice THEN d.UnitPrice - inventory.PurchasePrice ELSE 0 END *
+                                (COALESCE(companyProduct.CompanyPercentage, 0)
+                                 + COALESCE(companyProduct.AgentPercentage, 0)
+                                 + COALESCE(companyProduct.FieldForcePercentage, 0)
+                                 + COALESCE(companyProduct.CustomerPercentage, 0)) / 100.0, 2)), 0)
+                            FROM dbo.tbl_CustomerOrderDetails d
+                            INNER JOIN dbo.tbl_CustomerOrders o ON o.Id = d.OrderMasterId
+                            INNER JOIN dbo.tbl_Products inventory ON inventory.ShopkeeperId = o.ShopkeeperId AND inventory.Sku = d.Sku
+                            INNER JOIN dbo.tbl_CompanyProducts companyProduct ON companyProduct.ProductCode = d.Sku AND companyProduct.IsActive = 1
+                            WHERE d.OrderMasterId = @OrderId;
+                        END
 
                         DECLARE @NetAmount DECIMAL(18,2) = @TotalAmount - @DiscountAmount - @CommissionAmount;
                         IF @NetAmount < 0 SET @NetAmount = 0;
@@ -120,7 +143,7 @@ public sealed class ShopkeeperWalletCreditService(IConfiguration configuration)
                         THROW;
                     END CATCH
                 END
-                """, connection))
+                """, connection) { CommandTimeout = 120 })
             {
                 command.ExecuteNonQuery();
             }
@@ -156,7 +179,7 @@ public sealed class ShopkeeperWalletCreditService(IConfiguration configuration)
                     IF @Status = N'Delivered'
                         EXEC dbo.sp_ShopkeeperWallet_CreditForOrder @OrderId = @OrderId;
                 END
-                """, connection))
+                """, connection) { CommandTimeout = 120 })
             {
                 command.ExecuteNonQuery();
             }

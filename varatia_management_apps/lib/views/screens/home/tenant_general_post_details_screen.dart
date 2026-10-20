@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:varatia_management_apps/core/utils/app_context.dart';
 import 'package:varatia_management_apps/core/theme/app_theme.dart';
+import 'package:varatia_management_apps/data/services/auth_session_service.dart';
+import 'package:varatia_management_apps/data/services/contact_request_api_service.dart';
 
 import 'package:varatia_management_apps/views/screens/home/tenant_home_screen.dart';
 import 'package:varatia_management_apps/views/screens/home/tenant_general_post_chat_page.dart';
@@ -277,6 +280,99 @@ class TenantGeneralPostDetailsScreen extends StatelessWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const TenantGeneralPostCallPage(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.blue.shade50,
+                  child: const Icon(
+                    Icons.phone_locked_rounded,
+                    color: Color(0xFF2563EB),
+                  ),
+                ),
+                title: Text(
+                  context.tr(
+                    bn: 'মোবাইল নম্বর অনুরোধ',
+                    en: 'Request Phone Number',
+                  ),
+                ),
+                subtitle: Text(
+                  context.tr(
+                    bn: 'অ্যাডমিন অনুমোদনের মাধ্যমে বিজ্ঞাপনদাতার নম্বর পান',
+                    en: 'Get advertiser number via admin approval',
+                  ),
+                ),
+                onTap: () async {
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(context);
+                  final userId = await AuthSessionService().readUserId() ?? '';
+                  if (userId.isEmpty) {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('নম্বর পেতে অনুগ্রহ করে লগইন করুন।'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  final postId = listing.postId ?? 0;
+                  final postType = listing.postType ?? 'general';
+
+                  // Check if already approved or pending
+                  final api = ContactRequestApiService();
+                  final currentStatus = await api.getContactStatus(
+                    requesterUserId: userId,
+                    postType: postType,
+                    postId: postId,
+                  );
+
+                  if (currentStatus.isApproved &&
+                      currentStatus.revealedPhoneNumber != null) {
+                    final phoneUri = Uri.parse(
+                      'tel:${currentStatus.revealedPhoneNumber}',
+                    );
+                    if (await canLaunchUrl(phoneUri)) {
+                      await launchUrl(
+                        phoneUri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    }
+                    return;
+                  }
+
+                  if (currentStatus.status == 'pending') {
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'আপনার অনুরোধটি ইতোমধ্যে অপেক্ষমাণ আছে। অ্যাডমিন পর্যালোচনা করছেন।',
+                        ),
+                        backgroundColor: AppColors.warning,
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Create request
+                  final status = await api.createContactRequest(
+                    requesterUserId: userId,
+                    postType: postType,
+                    postId: postId,
+                    purpose: 'Interested in post #${listing.postId}',
+                  );
+
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        status.isApproved
+                            ? 'নম্বর অনুমোদিত: ${status.revealedPhoneNumber}'
+                            : 'যোগাযোগের অনুরোধ পাঠানো হয়েছে। অ্যাডমিন অনুমোদনের পর নম্বর দৃশ্যমান হবে।',
+                      ),
+                      backgroundColor: status.isApproved
+                          ? AppColors.success
+                          : AppColors.primary,
                     ),
                   );
                 },

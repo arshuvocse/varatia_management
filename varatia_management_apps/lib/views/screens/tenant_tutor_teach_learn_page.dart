@@ -442,11 +442,12 @@ class _TutorHeroBanner extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF1E40AF)],
+          colors: [Color(0xFFF0FDF4), Color(0xFFF8FAFC), Color(0xFFEFF6FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: const Color(0xFFD1FAE5)),
         boxShadow: AppShadows.card,
       ),
       child: Column(
@@ -456,19 +457,25 @@ class _TutorHeroBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 58,
-                width: 58,
+                height: 54,
+                width: 54,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.22),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF10B981)],
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF059669).withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.school_rounded,
                   color: Colors.white,
-                  size: 34,
+                  size: 28,
                 ),
               ),
               const SizedBox(width: 14),
@@ -483,14 +490,14 @@ class _TutorHeroBanner extends StatelessWidget {
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                          ),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.3,
+                      ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Text(
                       context.tr(
                         bn: 'এলাকার যাচাইকৃত শিক্ষক ও শিক্ষার্থী পোস্ট দেখুন',
@@ -498,9 +505,10 @@ class _TutorHeroBanner extends StatelessWidget {
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontSize: 12.5,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -508,23 +516,26 @@ class _TutorHeroBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _TutorHeroStat(
                 icon: Icons.verified_rounded,
+                iconColor: const Color(0xFF059669),
                 label: context.tr(bn: 'যাচাইকৃত শিক্ষক', en: 'Verified'),
                 value: context.digitsText(verifiedTutorCount),
               ),
               _TutorHeroStat(
                 icon: Icons.location_on_rounded,
+                iconColor: const Color(0xFF4F46E5),
                 label: context.tr(bn: 'আপনার এলাকায়', en: 'Near you'),
                 value: context.digitsText(nearbyPostCount),
               ),
               _TutorHeroStat(
                 icon: Icons.star_rounded,
+                iconColor: const Color(0xFFD97706),
                 label: context.tr(bn: 'রেটিং', en: 'Rating'),
                 value: context.isBangla
                     ? context.digitsText(num.tryParse(averageRating) ?? 0)
@@ -532,12 +543,13 @@ class _TutorHeroBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
                 child: _TutorHeroAction(
                   icon: Icons.edit_note_rounded,
+                  iconColor: const Color(0xFF059669),
                   label: context.tr(bn: 'শিক্ষক দিচ্ছি', en: 'I teach'),
                   onTap: onTeach,
                 ),
@@ -546,6 +558,7 @@ class _TutorHeroBanner extends StatelessWidget {
               Expanded(
                 child: _TutorHeroAction(
                   icon: Icons.person_search_rounded,
+                  iconColor: const Color(0xFF4F46E5),
                   label: context.tr(bn: 'শিক্ষক নিচ্ছি', en: 'I want tutor'),
                   onTap: onLearn,
                 ),
@@ -561,32 +574,36 @@ class _TutorHeroBanner extends StatelessWidget {
 class _TutorHeroStat extends StatelessWidget {
   const _TutorHeroStat({
     required this.icon,
+    required this.iconColor,
     required this.label,
     required this.value,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadii.pill),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: AppShadows.subtle,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 16),
+          Icon(icon, color: iconColor, size: 14),
           const SizedBox(width: 5),
           Text(
             '$value $label',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontSize: 11.5,
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -599,40 +616,44 @@ class _TutorHeroStat extends StatelessWidget {
 class _TutorHeroAction extends StatelessWidget {
   const _TutorHeroAction({
     required this.icon,
+    required this.iconColor,
     required this.label,
     required this.onTap,
   });
 
   final IconData icon;
+  final Color iconColor;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent,
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: AppShadows.subtle,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: AppColors.primary, size: 20),
+              Icon(icon, color: iconColor, size: 18),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.primary,
-                    fontSize: 13,
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -1004,13 +1025,13 @@ class _TutorPostCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadii.card),
+        borderRadius: BorderRadius.circular(20),
         child: Ink(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.card),
-            border: Border.all(color: AppColors.border),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
             boxShadow: AppShadows.card,
           ),
           child: Column(
@@ -1018,14 +1039,31 @@ class _TutorPostCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: post.color.withValues(alpha: 0.13),
+                  Container(
+                    height: 52,
+                    width: 52,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [post.color, post.color.withValues(alpha: 0.75)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: post.color.withValues(alpha: 0.28),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
                     child: Text(
                       post.name.characters.first,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: post.color,
+                      style: const TextStyle(
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -1041,14 +1079,18 @@ class _TutorPostCard extends StatelessWidget {
                                 post.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
                               ),
                             ),
                             if (post.verified) ...[
                               const SizedBox(width: 6),
                               const Icon(
                                 Icons.verified_rounded,
-                                color: AppColors.success,
+                                color: Color(0xFF16A34A),
                                 size: 18,
                               ),
                             ],
@@ -1059,12 +1101,16 @@ class _TutorPostCard extends StatelessWidget {
                           context.tr(bn: post.roleBn, en: post.roleEn),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -1072,7 +1118,7 @@ class _TutorPostCard extends StatelessWidget {
                         label: context.tr(bn: post.badgeBn, en: post.badgeEn),
                         color: post.color,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 5),
                       _TutorStatusBadge(
                         label: context.tr(
                           bn: post.fulfillmentLabelBn(),
@@ -1124,36 +1170,70 @@ class _TutorPostCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
+              const Divider(color: Color(0xFFF1F5F9), height: 1),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(Icons.star_rounded, color: AppColors.warning, size: 18),
-                  const SizedBox(width: 4),
-                  Text(
-                    post.rating,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(fontSize: 13),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star_rounded, color: Color(0xFFD97706), size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          post.rating,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF92400E),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   if (isSaved) ...[
-                    const SizedBox(width: 10),
-                    const Icon(
-                      Icons.bookmark_rounded,
-                      color: AppColors.primary,
-                      size: 18,
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE4E6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.bookmark_rounded,
+                        color: Color(0xFFE11D48),
+                        size: 16,
+                      ),
                     ),
                   ],
                   const Spacer(),
-                  Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    color: post.color,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    context.tr(bn: 'মেসেজ', en: 'Message'),
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: post.color,
-                      fontSize: 13,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: post.color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          color: post.color,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          context.tr(bn: 'মেসেজ', en: 'Message'),
+                          style: TextStyle(
+                            color: post.color,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

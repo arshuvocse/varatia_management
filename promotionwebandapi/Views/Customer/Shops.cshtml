@@ -1,8 +1,18 @@
 @model CustomerDashboardViewModel
 @{
-    ViewData["Title"] = "কাছের দোকান";
+    ViewData["Title"] = "কাছের দোকান ও এজেন্ট";
     ViewData["ActivePage"] = "Shops";
 }
+
+<style>
+    .shops-filter-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 14px; scrollbar-width: none; }
+    .shop-filter-pill { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 12px; font-weight: 600; color: #334155; white-space: nowrap; text-decoration: none; transition: all 0.2s; }
+    .shop-filter-pill:hover, .shop-filter-pill.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+    .shop-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
+    .shop-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; }
+    .shop-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .shop-distance-tag { background: #eff6ff; color: #2563eb; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px; }
+</style>
 
 <main class="app-page shop-theme shop-portal-page customer-portal-page">
     <div class="shop-portal-shell">
@@ -11,34 +21,85 @@
         <section class="shop-page-content">
             <header class="shop-page-header">
                 <div>
-                    <span>SHOP DIRECTORY</span>
-                    <h1>কাছের দোকান</h1>
-                    <p>Allow location access to sort available shopkeepers by distance.</p>
+                    <span style="color: #0f766e; font-weight: 800; font-size: 11px; letter-spacing: 0.5px;">LOCATION DISCOVERY</span>
+                    <h1 style="margin-top: 4px;">কাছের দোকান ও এরিয়া এজেন্ট</h1>
+                    <p>আপনার অবস্থানের উপর ভিত্তি করে নিকটস্থ ভেরিফাইড দোকান ও এজেন্ট অফিস খুঁজুন।</p>
                 </div>
-                <button class="btn-primary location-btn" id="customer-location-btn" type="button">
-                    <span class="location-spinner"></span>Use my location
-                </button>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <a asp-action="AgentLocation" class="btn-light" style="font-size: 12px; padding: 8px 14px; text-decoration: none; border-radius: 8px;">
+                        🏢 এজেন্ট অফিস
+                    </a>
+                    <button class="btn-primary location-btn" id="customer-location-btn" type="button" style="font-size: 12px; padding: 8px 14px; border-radius: 8px;">
+                        <span class="location-spinner"></span>🎯 আমার লোকেশন (GPS)
+                    </button>
+                </div>
             </header>
 
-            <p class="location-status" id="customer-location-status">Location has not been requested yet.</p>
-            <section class="customer-shop-list" id="customer-shop-list">
+            <!-- 8 Categories Horizontal Filter -->
+            <div class="shops-filter-strip">
+                <a href="@Url.Action("Shops", new { district = Model.SelectedDistrict })" class="shop-filter-pill active">
+                    🌟 সকল দোকান (@Model.Shopkeepers.Count)
+                </a>
+                @foreach (var cat in Model.Categories)
+                {
+                    <a href="@Url.Action("Shops", new { district = Model.SelectedDistrict, category = cat.Name })" class="shop-filter-pill">
+                        <span>@cat.Icon</span> @cat.BanglaName
+                    </a>
+                }
+            </div>
+
+            <p class="location-status" id="customer-location-status" style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+                জিপিএস বাটনে ক্লিক করলে আপনার নিকটতম দোকানগুলো দূরত্ব অনুসারে সাজানো হবে।
+            </p>
+
+            <div class="shop-card-grid" id="customer-shop-list">
+                @if (Model.Shopkeepers.Count == 0)
+                {
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: #fff; border-radius: 16px; color: #64748b;">
+                        এই এলাকায় কোনো দোকান পাওয়া যায়নি।
+                    </div>
+                }
                 @foreach (var shop in Model.Shopkeepers)
                 {
-                    <article data-latitude="@shop.Latitude" data-longitude="@shop.Longitude">
+                    <article class="shop-card" data-latitude="@shop.Latitude" data-longitude="@shop.Longitude">
                         <div>
-                            <strong>@shop.ShopName</strong>
-                            <span>@shop.ShopType · @shop.Area, @shop.ThanaName, @shop.DistrictName</span>
-                            <small>@shop.Address</small>
-                            <small>Owner: @shop.OwnerName · @shop.Phone</small>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <div>
+                                    <span style="font-size: 11px; font-weight: 700; color: #0f766e; background: #ccfbf1; padding: 2px 6px; border-radius: 4px;">
+                                        @shop.ShopType
+                                    </span>
+                                    <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 4px 0 0;">@shop.ShopName</h3>
+                                </div>
+                                <span class="shop-distance-tag distance-label">
+                                    @(shop.DistanceKm.HasValue ? $"📍 {shop.DistanceKm.Value:0.0} কি.মি." : "দূরত্ব অজানা")
+                                </span>
+                            </div>
+
+                            <div style="font-size: 12px; color: #475569; margin-bottom: 4px;">
+                                👤 স্বত্বাধিকারী: <strong>@shop.OwnerName</strong> · 📞 @shop.Phone
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">
+                                📍 @shop.Address, @shop.Area, @shop.ThanaName, @shop.DistrictName
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(shop.FieldOfficerName))
+                            {
+                                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 12px;">
+                                    🛡️ এরিয়া অফিসার: @shop.FieldOfficerName
+                                </div>
+                            }
                         </div>
-                        <div class="shop-select-side">
-                            <b class="distance-label">Distance unknown</b>
-                            <a class="btn-primary" asp-action="PlaceOrder" asp-route-shopkeeperId="@shop.Id">Place order</a>
-                            <a class="btn-light" asp-action="Chat" asp-route-shopkeeperId="@shop.Id">Live chat</a>
+
+                        <div style="display: flex; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
+                            <a class="btn-primary" asp-action="PlaceOrder" asp-route-shopkeeperId="@shop.Id" style="flex: 1; text-align: center; font-size: 12px; padding: 8px; text-decoration: none; border-radius: 8px; background: #0f766e;">
+                                🛍️ অর্ডার করুন
+                            </a>
+                            <a class="btn-light" asp-action="Chat" asp-route-shopkeeperId="@shop.Id" style="flex: 1; text-align: center; font-size: 12px; padding: 8px; text-decoration: none; border-radius: 8px;">
+                                💬 চ্যাট
+                            </a>
                         </div>
                     </article>
                 }
-            </section>
+            </div>
         </section>
     </div>
 </main>
@@ -62,24 +123,24 @@
 
             button.addEventListener("click", () => {
                 if (!navigator.geolocation) {
-                    status.textContent = "Browser geolocation is unavailable.";
+                    status.textContent = "ব্রাউজারে লোকেশন সার্ভিস সক্রিয় নেই।";
                     return;
                 }
                 button.disabled = true;
                 button.classList.add("is-loading");
-                status.textContent = "Detecting your location...";
+                status.textContent = "আপনার অবস্থান সনাক্ত করা হচ্ছে...";
                 navigator.geolocation.getCurrentPosition(position => {
                     const { latitude, longitude } = position.coords;
                     shops.map(shop => {
                         const distance = distanceKm(latitude, longitude, Number(shop.dataset.latitude), Number(shop.dataset.longitude));
-                        shop.querySelector(".distance-label").textContent = `${distance.toFixed(2)} km away`;
+                        shop.querySelector(".distance-label").textContent = `📍 ${distance.toFixed(1)} কি.মি.`;
                         return { shop, distance };
                     }).sort((a, b) => a.distance - b.distance).forEach(item => shopList.appendChild(item.shop));
-                    status.textContent = "Shops are sorted by nearest distance.";
+                    status.textContent = "দোকানগুলো আপনার সবচেয়ে কাছের ক্রমানুসারে সাজানো হয়েছে।";
                     button.disabled = false;
                     button.classList.remove("is-loading");
                 }, () => {
-                    status.textContent = "Location permission was not granted.";
+                    status.textContent = "লোকেশন পারমিশন পাওয়া যায়নি।";
                     button.disabled = false;
                     button.classList.remove("is-loading");
                 }, { enableHighAccuracy: true, timeout: 10000 });

@@ -4,3 +4,8 @@ obj/
 .git/
 .vscode/
 *.user
+uploads/
+logs/
+DataProtectionKeys/
+artifacts/
+publish/

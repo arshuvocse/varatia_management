@@ -25,16 +25,16 @@ public sealed class GeneralPostsController : ControllerBase
     };
 
     private readonly IGeneralPostService _generalPostService;
-    private readonly IMonthlyPaymentService _monthlyPaymentService;
+    private readonly IPostingEntitlementService _postingEntitlementService;
     private readonly IWebHostEnvironment _environment;
 
     public GeneralPostsController(
         IGeneralPostService generalPostService,
-        IMonthlyPaymentService monthlyPaymentService,
+        IPostingEntitlementService postingEntitlementService,
         IWebHostEnvironment environment)
     {
         _generalPostService = generalPostService;
-        _monthlyPaymentService = monthlyPaymentService;
+        _postingEntitlementService = postingEntitlementService;
         _environment = environment;
     }
 
@@ -67,10 +67,10 @@ public sealed class GeneralPostsController : ControllerBase
             return BadRequest(new { message = "Area ID is required." });
         }
 
-        PaymentStatusResponse paymentStatus;
+        PostingEntitlementDto entitlement;
         try
         {
-            paymentStatus = await _monthlyPaymentService.GetPaymentStatusAsync(
+            entitlement = await _postingEntitlementService.GetEntitlementAsync(
                 request.UserId,
                 cancellationToken);
         }
@@ -78,20 +78,18 @@ public sealed class GeneralPostsController : ControllerBase
         {
             return BadRequest(new { message = exception.Message });
         }
-        catch (InvalidOperationException exception)
-        {
-            return NotFound(new { message = exception.Message });
-        }
 
-        if (!paymentStatus.AccessAllowed)
+        if (!entitlement.CanPost)
         {
             return StatusCode(
                 StatusCodes.Status402PaymentRequired,
                 new
                 {
-                    message = "Current month payment is required before submitting a post.",
-                    paymentMonth = paymentStatus.PaymentMonth,
-                    paymentStatus = paymentStatus.PaymentStatus,
+                    message = "You have exhausted your 4 free posts. A payment of at least BDT 100 is required to post.",
+                    requiresPayment = true,
+                    freePostsAllowed = entitlement.FreePostsAllowed,
+                    freePostsUsed = entitlement.FreePostsUsed,
+                    minimumPaymentAmount = entitlement.MinimumPaymentAmount,
                 });
         }
 
@@ -152,6 +150,7 @@ public sealed class GeneralPostsController : ControllerBase
         }
 
         var response = await _generalPostService.CreatePostAsync(request, cancellationToken);
+        await _postingEntitlementService.ConsumePostingSlotAsync(request.UserId, cancellationToken);
         return Ok(response);
     }
 

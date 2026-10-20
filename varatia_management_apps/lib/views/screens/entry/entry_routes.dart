@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import '../../../viewmodels/role_dashboard_view_models.dart';
 import '../app_shell.dart';
 import '../entry_flow_screen.dart';
-import '../home/tenant_amar_elaka_screen.dart';
+import '../tenant_reference_pages.dart';
 import '../home/tenant_auth_bridge_screen.dart';
 import '../home/general_post_composer_page.dart';
+import '../payment/user_payment_history_screen.dart';
+import '../subscription/subscription_matchmaking_screen.dart';
 import 'entry_login_screen.dart';
 import 'entry_otp_screen.dart';
 import 'entry_reset_password_screen.dart';
@@ -24,9 +26,12 @@ abstract final class AppRoutes {
   static const role = '/entry/role';
   static const setup = '/entry/setup';
   static const home = '/home';
+  static const tutorTeachLearn = '/home/tutor-teach-learn';
   static const amarElaka = '/home/amar-elaka';
   static const tenantAuthBridge = '/home/tenant-auth-bridge';
   static const postComposer = '/home/post-composer';
+  static const paymentHistory = '/payment/history';
+  static const subscriptionPlans = '/subscription/plans';
 }
 
 class HomeRouteArguments {
@@ -44,7 +49,7 @@ class HomeRouteArguments {
       return HomeRouteArguments(role: arguments);
     }
 
-    return const HomeRouteArguments(role: EntryUserRole.admin);
+    return const HomeRouteArguments(role: EntryUserRole.tenant);
   }
 }
 
@@ -86,12 +91,22 @@ Route<dynamic> buildAppRoute(RouteSettings settings) {
           child: AppShell(selectedRole: selectedRole),
         ),
       );
+    case AppRoutes.tutorTeachLearn:
+      return _buildRoute(settings, const TenantTutorTeachLearnPage());
     case AppRoutes.amarElaka:
-      return _buildRoute(settings, const TenantAmarElakaScreen());
+      return _buildRoute(settings, const EntryFlowScreen());
     case AppRoutes.tenantAuthBridge:
       return _buildRoute(settings, const TenantAuthBridgeScreen());
     case AppRoutes.postComposer:
       return _buildRoute(settings, const GeneralPostComposerPage());
+    case AppRoutes.paymentHistory:
+      return _buildRoute(settings, const UserPaymentHistoryScreen());
+    case AppRoutes.subscriptionPlans:
+      final initialTab = settings.arguments is int ? settings.arguments as int : 0;
+      return _buildRoute(
+        settings,
+        SubscriptionMatchmakingScreen(initialTabIndex: initialTab),
+      );
     default:
       return _buildRoute(settings, const EntryFlowScreen());
   }

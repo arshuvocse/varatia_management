@@ -10,30 +10,28 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final firebaseInitialized = await _initializeFirebase();
+
   final repository = await ManagementRepositoryBootstrap.initialize();
   runApp(VaratiaApp(repository: repository));
-  if (firebaseInitialized) {
-    unawaited(PushNotificationService.instance.initialize());
-  }
+
+  unawaited(() async {
+    final firebaseInitialized = await _initializeFirebase();
+    if (firebaseInitialized) {
+      unawaited(PushNotificationService.instance.initialize());
+    }
+  }());
 }
 
 Future<bool> _initializeFirebase() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
-    );
+    ).timeout(const Duration(seconds: 2));
 
     return true;
-  } catch (error, stackTrace) {
-    FlutterError.reportError(
-      FlutterErrorDetails(
-        exception: error,
-        stack: stackTrace,
-        library: 'app startup',
-        context: ErrorDescription('while initializing Firebase'),
-      ),
-    );
+  } catch (error) {
+    debugPrint('Firebase initialization skipped/timed out: $error');
     return false;
   }
 }
+

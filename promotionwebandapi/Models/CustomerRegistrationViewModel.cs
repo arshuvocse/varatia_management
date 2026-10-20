@@ -20,4 +20,10 @@ public sealed class CustomerRegistrationViewModel
     [StringLength(250)]
     [Display(Name = "ঠিকানা")]
     public string? Address { get; set; }
+
+    [Range(-90, 90)]
+    public decimal? Latitude { get; set; }
+
+    [Range(-180, 180)]
+    public decimal? Longitude { get; set; }
 }

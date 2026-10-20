@@ -1,0 +1,1236 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Varatia & Property Management";
+    ViewData["PageTitle"] = "ভাড়াটিয়া ও প্রোপার্টি পরিচালনা";
+    ViewData["ActivePage"] = "VaratiaManagement";
+
+    var varatia = ViewBag.Varatia as AdminVaratiaManagementViewModel ?? new AdminVaratiaManagementViewModel();
+    var activeTab = varatia.ActiveTab;
+    var currentSearch = varatia.SearchQuery ?? "";
+    var currentStatus = varatia.StatusFilter ?? "all";
+}
+
+<div class="company-section">
+    <!-- KPI Header Stats -->
+    <div class="company-network-stats mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px;">
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">মোট ভাড়াটিয়া</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #1e293b;">@varatia.TotalTenants</h3>
+                </div>
+                <div style="font-size: 28px; background: #e0e7ff; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">👥</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">মোট ইউনিট/ফ্ল্যাট</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #0284c7;">@varatia.TotalProperties</h3>
+                </div>
+                <div style="font-size: 28px; background: #e0f2fe; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🏢</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">ভাড়া হওয়া ফ্ল্যাট</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #10b981;">@varatia.RentedPropertiesCount</h3>
+                </div>
+                <div style="font-size: 28px; background: #d1fae5; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🔑</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">ফাঁকা ফ্ল্যাট (Available)</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #f59e0b;">@varatia.AvailablePropertiesCount</h3>
+                </div>
+                <div style="font-size: 28px; background: #fef3c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🚪</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">মোট বকেয়া ভাড়া</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #ef4444;">৳ @varatia.TotalRentDue.ToString("N0")</h3>
+                </div>
+                <div style="font-size: 28px; background: #fee2e2; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">💰</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">বিল্ডিং সংখ্যা</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #8b5cf6;">@varatia.TotalBuildings</h3>
+                </div>
+                <div style="font-size: 28px; background: #ede9fe; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🏘️</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">সাধারণ বিজ্ঞাপন</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #6366f1;">@varatia.TotalGeneralPosts</h3>
+                </div>
+                <div style="font-size: 28px; background: #e0e7ff; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">📢</div>
+            </div>
+        </article>
+    </div>
+
+    <!-- Registration Fee Configuration & Gateway Revenue Card -->
+    <div class="card p-4 mb-4 shadow-sm" style="border-radius: 14px; background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); border: 1px solid #cbd5e1;">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-6 col-md-12">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-size: 32px; background: #dbeafe; width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                        ⚙️
+                    </div>
+                    <div>
+                        <h4 class="mb-1" style="font-weight: 800; color: #0f172a;">ইউজার রেজিস্ট্রেশন ফি ও গেটওয়ে কনফিগারেশন</h4>
+                        <p class="text-muted mb-0" style="font-size: 13px;">
+                            অ্যাপে নতুন ও বিদ্যমান ব্যবহারকারীদের জন্য SSLCommerz-এর মাধ্যমে রেজিস্ট্রেশন ফি নির্ধারণ করুন।
+                        </p>
+                    </div>
+                </div>
+                <div class="d-flex gap-3 mt-3">
+                    <div class="p-2 px-3 rounded-3" style="background: #e0f2fe; border: 1px solid #bae6fd;">
+                        <small class="text-muted d-block" style="font-size: 11px;">মোট রেজিস্ট্রেশন ফি কালেকশন</small>
+                        <strong style="font-size: 16px; color: #0369a1;">৳ @varatia.TotalRegistrationFeesCollected.ToString("N0")</strong>
+                    </div>
+                    <div class="p-2 px-3 rounded-3" style="background: #ecfdf5; border: 1px solid #a7f3d0;">
+                        <small class="text-muted d-block" style="font-size: 11px;">মোট মাসিক সার্ভিস ফি কালেকশন</small>
+                        <strong style="font-size: 16px; color: #047857;">৳ @varatia.TotalMonthlyFeesCollected.ToString("N0")</strong>
+                    </div>
+                    <div class="p-2 px-3 rounded-3" style="background: #fef3c7; border: 1px solid #fde68a;">
+                        <small class="text-muted d-block" style="font-size: 11px;">মোট সাবস্ক্রিপশন সার্ভিস ফি</small>
+                        <strong style="font-size: 16px; color: #b45309;">৳ @varatia.TotalSubscriptionFeesCollected.ToString("N0")</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-12">
+                <form asp-action="UpdateRegistrationFee" method="post" class="p-3 rounded-3 border bg-white shadow-sm">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-2 align-items-end">
+                        <div class="col-sm-5">
+                            <label class="form-label mb-1" style="font-size: 12px; font-weight: 600; color: #334155;">রেজিস্ট্রেশন ফি (টাকা)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">৳</span>
+                                <input type="number" name="registrationFee" min="0" step="1" value="@varatia.RegistrationFee" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" name="isRegistrationFeeActive" value="true" id="regFeeSwitch" @(varatia.IsRegistrationFeeActive ? "checked" : "") />
+                                <label class="form-check-label" for="regFeeSwitch" style="font-size: 12px; font-weight: 600;">
+                                    @(varatia.IsRegistrationFeeActive ? "ফি সক্রিয় (Active)" : "ফি বন্ধ (Inactive)")
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-3 text-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100" style="font-weight: 600;">
+                                আপডেট করুন
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs & Search Toolbar -->
+    <div class="card p-3 mb-4 shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <!-- Tabs -->
+            <ul class="nav nav-pills" style="font-weight: 600;">
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="tenants" asp-route-search="@currentSearch" 
+                       class="nav-link @(activeTab == "tenants" ? "active" : "")">
+                        👥 ভাড়াটিয়া তালিকা (@varatia.Tenants.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="properties" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "properties" ? "active" : "")">
+                        🏢 ফ্ল্যাট ও ইউনিট (@varatia.Properties.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="sslpayments" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "sslpayments" ? "active" : "")">
+                        💳 অনলাইন পেমেন্ট হিস্ট্রি (SSLCommerz) (@varatia.SslCommerzPayments.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="payments" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "payments" ? "active" : "")">
+                        🧾 অফলাইন ভাড়ার রশিদ (@varatia.Payments.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="users" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "users" ? "active" : "")">
+                        📱 অ্যাপ ইউজার ও ফি স্ট্যাটাস (@varatia.Users.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="subscriptions" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "subscriptions" ? "active" : "")">
+                        🎯 সাবস্ক্রিপশন ও ম্যাচমেকিং (@varatia.Subscriptions.Count)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="VaratiaManagement" asp-route-tab="generalposts" asp-route-search="@currentSearch"
+                       class="nav-link @(activeTab == "generalposts" ? "active" : "")">
+                        📢 বিজ্ঞাপন ও লিস্টিং (@varatia.GeneralPosts.Count)
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Search Form -->
+            <form method="get" asp-action="VaratiaManagement" class="d-flex gap-2">
+                <input type="hidden" name="tab" value="@activeTab" />
+                @if (activeTab == "generalposts")
+                {
+                    <select name="category" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
+                        <option value="" selected="@(string.IsNullOrEmpty(varatia.CategoryFilter))">সব ক্যাটাগরি</option>
+                        <option value="flat" selected="@(varatia.CategoryFilter == "flat")">ফ্ল্যাট (Flat)</option>
+                        <option value="room" selected="@(varatia.CategoryFilter == "room")">রুম (Room)</option>
+                        <option value="sublet" selected="@(varatia.CategoryFilter == "sublet")">সাবলেট (Sublet)</option>
+                        <option value="mess" selected="@(varatia.CategoryFilter == "mess")">মেস (Mess)</option>
+                        <option value="tuition" selected="@(varatia.CategoryFilter == "tuition")">টিউশন (Tuition)</option>
+                        <option value="sale" selected="@(varatia.CategoryFilter == "sale")">বিক্রয় (Sale)</option>
+                    </select>
+                    <select name="status" class="form-select form-select-sm" style="width: 130px;" onchange="this.form.submit()">
+                        <option value="all" selected="@(currentStatus == "all")">সব স্ট্যাটাস</option>
+                        <option value="active" selected="@(currentStatus == "active")">সক্রিয় (Active)</option>
+                        <option value="inactive" selected="@(currentStatus == "inactive")">নিষ্ক্রিয় (Inactive)</option>
+                    </select>
+                }
+                @if (activeTab == "properties")
+                {
+                    <select name="status" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
+                        <option value="all" selected="@(currentStatus == "all")">সব স্ট্যাটাস</option>
+                        <option value="rented" selected="@(currentStatus == "rented")">ভাড়া হয়েছে</option>
+                        <option value="available" selected="@(currentStatus == "available")">খালি আছে</option>
+                    </select>
+                }
+                <div class="input-group input-group-sm">
+                    <input type="text" name="search" value="@currentSearch" class="form-control" placeholder="নাম, ফোন বা ইউনিট দিয়ে খুঁজুন..." style="min-width: 200px;" />
+                    <button type="submit" class="btn btn-primary">খুঁজুন</button>
+                    @if (!string.IsNullOrEmpty(currentSearch) || currentStatus != "all" || !string.IsNullOrEmpty(varatia.CategoryFilter))
+                    {
+                        <a asp-action="VaratiaManagement" asp-route-tab="@activeTab" class="btn btn-outline-secondary">✕</a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tab 1: Tenants List -->
+    @if (activeTab == "tenants")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">রেজিস্টার্ড ভাড়াটিয়াদের তালিকা</h5>
+                <small class="text-muted">বাড়িওয়ালাদের নিবন্ধিত সক্রিয় ভাড়াটিয়াদের তথ্য</small>
+            </div>
+
+            @if (varatia.Tenants.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">👥</div>
+                    <h5 class="mt-2 text-muted">কোনো ভাড়াটিয়া পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>আইডি</th>
+                                <th>ভাড়াটিয়ার নাম</th>
+                                <th>মোবাইল নম্বর</th>
+                                <th>জাতীয় পরিচয়পত্র (NID)</th>
+                                <th>বর্তমান ফ্ল্যাট / ইউনিট</th>
+                                <th>বিল্ডিং</th>
+                                <th>মাসিক ভাড়া</th>
+                                <th>বকেয়া</th>
+                                <th>স্ট্যাটাস</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var tenant in varatia.Tenants)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-light text-dark border">#@tenant.Id</span></td>
+                                    <td>
+                                        <div style="font-weight: 600; color: #0f172a;">@tenant.Name</div>
+                                    </td>
+                                    <td>
+                                        <a href="tel:@tenant.Phone" class="text-decoration-none">
+                                            <i class="bi bi-telephone"></i> @tenant.Phone
+                                        </a>
+                                    </td>
+                                    <td><span class="text-muted font-monospace">@tenant.Nid</span></td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(tenant.PropertyName))
+                                        {
+                                            <span class="badge bg-info text-dark">@tenant.PropertyName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">বরাদ্দ নেই</span>
+                                        }
+                                    </td>
+                                    <td>@(string.IsNullOrWhiteSpace(tenant.BuildingName) ? "—" : tenant.BuildingName)</td>
+                                    <td><strong>৳ @tenant.MonthlyRent.ToString("N0")</strong></td>
+                                    <td>
+                                        @if (tenant.DueAmount > 0)
+                                        {
+                                            <span class="badge bg-danger">৳ @tenant.DueAmount.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">পরিশোধিত</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (tenant.Status.Equals("rented", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-success">সক্রিয় ভাড়াটিয়া</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@tenant.Status</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 2: Properties & Buildings -->
+    @if (activeTab == "properties")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">বিল্ডিং ও ফ্ল্যাট/ইউনিটের তালিকা</h5>
+                <small class="text-muted">সব ইউনিট ও বর্তমান ভাড়া অবস্থা</small>
+            </div>
+
+            @if (varatia.Properties.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">🏢</div>
+                    <h5 class="mt-2 text-muted">কোনো ফ্ল্যাট বা ইউনিট পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>ইউনিট আইডি</th>
+                                <th>ফ্ল্যাট / ইউনিট নাম</th>
+                                <th>বিল্ডিং</th>
+                                <th>অবস্থান (Location)</th>
+                                <th>মাসিক ভাড়া</th>
+                                <th>বর্তমান ভাড়াটিয়া</th>
+                                <th>বকেয়া</th>
+                                <th>অবস্থা</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var property in varatia.Properties)
+                            {
+                                var isRented = property.Status.Equals("rented", StringComparison.OrdinalIgnoreCase);
+                                <tr>
+                                    <td><span class="badge bg-light text-dark border">#@property.Id</span></td>
+                                    <td><strong>@property.Name</strong></td>
+                                    <td>@(string.IsNullOrWhiteSpace(property.BuildingName) ? "—" : property.BuildingName)</td>
+                                    <td><small class="text-muted">📍 @property.Location</small></td>
+                                    <td><strong style="color: #0284c7;">৳ @property.MonthlyRent.ToString("N0")</strong></td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(property.TenantName))
+                                        {
+                                            <span style="font-weight: 600; color: #0f172a;">@property.TenantName</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">খালি</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (property.DueAmount > 0)
+                                        {
+                                            <span class="badge bg-danger">৳ @property.DueAmount.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">পরিশোধিত</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (isRented)
+                                        {
+                                            <span class="badge bg-success">ভাড়া হয়েছে (Rented)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">খালি (Available)</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 3: Rent Payments -->
+    @if (activeTab == "payments")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">ভাড়ার পেমেন্ট ও লেনদেন হিস্ট্রি</h5>
+                <small class="text-muted">ভাড়ার প্রাপ্তি ও বকেয়ার বিবরণ</small>
+            </div>
+
+            @if (varatia.Payments.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">💳</div>
+                    <h5 class="mt-2 text-muted">কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>রশিদ নং</th>
+                                <th>ফ্ল্যাট / প্রোপার্টি</th>
+                                <th>ভাড়াটিয়া</th>
+                                <th>মাসের নাম</th>
+                                <th>ভাড়ার পরিমাণ</th>
+                                <th>পেমেন্ট স্ট্যাটাস</th>
+                                <th>পরিশোধের তারিখ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pay in varatia.Payments)
+                            {
+                                var isPaid = pay.Status.Equals("paid", StringComparison.OrdinalIgnoreCase);
+                                <tr>
+                                    <td><strong>#@pay.Id</strong></td>
+                                    <td><span class="badge bg-light text-dark border">@pay.PropertyName</span></td>
+                                    <td><strong>@(string.IsNullOrWhiteSpace(pay.TenantName) ? "—" : pay.TenantName)</strong></td>
+                                    <td>@pay.MonthLabel</td>
+                                    <td><strong style="color: #059669;">৳ @pay.Amount.ToString("N0")</strong></td>
+                                    <td>
+                                        @if (isPaid)
+                                        {
+                                            <span class="badge bg-success">পরিশোধিত (Paid)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">বকেয়া (Due)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (pay.PaidOn.HasValue)
+                                        {
+                                            <small class="text-muted">@pay.PaidOn.Value.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 3: Online Payments (SSLCommerz) -->
+    @if (activeTab == "sslpayments")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">অনলাইন পেমেন্ট হিস্ট্রি (SSLCommerz Gateway)</h5>
+                    <small class="text-muted">রেজিস্ট্রেশন ফি, মাসিক সার্ভিস চার্জ ও পোস্ট প্রমোশন ক্রেডিট ট্রানজেকশন</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-success">সফল: @varatia.SslCommerzPayments.Count(p => p.Status.Equals("success", StringComparison.OrdinalIgnoreCase))</span>
+                    <span class="badge bg-warning text-dark">পেন্ডিং: @varatia.SslCommerzPayments.Count(p => p.Status.Equals("pending", StringComparison.OrdinalIgnoreCase))</span>
+                </div>
+            </div>
+
+            @if (varatia.SslCommerzPayments.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">💳</div>
+                    <h5 class="mt-2 text-muted">কোনো অনলাইন গেটওয়ে পেমেন্ট পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>ট্রানজেকশন আইডি</th>
+                                <th>গ্রাহক / ব্যবহারকারী</th>
+                                <th>মোবাইল নম্বর</th>
+                                <th>রোল</th>
+                                <th>পেমেন্টের ধরন</th>
+                                <th>পরিমাণ (টাকা)</th>
+                                <th>গেটওয়ে</th>
+                                <th>স্ট্যাটাস</th>
+                                <th>তারিখ ও সময়</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in varatia.SslCommerzPayments)
+                            {
+                                var isSuccess = p.Status.Equals("success", StringComparison.OrdinalIgnoreCase);
+                                var isPending = p.Status.Equals("pending", StringComparison.OrdinalIgnoreCase);
+                                var isReg = p.PaymentType.Contains("রেজিস্ট্রেশন");
+
+                                <tr>
+                                    <td>
+                                        <code style="font-weight: 700; font-size: 12px; color: #0369a1;">@p.TransactionId</code>
+                                    </td>
+                                    <td><strong>@p.UserName</strong></td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(p.UserPhone))
+                                        {
+                                            <a href="tel:@p.UserPhone" class="text-decoration-none">
+                                                <i class="bi bi-telephone"></i> @p.UserPhone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (string.Equals(p.UserRole, "owner", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #e0e7ff; color: #4338ca;">বাড়িওয়ালা</span>
+                                        }
+                                        else if (string.Equals(p.UserRole, "tenant", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #ecfdf5; color: #047857;">ভাড়াটিয়া</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark border">@(string.IsNullOrWhiteSpace(p.UserRole) ? "User" : p.UserRole)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (isReg)
+                                        {
+                                            <span class="badge" style="background: #e0e7ff; color: #1e40af; font-size: 12px;">🌟 @p.PaymentType</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-dark border">@p.PaymentType</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong style="color: #059669; font-size: 15px;">৳ @p.Amount.ToString("N2")</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background: #f1f5f9; color: #334155;">@p.Gateway</span>
+                                    </td>
+                                    <td>
+                                        @if (isSuccess)
+                                        {
+                                            <span class="badge bg-success">✓ সফল (Success)</span>
+                                        }
+                                        else if (isPending)
+                                        {
+                                            <span class="badge bg-warning text-dark">⏳ পেন্ডিং (Pending)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">✕ @p.Status</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            @((p.PaymentDate ?? p.CreatedOn).ToString("dd MMM yyyy, hh:mm tt"))
+                                        </small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 4: Rent Payments (Offline) -->
+    @if (activeTab == "payments")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">ভাড়ার পেমেন্ট ও লেনদেন হিস্ট্রি</h5>
+                <small class="text-muted">বাড়িওয়ালা ও ভাড়াটিয়ার পারস্পরিক ভাড়ার প্রাপ্তি ও বকেয়ার বিবরণ</small>
+            </div>
+
+            @if (varatia.Payments.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">🧾</div>
+                    <h5 class="mt-2 text-muted">কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>রশিদ নং</th>
+                                <th>ফ্ল্যাট / প্রোপার্টি</th>
+                                <th>ভাড়াটিয়া</th>
+                                <th>মাসের নাম</th>
+                                <th>ভাড়ার পরিমাণ</th>
+                                <th>পেমেন্ট স্ট্যাটাস</th>
+                                <th>পরিশোধের তারিখ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var pay in varatia.Payments)
+                            {
+                                var isPaid = pay.Status.Equals("paid", StringComparison.OrdinalIgnoreCase);
+                                <tr>
+                                    <td><strong>#@pay.Id</strong></td>
+                                    <td><span class="badge bg-light text-dark border">@pay.PropertyName</span></td>
+                                    <td><strong>@(string.IsNullOrWhiteSpace(pay.TenantName) ? "—" : pay.TenantName)</strong></td>
+                                    <td>@pay.MonthLabel</td>
+                                    <td><strong style="color: #059669;">৳ @pay.Amount.ToString("N0")</strong></td>
+                                    <td>
+                                        @if (isPaid)
+                                        {
+                                            <span class="badge bg-success">পরিশোধিত (Paid)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">বকেয়া (Due)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (pay.PaidOn.HasValue)
+                                        {
+                                            <small class="text-muted">@pay.PaidOn.Value.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 5: App Users -->
+    @if (activeTab == "users")
+    {
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">অ্যাপে রেজিস্টার্ড ইউজার তালিকা ও ফি স্ট্যাটাস</h5>
+                <small class="text-muted">মোবাইল অ্যাপ ব্যবহারকারী বাড়িওয়ালা ও ভাড়াটিয়া</small>
+            </div>
+
+            @if (varatia.Users.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">📱</div>
+                    <h5 class="mt-2 text-muted">কোনো অ্যাপ ইউজার পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                        <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                            <tr>
+                                <th>ইউজার আইডি</th>
+                                <th>নাম</th>
+                                <th>মোবাইল নম্বর</th>
+                                <th>রোল (Role)</th>
+                                <th>রেজিস্ট্রেশন ফি</th>
+                                <th>ট্রানজেকশন আইডি</th>
+                                <th>ভেরিফিকেশন</th>
+                                <th>রেজিস্ট্রেশনের তারিখ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in varatia.Users)
+                            {
+                                <tr>
+                                    <td><small class="text-muted font-monospace">@user.Id.ToString().Substring(0, 8)...</small></td>
+                                    <td><strong>@user.FullName</strong></td>
+                                    <td>
+                                        <a href="tel:@user.PhoneNumber" class="text-decoration-none">
+                                            <i class="bi bi-telephone"></i> @user.PhoneNumber
+                                        </a>
+                                    </td>
+                                    <td>
+                                        @if (string.Equals(user.Role, "owner", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #e0e7ff; color: #4338ca;">🏡 বাড়িওয়ালা (Owner)</span>
+                                        }
+                                        else if (string.Equals(user.Role, "tenant", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #ecfdf5; color: #047857;">👥 ভাড়াটিয়া (Tenant)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">@(user.Role ?? "সাধারণ ব্যবহারকারী")</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.IsRegistrationFeePaid)
+                                        {
+                                            <span class="badge bg-success">✓ ফি পরিশোধিত</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">ফি বাকি</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(user.RegistrationFeeTransactionId))
+                                        {
+                                            <code style="font-size: 11px;">@user.RegistrationFeeTransactionId</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (user.IsPhoneVerified)
+                                        {
+                                            <span class="badge bg-success">✓ ফোন ভেরিফাইড</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">পেন্ডিং</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">@user.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 5: Subscriptions & Matchmaking Management -->
+    @if (activeTab == "subscriptions")
+    {
+        <!-- Section 1: Admin Package & SLA Delivery Days Configuration -->
+        <div class="card shadow-sm mb-4" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0;">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="mb-1" style="font-weight: 700; color: #1e293b;">
+                        ⚙️ সাবস্ক্রিপশন প্যাকেজ ও ডেলিভারি টাইমলাইন কনফিগারেশন (Admin Setup)
+                    </h5>
+                    <small class="text-muted">
+                        ইউজারদের জন্য নির্দিষ্ট ফি এবং অ্যাডমিন টিমের ম্যাচমেকিং ডেলিভারি সময়সীমা (SLA দিন) সেট করুন। অ্যাপে এগুলো লাইভ প্রদর্শিত হবে।
+                    </small>
+                </div>
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 13px; padding: 8px 12px; border-radius: 8px;">
+                    মোট ৪টি সক্রিয় সার্ভিস
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    @foreach (var plan in varatia.SubscriptionPlans)
+                    {
+                        var icon = plan.ServiceCode switch {
+                            "find_flat" => "🏢",
+                            "find_tenant" => "🏡",
+                            "find_tutor" => "👨‍🏫",
+                            "find_student" => "🎓",
+                            _ => "🎯"
+                        };
+                        var roleBadge = plan.TargetRole switch {
+                            "tenant" => "👥 ভাড়াটিয়ার জন্য",
+                            "owner" => "🏡 বাড়িওয়ালার জন্য",
+                            "student" => "📚 শিক্ষার্থী ও অভিভাবকের জন্য",
+                            "teacher" => "👨‍🏫 শিক্ষকের জন্য",
+                            _ => "👤 সবার জন্য"
+                        };
+
+                        <div class="col-lg-6 col-xl-3 col-md-6 col-12">
+                            <div class="card h-100 border shadow-none" style="border-radius: 12px; background: #f8fafc; border-color: #cbd5e1 !important;">
+                                <div class="card-body d-flex flex-column p-3">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div style="font-size: 28px; width: 44px; height: 44px; background: #ffffff; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+                                            @icon
+                                        </div>
+                                        <span class="badge" style="background: #e2e8f0; color: #334155; font-size: 11px;">
+                                            @roleBadge
+                                        </span>
+                                    </div>
+
+                                    <h6 class="card-title fw-bold text-dark mb-1">@plan.Title</h6>
+                                    <code class="text-muted mb-2" style="font-size: 11px;">@plan.ServiceCode</code>
+
+                                    <form asp-action="UpdateSubscriptionPlan" method="post" class="mt-auto">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="serviceCode" value="@plan.ServiceCode" />
+                                        <input type="hidden" name="title" value="@plan.Title" />
+
+                                        <div class="mb-2">
+                                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600; color: #475569;">সার্ভিস ফি (টাকা)</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text">৳</span>
+                                                <input type="number" name="fee" min="0" step="1" value="@plan.Fee" class="form-control" required />
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600; color: #475569;">ডেলিভারি সময়সীমা (দিন)</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" name="deliveryDays" min="1" max="90" step="1" value="@plan.DeliveryDays" class="form-control" required />
+                                                <span class="input-group-text">কার্যদিবস</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-2">
+                                            <label class="form-label mb-1" style="font-size: 11px; font-weight: 600; color: #475569;">বিবরণ ও শর্ত</label>
+                                            <textarea name="description" rows="2" class="form-control form-control-sm" style="font-size: 12px;" required>@plan.Description</textarea>
+                                        </div>
+
+                                        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+                                            <div class="form-check form-switch mb-0">
+                                                <input class="form-check-input" type="checkbox" name="isActive" value="true" id="planActive_@plan.ServiceCode" @(plan.IsActive ? "checked" : "") />
+                                                <label class="form-check-label" for="planActive_@plan.ServiceCode" style="font-size: 11px; font-weight: 600;">
+                                                    @(plan.IsActive ? "সক্রিয়" : "বন্ধ")
+                                                </label>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary btn-sm px-3" style="font-weight: 600; font-size: 12px;">
+                                                সংরক্ষণ
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Active User Subscriptions Queue & Matchmaking Tracking -->
+        <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="mb-1" style="font-weight: 700; color: #1e293b;">
+                        📋 চলমান সাবস্ক্রিপশন ও ম্যাচমেকিং কিউ
+                    </h5>
+                    <small class="text-muted">
+                        ইউজারদের পেমেন্ট ও চাহিদা অনুযায়ী অ্যাডমিন টিম নির্দিষ্ট সময়সীমার মধ্যে ম্যাচমেকিং সম্পন্ন করবে।
+                    </small>
+                </div>
+                <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 13px; padding: 8px 12px; border-radius: 8px;">
+                    মোট সাবস্ক্রিপশন: @varatia.Subscriptions.Count টি
+                </span>
+            </div>
+
+            @if (varatia.Subscriptions.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">🎯</div>
+                    <h5 class="mt-2 text-muted">বর্তমানে কোনো সাবস্ক্রিপশন রিকোয়েস্ট নেই</h5>
+                    <p class="text-muted mb-0" style="font-size: 13px;">অ্যাপ বা ওয়েব থেকে ইউজাররা সাবস্ক্রাইব করলে এখানে রিয়েল-টাইম চলে আসবে।</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                        <thead style="background: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #e2e8f0;">
+                            <tr>
+                                <th># আইডি / ট্রানজেকশন</th>
+                                <th>গ্রাহক (ব্যবহারকারী)</th>
+                                <th>সার্ভিস</th>
+                                <th>চাহিদা ও রিকোয়ারমেন্টস</th>
+                                <th>ফি ও পেমেন্ট</th>
+                                <th>ডেলিভারি SLA ও সময়সীমা</th>
+                                <th>ম্যাচিং স্ট্যাটাস</th>
+                                <th>অ্যাডমিন নোট</th>
+                                <th class="text-end">অ্যাকশন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sub in varatia.Subscriptions)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>#@sub.Id</strong><br />
+                                        <code style="font-size: 11px;">@sub.TransactionId</code><br />
+                                        <small class="text-muted">@sub.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                    </td>
+                                    <td>
+                                        <strong>@sub.UserName</strong><br />
+                                        <a href="tel:@sub.UserPhone" class="text-decoration-none text-muted" style="font-size: 12px;">
+                                            📞 @sub.UserPhone
+                                        </a><br />
+                                        <span class="badge" style="background: #f1f5f9; color: #475569; font-size: 10px;">
+                                            @sub.UserRole
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>@sub.Title</strong><br />
+                                        <code class="text-muted" style="font-size: 11px;">@sub.ServiceCode</code>
+                                    </td>
+                                    <td style="max-width: 220px;">
+                                        @if (!string.IsNullOrWhiteSpace(sub.UserRequirements))
+                                        {
+                                            <div class="p-2 rounded-2" style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 12px; white-space: pre-wrap;">
+                                                @sub.UserRequirements
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">— কোনো নির্দিষ্ট শর্ত নেই —</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong style="color: #047857; font-size: 14px;">৳ @sub.Amount.ToString("N0")</strong><br />
+                                        @if (string.Equals(sub.PaymentStatus, "success", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-success" style="font-size: 10px;">✓ পেইড (Paid)</span>
+                                        }
+                                        else if (string.Equals(sub.PaymentStatus, "pending", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-warning text-dark" style="font-size: 10px;">⌛ পেন্ডিং</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger" style="font-size: 10px;">@sub.PaymentStatus</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div style="font-size: 12px;">
+                                            <strong>@sub.DeliveryDays দিন SLA</strong><br />
+                                            <small class="text-muted">ডেডলাইন: @sub.DeadlineAt.ToString("dd MMM yyyy")</small><br />
+                                            @if (string.Equals(sub.SubscriptionStatus, "matched", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                <span class="badge bg-success" style="font-size: 11px;">🎉 সম্পন্ন</span>
+                                            }
+                                            else if (sub.IsExpired)
+                                            {
+                                                <span class="badge bg-danger" style="font-size: 11px;">
+                                                    ⚠️ সময় শেষ (@Math.Abs(sub.RemainingDays) দিন অতিবাহিত)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning text-dark" style="font-size: 11px;">
+                                                    ⏳ বাকি @sub.RemainingDays দিন
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (string.Equals(sub.SubscriptionStatus, "matched", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 12px; padding: 6px 10px;">
+                                                ✓ ম্যাচিং সম্পন্ন
+                                            </span>
+                                        }
+                                        else if (string.Equals(sub.SubscriptionStatus, "in_progress", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #eff6ff; color: #1d4ed8; font-size: 12px; padding: 6px 10px;">
+                                                🔍 খোঁজা হচ্ছে (In Progress)
+                                            </span>
+                                        }
+                                        else if (string.Equals(sub.SubscriptionStatus, "cancelled", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge" style="background: #fef2f2; color: #b91c1c; font-size: 12px; padding: 6px 10px;">
+                                                ✕ বাতিল
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary" style="font-size: 12px; padding: 6px 10px;">
+                                                @sub.SubscriptionStatus
+                                            </span>
+                                        }
+                                    </td>
+                                    <td style="max-width: 180px;">
+                                        @if (!string.IsNullOrWhiteSpace(sub.AdminNotes))
+                                        {
+                                            <div class="small text-muted" style="font-size: 11px; white-space: pre-wrap;">
+                                                @sub.AdminNotes
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted" style="font-size: 11px;">— কোনো নোট নেই —</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#actionBox_@sub.Id" style="font-size: 12px; font-weight: 600;">
+                                            ✏️ স্ট্যাটাস আপডেট
+                                        </button>
+                                    </td>
+                                </tr>
+                                <!-- Action collapse row -->
+                                <tr class="collapse" id="actionBox_@sub.Id">
+                                    <td colspan="9" style="background: #f1f5f9; padding: 15px 20px;">
+                                        <form asp-action="UpdateSubscriptionStatus" method="post" class="row g-2 align-items-center">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="subscriptionId" value="@sub.Id" />
+
+                                            <div class="col-md-3">
+                                                <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">ম্যাচমেকিং স্ট্যাটাস নির্বাচন করুন</label>
+                                                <select name="subscriptionStatus" class="form-select form-select-sm" required>
+                                                    <option value="in_progress" selected="@(sub.SubscriptionStatus == "in_progress")">🔍 খোঁজা হচ্ছে (In Progress)</option>
+                                                    <option value="matched" selected="@(sub.SubscriptionStatus == "matched")">✓ ম্যাচিং সম্পন্ন (Matched)</option>
+                                                    <option value="pending" selected="@(sub.SubscriptionStatus == "pending")">⌛ পেন্ডিং (Pending)</option>
+                                                    <option value="cancelled" selected="@(sub.SubscriptionStatus == "cancelled")">✕ বাতিল (Cancelled)</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <label class="form-label mb-1" style="font-size: 11px; font-weight: 600;">অ্যাডমিন নোট / ম্যাচিং ফলাফল (গ্রাহক ও সিস্টেমে প্রদর্শিত হবে)</label>
+                                                <input type="text" name="adminNotes" value="@sub.AdminNotes" class="form-control form-control-sm" placeholder="উদাঃ ফ্ল্যাট কোড #F-201 নিশ্চিত করা হয়েছে / শিক্ষক মোঃ রহিমের নম্বর ০১৭... দেওয়া হয়েছে" />
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end pt-3">
+                                                <button type="submit" class="btn btn-success btn-sm w-100" style="font-weight: 600;">
+                                                    আপডেট সেভ
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Tab 7: General Posts & Listings -->
+    @if (activeTab == "generalposts")
+    {
+        <div class="card shadow-sm mb-4" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">📢 সাধারণ বিজ্ঞাপন ও লিস্টিং ব্যবস্থাপনা</h5>
+                    <small class="text-muted">ফ্ল্যাট, রুম, মেস, সাবলেট, টিউশন ও বিক্রয় সংক্রান্ত ইউজারদের পোস্ট ও কোটা নিয়ন্ত্রণ</small>
+                </div>
+                <div class="d-flex gap-2">
+                    <span class="badge bg-primary px-3 py-2" style="font-size: 13px;">মোট: @varatia.TotalGeneralPosts</span>
+                    <span class="badge bg-success px-3 py-2" style="font-size: 13px;">সক্রিয়: @varatia.ActiveGeneralPostsCount</span>
+                    <span class="badge bg-info px-3 py-2" style="font-size: 13px;">ভেরিফাইড: @varatia.VerifiedGeneralPostsCount</span>
+                </div>
+            </div>
+
+            <!-- Grant Post Credits Quick Bar -->
+            <div class="p-3 bg-light border-bottom">
+                <form asp-action="GrantPostingCredits" method="post" class="row g-2 align-items-center">
+                    @Html.AntiForgeryToken()
+                    <div class="col-auto">
+                        <span style="font-weight: 600; font-size: 13px; color: #334155;">🎁 পেইড বিজ্ঞাপন ক্রেডিট প্রদান করুন:</span>
+                    </div>
+                    <div class="col-sm-4 col-md-3">
+                        <input type="text" name="userId" class="form-control form-control-sm" placeholder="ইউজার আইডি বা ফোন নম্বর" required />
+                    </div>
+                    <div class="col-sm-2 col-md-2">
+                        <input type="number" name="credits" min="1" max="100" value="5" class="form-control form-control-sm" placeholder="ক্রেডিট সংখ্যা" required />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-sm btn-success" style="font-weight: 600;">+ ক্রেডিট যুক্ত করুন</button>
+                    </div>
+                </form>
+            </div>
+
+            @if (varatia.GeneralPosts.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div style="font-size: 48px; color: #94a3b8;">📢</div>
+                    <h5 class="mt-2 text-muted">কোনো সাধারণ বিজ্ঞাপন পাওয়া যায়নি</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                        <thead class="table-light text-muted" style="font-size: 12px; text-transform: uppercase;">
+                            <tr>
+                                <th>আইডি ও ক্যাটাগরি</th>
+                                <th>বিজ্ঞাপনের শিরোনাম ও বিবরণ</th>
+                                <th>ব্যবহারকারী</th>
+                                <th>ভাড়া / মূল্য</th>
+                                <th>লোকেশন</th>
+                                <th>মিডিয়া</th>
+                                <th>কোটা ও ক্রেডিট</th>
+                                <th>স্ট্যাটাস</th>
+                                <th>ভেরিফিকেশন</th>
+                                <th class="text-end">অ্যাকশন</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var post in varatia.GeneralPosts)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="fw-bold text-primary">#@post.Id</span>
+                                        <div>
+                                            <span class="badge bg-secondary" style="font-size: 11px;">@post.Category</span>
+                                            @if (!string.IsNullOrWhiteSpace(post.TenantType))
+                                            {
+                                                <small class="d-block text-muted">(@post.TenantType)</small>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td style="max-width: 250px;">
+                                        <div class="fw-bold text-dark">@post.Title</div>
+                                        @if (!string.IsNullOrWhiteSpace(post.Description))
+                                        {
+                                            <small class="text-muted d-block text-truncate" style="max-width: 240px;">@post.Description</small>
+                                        }
+                                        <small class="text-muted">পোস্ট: @post.CreatedOn.ToString("dd MMM yyyy, hh:mm tt")</small>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">@post.UserName</div>
+                                        <div class="text-muted" style="font-size: 12px;">📞 @post.UserPhone</div>
+                                        @if (!string.IsNullOrWhiteSpace(post.UserRole))
+                                        {
+                                            <span class="badge bg-light text-dark border">@post.UserRole</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-success">৳ @post.Price.ToString("N0")</div>
+                                        @if (post.Advance.HasValue && post.Advance.Value > 0)
+                                        {
+                                            <small class="text-muted d-block">অগ্রিম: ৳ @post.Advance.Value.ToString("N0")</small>
+                                        }
+                                        @if (post.UtilityIncluded)
+                                        {
+                                            <span class="badge bg-info text-dark" style="font-size: 10px;">ইউটিলিটি সহ</span>
+                                        }
+                                    </td>
+                                    <td style="max-width: 180px;">
+                                        <div class="fw-semibold">@post.AreaId, @post.DivisionId</div>
+                                        @if (!string.IsNullOrWhiteSpace(post.FullAddress))
+                                        {
+                                            <small class="text-muted d-block text-truncate">@post.FullAddress</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (post.MediaCount > 0)
+                                        {
+                                            <span class="badge bg-primary">📷 @post.MediaCount টি</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">কোনো ছবি নেই</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div style="font-size: 11px;">ফ্রি ব্যবহার: <strong>@post.FreePostsUsed</strong></div>
+                                        <div style="font-size: 11px;">পেইড ব্যালেন্স: <strong class="text-success">@post.PaidCreditsBalance</strong></div>
+                                    </td>
+                                    <td>
+                                        @if (string.Equals(post.Status, "active", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <span class="badge bg-success">সক্রিয় (Active)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">নিষ্ক্রিয় (Inactive)</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (post.IsVerified)
+                                        {
+                                            <span class="badge bg-primary">✓ ভেরিফাইড</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-light text-muted border">আনভেরিফাইড</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <!-- Toggle Status -->
+                                            <form asp-action="ToggleGeneralPostStatus" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="postId" value="@post.Id" />
+                                                <button type="submit" class="btn btn-sm @(string.Equals(post.Status, "active", StringComparison.OrdinalIgnoreCase) ? "btn-outline-warning" : "btn-outline-success")" title="স্ট্যাটাস পরিবর্তন করুন">
+                                                    @(string.Equals(post.Status, "active", StringComparison.OrdinalIgnoreCase) ? "নিষ্ক্রিয় করুন" : "সক্রিয় করুন")
+                                                </button>
+                                            </form>
+
+                                            <!-- Toggle Verification -->
+                                            <form asp-action="ToggleGeneralPostVerification" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="postId" value="@post.Id" />
+                                                <button type="submit" class="btn btn-sm @(post.IsVerified ? "btn-outline-secondary" : "btn-outline-primary")" title="ভেরিফিকেশন টগল">
+                                                    @(post.IsVerified ? "আনভেরিফাই" : "ভেরিফাই")
+                                                </button>
+                                            </form>
+
+                                            <!-- Delete Post -->
+                                            <form asp-action="DeleteGeneralPost" method="post" class="d-inline" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই বিজ্ঞাপনটি স্থায়ীভাবে ডিলিট করতে চান?');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="postId" value="@post.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="মুছে ফেলুন">
+                                                    🗑️
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+</div>

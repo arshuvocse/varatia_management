@@ -123,7 +123,6 @@ class _VaratiaAppState extends State<VaratiaApp> with WidgetsBindingObserver {
             theme: AppTheme.light(),
             locale: settings.locale,
             supportedLocales: const [Locale('bn', 'BD'), Locale('en', 'US')],
-            restorationScopeId: 'varatia_app',
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,

@@ -1,0 +1,183 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "লোন ব্যবস্থাপনা";
+    ViewData["PageTitle"] = "ডিজিটাল ন্যানো লোন আবেদন ও তদারকি";
+    ViewData["ActivePage"] = "Loans";
+    var loanData = ViewBag.LoanManagement as AdminLoanManagementViewModel ?? new AdminLoanManagementViewModel();
+    var config = loanData.Config;
+}
+
+<style>
+    .loan-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .loan-stat-card { background: var(--card-gradient); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-card); transition: all 0.2s ease; }
+    .loan-stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
+    .loan-stat-card small { color: var(--text-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 6px; letter-spacing: 0.05em; }
+    .loan-stat-card strong { font-size: 26px; font-weight: 800; color: var(--text-primary); }
+    .loan-filter-bar { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between; box-shadow: var(--shadow-subtle); }
+    .loan-table-wrap { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); overflow-x: auto; box-shadow: var(--shadow-card); }
+    .loan-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13.5px; }
+    .loan-table th { background: var(--bg-sidebar); color: var(--text-muted); font-weight: 700; padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .loan-table td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: var(--text-primary); vertical-align: middle; }
+    .loan-table tr:hover td { background: rgba(79, 70, 229, 0.02); }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: var(--radius-pill); font-size: 11.5px; font-weight: 700; }
+    .status-Approved, .status-Disbursed { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+    .status-Pending { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+    .status-Completed { background: var(--bg-secondary); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.2); }
+    .status-Rejected { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
+    .config-panel { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-subtle); }
+    .config-panel summary { cursor: pointer; font-weight: 800; color: var(--text-primary); font-size: 14.5px; }
+    .config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 16px; }
+    .config-grid label { display: grid; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text-secondary); }
+    .config-grid input { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13.5px; outline: none; transition: all 0.2s; }
+    .config-grid input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15); }
+</style>
+
+@if (!string.IsNullOrWhiteSpace(loanData.SuccessMessage))
+{
+    <div class="alert-success">@loanData.SuccessMessage</div>
+}
+@if (!string.IsNullOrWhiteSpace(loanData.ErrorMessage))
+{
+    <div class="validation-summary-errors">@loanData.ErrorMessage</div>
+}
+
+<details class="config-panel">
+    <summary>⚙️ লোন কনফিগারেশন (সর্বনিম্ন/সর্বোচ্চ পরিমাণ, সুদের হার, ফি) — এডিট করতে ক্লিক করুন</summary>
+    @if (config is not null)
+    {
+        <form asp-action="UpdateLoanConfig" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="Id" value="@config.Id" />
+            <div class="config-grid">
+                <label>সর্বনিম্ন লোন (৳)<input name="MinAmount" type="number" min="500" step="1" value="@config.MinAmount" required /></label>
+                <label>সর্বোচ্চ লোন (৳)<input name="MaxAmount" type="number" min="500" step="1" value="@config.MaxAmount" required /></label>
+                <label>বার্ষিক সুদের হার (%)<input name="AnnualInterestRate" type="number" min="0" max="100" step="0.01" value="@config.AnnualInterestRate" required /></label>
+                <label>প্রসেসিং ফি (%)<input name="ProcessingFeePercent" type="number" min="0" max="100" step="0.01" value="@config.ProcessingFeePercent" required /></label>
+                <label>সর্বনিম্ন প্রসেসিং ফি (৳)<input name="MinProcessingFee" type="number" min="0" step="1" value="@config.MinProcessingFee" required /></label>
+                <label>মেয়াদ (মাস, কমা দিয়ে)<input name="AllowedTenures" type="text" value="@config.AllowedTenures" required /></label>
+                <label style="display:flex; flex-direction:row; align-items:center; gap:6px; margin-top: 6px;">
+                    <input type="checkbox" name="IsActive" value="true" checked="@config.IsActive" style="width:auto;" /> সক্রিয়
+                </label>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 14px; padding: 8px 16px; font-size: 13px;">কনফিগারেশন সংরক্ষণ করুন</button>
+        </form>
+    }
+    else
+    {
+        <p style="color:#64748b; margin-top: 10px;">কোনো সক্রিয় লোন কনফিগারেশন পাওয়া যায়নি।</p>
+    }
+</details>
+
+<div class="loan-stats-grid">
+    <div class="loan-stat-card">
+        <small>মোট লোন সংখ্যা</small>
+        <strong>@loanData.Loans.Count</strong>
+    </div>
+    <div class="loan-stat-card">
+        <small>সক্রিয় লোন</small>
+        <strong style="color: #059669;">@loanData.ActiveLoanCount</strong>
+    </div>
+    <div class="loan-stat-card">
+        <small>মোট ঋণ বিতরণ</small>
+        <strong style="color: #2563eb;">৳@loanData.TotalDisbursed.ToString("N0")</strong>
+    </div>
+    <div class="loan-stat-card">
+        <small>মোট বকেয়া পাওনা</small>
+        <strong style="color: #e11d48;">৳@loanData.TotalOutstanding.ToString("N0")</strong>
+    </div>
+</div>
+
+<div class="loan-filter-bar">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <strong>ফিল্টার:</strong>
+        <a href="@Url.Action("Loans", new { status = "" })" class="btn-light @(string.IsNullOrEmpty(loanData.FilterStatus) ? "active" : "")" style="padding: 6px 12px; font-size: 12px;">সকল (@loanData.Loans.Count)</a>
+        <a href="@Url.Action("Loans", new { status = "Approved" })" class="btn-light @(loanData.FilterStatus == "Approved" ? "active" : "")" style="padding: 6px 12px; font-size: 12px;">অনুমোদিত</a>
+        <a href="@Url.Action("Loans", new { status = "Disbursed" })" class="btn-light @(loanData.FilterStatus == "Disbursed" ? "active" : "")" style="padding: 6px 12px; font-size: 12px;">বিতরণকৃত</a>
+        <a href="@Url.Action("Loans", new { status = "Completed" })" class="btn-light @(loanData.FilterStatus == "Completed" ? "active" : "")" style="padding: 6px 12px; font-size: 12px;">পরিশোধ সম্পন্ন</a>
+        <a href="@Url.Action("Loans", new { status = "Pending" })" class="btn-light @(loanData.FilterStatus == "Pending" ? "active" : "")" style="padding: 6px 12px; font-size: 12px;">অপেক্ষমান</a>
+    </div>
+    <div>
+        <span style="font-size: 12px; color: #64748b;">স্বয়ংক্রিয় bKash স্টাইল লোন ইঞ্জিন</span>
+    </div>
+</div>
+
+<div class="loan-table-wrap">
+    <table class="loan-table">
+        <thead>
+            <tr>
+                <th>আইডি</th>
+                <th>গ্রাহক / দোকানদার</th>
+                <th>ভূমিকা</th>
+                <th>ফোন</th>
+                <th>লোনের পরিমাণ</th>
+                <th>মেয়াদ</th>
+                <th>মাসিক কিস্তি</th>
+                <th>বকেয়া বাকি</th>
+                <th>স্ট্যাটাস</th>
+                <th>তারিখ</th>
+                <th>পদক্ষেপ</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (loanData.Loans.Count == 0)
+            {
+                <tr>
+                    <td colspan="11" style="text-align: center; padding: 30px; color: #64748b;">
+                        কোনো লোন রেকর্ড পাওয়া যায়নি।
+                    </td>
+                </tr>
+            }
+            @foreach (var loan in loanData.Loans)
+            {
+                <tr>
+                    <td><strong>#@loan.Id.ToString("D5")</strong></td>
+                    <td>
+                        <strong>@(string.IsNullOrWhiteSpace(loan.CustomerName) ? "গ্রাহক" : loan.CustomerName)</strong>
+                        <small style="display: block; color: #64748b;">@loan.Purpose</small>
+                    </td>
+                    <td><span class="table-chip">@loan.UserRole</span></td>
+                    <td>@loan.Phone</td>
+                    <td><strong>৳@loan.LoanAmount.ToString("N0")</strong></td>
+                    <td>@loan.TenureMonths মাস</td>
+                    <td>৳@loan.MonthlyInstallment.ToString("N0")</td>
+                    <td style="color: @(loan.RemainingAmount > 0 ? "#e11d48" : "#059669"); font-weight: 700;">
+                        ৳@loan.RemainingAmount.ToString("N0")
+                    </td>
+                    <td>
+                        <span class="status-badge status-@loan.Status">@loan.Status</span>
+                    </td>
+                    <td><small>@loan.AppliedAt.ToString("dd-MM-yyyy")</small></td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            @if (loan.Status == "Pending")
+                            {
+                                <form asp-action="UpdateLoanStatus" method="post" style="display: inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="loanId" value="@loan.Id" />
+                                    <input type="hidden" name="status" value="Approved" />
+                                    <button type="submit" class="btn-primary" style="padding: 4px 8px; font-size: 11px; background: #059669;">অনুমোদন</button>
+                                </form>
+                                <form asp-action="UpdateLoanStatus" method="post" style="display: inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="loanId" value="@loan.Id" />
+                                    <input type="hidden" name="status" value="Rejected" />
+                                    <button type="submit" class="btn-light" style="padding: 4px 8px; font-size: 11px; color: #dc2626;">বাতিল</button>
+                                </form>
+                            }
+                            else if (loan.Status == "Approved" && loan.RemainingAmount > 0)
+                            {
+                                <form asp-action="UpdateLoanStatus" method="post" style="display: inline;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="loanId" value="@loan.Id" />
+                                    <input type="hidden" name="status" value="Disbursed" />
+                                    <button type="submit" class="btn-primary" style="padding: 4px 8px; font-size: 11px; background: #2563eb;">বিতরণ নিশ্চিত</button>
+                                </form>
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

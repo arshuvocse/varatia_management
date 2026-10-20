@@ -1,0 +1,331 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    ViewData["Title"] = "Teach & Learn Platform";
+    ViewData["PageTitle"] = "টিচ অ্যান্ড লার্ন প্ল্যাটফর্ম পরিচালনা";
+    ViewData["ActivePage"] = "TeachAndLearn";
+
+    var teachLearn = ViewBag.TeachLearn as AdminTeachLearnViewModel ?? new AdminTeachLearnViewModel();
+    var posts = teachLearn.Posts;
+    var currentType = teachLearn.FilterType ?? "all";
+    var currentVerification = teachLearn.FilterVerification ?? "all";
+    var currentSearch = teachLearn.SearchQuery ?? "";
+}
+
+<div class="company-section">
+    <!-- KPI Header Stats -->
+    <div class="company-network-stats mb-4" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">মোট পোস্ট</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #1e293b;">@teachLearn.TotalPosts</h3>
+                </div>
+                <div style="font-size: 28px; background: #f1f5f9; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">📚</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">শিক্ষক পোস্ট (Tutor)</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #0284c7;">@teachLearn.TutorPostsCount</h3>
+                </div>
+                <div style="font-size: 28px; background: #e0f2fe; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">👨‍🏫</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">শিক্ষার্থী অনুরোধ (Request)</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #f59e0b;">@teachLearn.RequestPostsCount</h3>
+                </div>
+                <div style="font-size: 28px; background: #fef3c7; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🙋‍♂️</div>
+            </div>
+        </article>
+
+        <article class="p-3" style="background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted" style="font-size: 13px; font-weight: 500;">ভেরিফাইড পোস্ট</span>
+                    <h3 class="mb-0 mt-1" style="font-weight: 800; color: #10b981;">@teachLearn.VerifiedPostsCount</h3>
+                </div>
+                <div style="font-size: 28px; background: #d1fae5; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">✅</div>
+            </div>
+        </article>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card p-3 mb-4 shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0;">
+        <form method="get" asp-action="TeachAndLearn" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0">🔍</span>
+                    <input type="text" name="search" value="@currentSearch" class="form-control border-start-0" placeholder="নাম, বিষয়, এলাকা বা মোবাইল দিয়ে খুঁজুন..." />
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select name="type" class="form-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(currentType == "all")">সব ধরনের পোস্ট (All Types)</option>
+                    <option value="tutor" selected="@(currentType == "tutor")">শিক্ষক পোস্ট (Tutor)</option>
+                    <option value="request" selected="@(currentType == "request")">শিক্ষার্থী অনুরোধ (Student Request)</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select name="verification" class="form-select" onchange="this.form.submit()">
+                    <option value="all" selected="@(currentVerification == "all")">সব স্ট্যাটাস (All Verification)</option>
+                    <option value="verified" selected="@(currentVerification == "verified")">ভেরিফাইড পোস্ট (Verified)</option>
+                    <option value="unverified" selected="@(currentVerification == "unverified")">অনির্ধারিত / পেন্ডিং (Unverified)</option>
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100" style="font-weight: 600;">ফিল্টার</button>
+                @if (!string.IsNullOrEmpty(currentSearch) || currentType != "all" || currentVerification != "all")
+                {
+                    <a asp-action="TeachAndLearn" class="btn btn-outline-secondary" title="রিসেট">✕</a>
+                }
+            </div>
+        </form>
+    </div>
+
+    <!-- Posts Table -->
+    <div class="card shadow-sm" style="border-radius: 14px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h5 class="mb-0" style="font-weight: 700; color: #1e293b;">
+                পোস্ট তালিকা <span class="badge bg-secondary" style="font-size: 13px;">@posts.Count টি</span>
+            </h5>
+            <small class="text-muted">মোবাইল অ্যাপের Teach & Learn প্ল্যাটফর্মের ডেটা লাইভ প্রদর্শিত হচ্ছে</small>
+        </div>
+
+        @if (posts.Count == 0)
+        {
+            <div class="text-center py-5">
+                <div style="font-size: 48px; color: #94a3b8;">📖</div>
+                <h5 class="mt-2 text-muted">কোনো টিউটর বা শিক্ষার্থী পোস্ট পাওয়া যায়নি</h5>
+                <p class="text-muted" style="font-size: 14px;">মোবাইল অ্যাপ থেকে ভাড়াটিয়া বা শিক্ষকরা পোস্ট তৈরি করলে তা এখানে দেখতে পাবেন।</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                    <thead style="background: #f8fafc; font-weight: 600; color: #475569;">
+                        <tr>
+                            <th>আইডি</th>
+                            <th>নাম ও পরিচিতি</th>
+                            <th>পোস্টের ধরন</th>
+                            <th>বিষয় ও এলাকা</th>
+                            <th>পারিশ্রমিক ও রেটিং</th>
+                            <th>মোবাইল নম্বর</th>
+                            <th>ভেরিফিকেশন</th>
+                            <th>তারিখ</th>
+                            <th class="text-end">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var post in posts)
+                        {
+                            var isTutor = post.PostType.Equals("tutor", StringComparison.OrdinalIgnoreCase);
+                            <tr>
+                                <td>
+                                    <span class="badge bg-light text-dark border">#@post.Id</span>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600; color: #0f172a;">@post.Name</div>
+                                    <small class="text-muted">@(string.IsNullOrWhiteSpace(post.RoleBn) ? post.RoleEn : post.RoleBn)</small>
+                                </td>
+                                <td>
+                                    @if (isTutor)
+                                    {
+                                        <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 600;">👨‍🏫 শিক্ষক</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 600;">🙋‍♂️ শিক্ষক প্রয়োজন</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div><strong>@(string.IsNullOrWhiteSpace(post.SubjectBn) ? post.SubjectEn : post.SubjectBn)</strong></div>
+                                    <small class="text-muted">📍 @(string.IsNullOrWhiteSpace(post.AreaBn) ? post.AreaEn : post.AreaBn)</small>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 600; color: #059669;">
+                                        @(string.IsNullOrWhiteSpace(post.PriceBn) ? (string.IsNullOrWhiteSpace(post.PriceEn) ? "আলোচনা সাপেক্ষে" : post.PriceEn) : post.PriceBn)
+                                    </div>
+                                    <small class="text-warning">⭐ @post.Rating</small>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(post.Phone))
+                                    {
+                                        <a href="tel:@post.Phone" class="text-decoration-none">
+                                            <i class="bi bi-telephone"></i> @post.Phone
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (post.IsVerified)
+                                    {
+                                        <span class="badge bg-success" style="font-weight: 500;">✓ ভেরিফাইড</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary" style="font-weight: 500;">অনির্ধারিত</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small class="text-muted">@post.CreatedAt.ToString("dd MMM yyyy")</small>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <!-- View Details Trigger -->
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                onclick="showPostDetails('@post.Id', '@post.Name', '@post.PostType', '@(string.IsNullOrWhiteSpace(post.SubjectBn) ? post.SubjectEn : post.SubjectBn)', '@(string.IsNullOrWhiteSpace(post.AreaBn) ? post.AreaEn : post.AreaBn)', '@(string.IsNullOrWhiteSpace(post.PriceBn) ? post.PriceEn : post.PriceBn)', '@post.Phone', '@(string.IsNullOrWhiteSpace(post.ExperienceBn) ? post.ExperienceEn : post.ExperienceBn)', '@(string.IsNullOrWhiteSpace(post.AvailabilityBn) ? post.AvailabilityEn : post.AvailabilityBn)', '@(string.IsNullOrWhiteSpace(post.DescriptionBn) ? post.DescriptionEn : post.DescriptionBn)', '@post.FulfillmentStatus', '@(post.Remarks ?? "")')"
+                                                title="সম্পূর্ণ বিবরণ দেখুন">
+                                            👁️
+                                        </button>
+
+                                        <!-- Toggle Verification -->
+                                        <form method="post" asp-action="ToggleTutorVerification" class="d-inline" onsubmit="return confirm('আপনি কি এই পোস্টের ভেরিফিকেশন স্ট্যাটাস পরিবর্তন করতে চান?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="postId" value="@post.Id" />
+                                            @if (post.IsVerified)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-warning" title="আন-ভেরিফাই করুন">
+                                                    আন-ভেরিফাই
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="ভেরিফাই করুন">
+                                                    ভেরিফাই
+                                                </button>
+                                            }
+                                        </form>
+
+                                        <!-- Delete Post -->
+                                        <form method="post" asp-action="DeleteTutorPost" class="d-inline" onsubmit="return confirm('সতর্কতা: পোস্টটি চিরতরে মুছে ফেলা হবে। আপনি কি নিশ্চিত?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="postId" value="@post.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="পোস্ট মুছে ফেলুন">
+                                                🗑️
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="tutorPostDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 14px;">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title" style="font-weight: 700;">
+                    <span id="modalPostTypeBadge" class="badge me-2"></span>
+                    <span id="modalPostName"></span> 
+                    <small id="modalPostId" class="text-muted" style="font-size: 13px;"></small>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">বিষয় (SUBJECT)</label>
+                        <div id="modalPostSubject" style="font-weight: 600; font-size: 15px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">এলাকা (AREA)</label>
+                        <div id="modalPostArea" style="font-weight: 600; font-size: 15px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">পারিশ্রমিক (PRICE / SALARY)</label>
+                        <div id="modalPostPrice" style="font-weight: 600; color: #059669; font-size: 15px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">যোগাযোগের মোবাইল নম্বর</label>
+                        <div id="modalPostPhone" style="font-weight: 600; font-size: 15px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">অভিজ্ঞতা (EXPERIENCE)</label>
+                        <div id="modalPostExperience" style="font-size: 14px;"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">সময়সূচী ও প্রাপ্যতা (AVAILABILITY)</label>
+                        <div id="modalPostAvailability" style="font-size: 14px;"></div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 12px; font-weight: 600;">বিস্তারিত বিবরণ (DESCRIPTION)</label>
+                    <div id="modalPostDescription" class="p-3 bg-light rounded" style="font-size: 14px; white-space: pre-line; line-height: 1.6;"></div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">পূরণ স্ট্যাটাস (FULFILLMENT)</label>
+                        <div id="modalPostFulfillment"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted" style="font-size: 12px; font-weight: 600;">অতিরিক্ত মন্তব্য (REMARKS)</label>
+                        <div id="modalPostRemarks" class="text-muted" style="font-size: 14px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showPostDetails(id, name, type, subject, area, price, phone, experience, availability, description, fulfillment, remarks) {
+            document.getElementById('modalPostId').innerText = '#' + id;
+            document.getElementById('modalPostName').innerText = name;
+            
+            const badge = document.getElementById('modalPostTypeBadge');
+            if (type.toLowerCase() === 'tutor') {
+                badge.className = 'badge bg-info text-dark me-2';
+                badge.innerText = 'শিক্ষক পোস্ট';
+            } else {
+                badge.className = 'badge bg-warning text-dark me-2';
+                badge.innerText = 'শিক্ষার্থী অনুরোধ';
+            }
+
+            document.getElementById('modalPostSubject').innerText = subject || 'উল্লেখ নেই';
+            document.getElementById('modalPostArea').innerText = area || 'উল্লেখ নেই';
+            document.getElementById('modalPostPrice').innerText = price || 'আলোচনা সাপেক্ষে';
+            document.getElementById('modalPostPhone').innerText = phone || 'উপলব্ধ নয়';
+            document.getElementById('modalPostExperience').innerText = experience || 'উল্লেখ নেই';
+            document.getElementById('modalPostAvailability').innerText = availability || 'উল্লেখ নেই';
+            document.getElementById('modalPostDescription').innerText = description || 'কোনো বিবরণ প্রদান করা হয়নি।';
+            
+            const fulfillEl = document.getElementById('modalPostFulfillment');
+            if (fulfillment === 'got') {
+                fulfillEl.innerHTML = '<span class="badge bg-success">সম্পন্ন হয়েছে (Got / Fulfilled)</span>';
+            } else {
+                fulfillEl.innerHTML = '<span class="badge bg-warning text-dark">খুঁজছে / সক্রিয় (Looking / Active)</span>';
+            }
+
+            document.getElementById('modalPostRemarks').innerText = remarks || 'কোনো মন্তব্য নেই';
+
+            const modal = new bootstrap.Modal(document.getElementById('tutorPostDetailsModal'));
+            modal.show();
+        }
+    </script>
+}

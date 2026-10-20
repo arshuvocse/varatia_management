@@ -355,53 +355,98 @@ class _TenantPickupServiceScreenState extends State<TenantPickupServiceScreen> {
         final data = snapshot.data;
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF6F8FB),
+          backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
-            backgroundColor: const Color(0xFFF6F8FB),
-            title: Text(context.tr(bn: 'পিকআপ সার্ভিস', en: 'Pickup Service')),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.tr(bn: 'পিকআপ ও শিফটিং সার্ভিস', en: 'Pickup & Shifting'),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  context.tr(
+                    bn: 'বাসা বদল ও মালামাল পরিবহন',
+                    en: 'Relocation & Cargo Transport',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
             leading: IconButton(
               onPressed: () => Navigator.of(context).maybePop(),
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF1F5F9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 16,
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
           bottomNavigationBar: _buildBottomAction(snapshot),
-          body: RefreshIndicator(
-            onRefresh: () async {
-              setState(() => _eligibilityFuture = _loadEligibility());
-              await _eligibilityFuture;
-            },
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(18, 8, 18, 120),
-              children: [
-                const _PickupHeroCard(),
-                const SizedBox(height: 14),
-                if (snapshot.connectionState == ConnectionState.waiting)
-                  const LinearProgressIndicator(minHeight: 2)
-                else if (snapshot.hasError)
-                  _PickupStatusCard.error(
-                    message: context.tr(
-                      bn: 'জয়েনিং তারিখ পড়া যায়নি। আপাতত পেইড সার্ভিস হিসেবে চালু করুন।',
-                      en: 'Unable to read joining date. Continue as paid service for now.',
-                    ),
-                  )
-                else if (data != null)
-                  _PickupStatusCard(data: data),
-                const SizedBox(height: 14),
-                _PickupBookingForm(
-                  pickupAddressController: _pickupAddressController,
-                  dropAddressController: _dropAddressController,
-                  noteController: _noteController,
-                  itemTypes: _itemTypes,
-                  selectedItemType: _selectedItemType,
-                  onItemTypeChanged: (value) {
-                    if (value != null) {
-                      setState(() => _selectedItemType = value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                const _PickupGuidelinesCard(),
-              ],
+          body: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                setState(() => _eligibilityFuture = _loadEligibility());
+                await _eligibilityFuture;
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
+                children: [
+                  const _PickupHeroCard(),
+                  const SizedBox(height: 16),
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    const LinearProgressIndicator(minHeight: 2)
+                  else if (snapshot.hasError)
+                    _PickupStatusCard.error(
+                      message: context.tr(
+                        bn: 'জয়েনিং তারিখ পড়া যায়নি। আপাতত পেইড সার্ভিস হিসেবে চালু করুন।',
+                        en: 'Unable to read joining date. Continue as paid service for now.',
+                      ),
+                    )
+                  else if (data != null)
+                    _PickupStatusCard(data: data),
+                  const SizedBox(height: 16),
+                  _PickupBookingForm(
+                    pickupAddressController: _pickupAddressController,
+                    dropAddressController: _dropAddressController,
+                    noteController: _noteController,
+                    itemTypes: _itemTypes,
+                    selectedItemType: _selectedItemType,
+                    onItemTypeChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedItemType = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  const _PickupGuidelinesCard(),
+                ],
+              ),
             ),
           ),
         );
@@ -433,33 +478,32 @@ class _PickupHeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFFFFEDD5), Color(0xFFFFFFFF)],
+          colors: [Color(0xFFEA580C), Color(0xFFF97316)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFFED7AA)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x12F97316),
-            blurRadius: 22,
-            offset: Offset(0, 12),
+            color: Color(0x33EA580C),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            height: 68,
-            width: 68,
+            height: 56,
+            width: 56,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.airport_shuttle_rounded,
-              color: AppColors.accent,
-              size: 38,
+              color: Colors.white,
+              size: 32,
             ),
           ),
           const SizedBox(width: 14),
@@ -470,19 +514,25 @@ class _PickupHeroCard extends StatelessWidget {
                 Text(
                   context.tr(
                     bn: 'ঘর বদল ও মালামাল পিকআপ',
-                    en: 'Move-out and item pickup',
+                    en: 'Move-out & Item Pickup',
                   ),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 Text(
                   context.tr(
-                    bn: 'জয়েনিং তারিখ অনুযায়ী ফ্রি বা পেইড সার্ভিস দেখানো হবে।',
-                    en: 'Free or paid service is decided from your joining date.',
+                    bn: 'জয়েনিং তারিখ অনুযায়ী ৩ মাস পর ফ্রি পিকআপ সুবিধা পাবেন।',
+                    en: 'Free pickup eligibility after 3 months from joining.',
                   ),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.88),
+                  ),
                 ),
               ],
             ),

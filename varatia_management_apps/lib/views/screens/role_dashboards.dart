@@ -18,7 +18,10 @@ import '../widgets/app_widgets.dart';
 import 'entry/entry_routes.dart';
 import 'home/tenant_general_post_details_screen.dart';
 import 'home/tenant_home_screen.dart';
+import 'home/tenant_pickup_service_screen.dart';
 import 'property_screen.dart';
+import 'reports_screen.dart';
+import 'support_screens.dart';
 import 'tenant_reference_pages.dart';
 
 const _roleHomeSurfaceShadow = <BoxShadow>[
@@ -314,10 +317,21 @@ class OwnerHomePage extends StatelessWidget {
         _selectOwnerTab(context, 3);
         return;
       case _OwnerHomeQuickActionType.addProperty:
-        _showOwnerComingSoon(context, 'Add New');
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const PropertyScreen()));
         return;
       case _OwnerHomeQuickActionType.reports:
-        _showOwnerComingSoon(context, 'Reports');
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const ReportsScreen()));
+        return;
+      case _OwnerHomeQuickActionType.tutor:
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const TenantTutorTeachLearnPage(),
+          ),
+        );
         return;
     }
   }
@@ -347,8 +361,11 @@ class OwnerHomePage extends StatelessWidget {
               const Expanded(child: _OwnerBrandLockup()),
               _OwnerHeaderCircleButton(
                 icon: Icons.notifications_none_rounded,
-                onTap: () =>
-                    _showOwnerComingSoon(context, 'Owner Notifications'),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const NotificationsScreen(),
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               _OwnerHeaderCircleButton(
@@ -373,7 +390,11 @@ class OwnerHomePage extends StatelessWidget {
                 label: context.demoText('${properties.length} Properties'),
                 backgroundColor: const Color(0xFFEAF3FF),
                 foregroundColor: AppColors.primary,
-                onTap: () => _showOwnerComingSoon(context, 'Property List'),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PropertyScreen(),
+                  ),
+                ),
               ),
               const Spacer(),
               _OwnerHomeActionPill(
@@ -843,6 +864,7 @@ enum _OwnerHomeQuickActionType {
   payments,
   reports,
   profile,
+  tutor,
 }
 
 class _OwnerHomeQuickActionData {
@@ -896,6 +918,13 @@ const _ownerHomeQuickActions = <_OwnerHomeQuickActionData>[
     icon: Icons.bar_chart_rounded,
     color: Color(0xFF0EA5E9),
     type: _OwnerHomeQuickActionType.reports,
+  ),
+  _OwnerHomeQuickActionData(
+    title: 'Teach / Learn',
+    subtitle: 'Tutor Hub',
+    icon: Icons.school_rounded,
+    color: Color(0xFF14B8A6),
+    type: _OwnerHomeQuickActionType.tutor,
   ),
   _OwnerHomeQuickActionData(
     title: 'Profile',
@@ -3100,116 +3129,397 @@ void _showLocationFilterBottomSheet(
   );
 }
 
-class TenantMarketplaceSearchPage extends StatelessWidget {
+class TenantMarketplaceSearchPage extends StatefulWidget {
   const TenantMarketplaceSearchPage({super.key});
+
+  @override
+  State<TenantMarketplaceSearchPage> createState() =>
+      _TenantMarketplaceSearchPageState();
+}
+
+class _TenantMarketplaceSearchPageState
+    extends State<TenantMarketplaceSearchPage> {
+  late final TextEditingController _searchController;
+  String _selectedCategory = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    final initialQuery =
+        context.read<TenantExperienceViewModel>().marketplaceSearchQuery;
+    _searchController = TextEditingController(text: initialQuery);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildCategoryChip(String id, String label) {
+    final isSelected = _selectedCategory == id;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: () => setState(() => _selectedCategory = id),
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: isSelected ? AppColors.primaryGradient : null,
+            color: isSelected ? null : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+            ),
+            boxShadow: isSelected ? AppShadows.subtle : null,
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? Colors.white : AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TenantExperienceViewModel>();
-    final query = viewModel.marketplaceSearchQuery.toLowerCase();
+    final query = _searchController.text.trim().toLowerCase();
 
     final allListings = viewModel.generalPosts.isNotEmpty
         ? viewModel.generalPosts.map(mapGeneralPostToShowcase).toList()
         : publicTenantShowcaseListings;
 
-    final filteredListings = query.isEmpty
-        ? allListings
-        : allListings
-              .where(
-                (l) =>
-                    context.loc(l.title).toLowerCase().contains(query) ||
-                    context.loc(l.location).toLowerCase().contains(query) ||
-                    context.loc(l.badge).toLowerCase().contains(query),
-              )
-              .toList();
+    final filteredListings = allListings.where((l) {
+      if (_selectedCategory != 'all') {
+        final badge = context.loc(l.badge).toLowerCase();
+        final title = context.loc(l.title).toLowerCase();
+        if (_selectedCategory == 'rent' &&
+            !badge.contains('ভাড়া') &&
+            !title.contains('rent') &&
+            !badge.contains('rent')) {
+          return false;
+        }
+        if (_selectedCategory == 'sale' &&
+            !badge.contains('বিক্রি') &&
+            !badge.contains('sale') &&
+            !title.contains('sale')) {
+          return false;
+        }
+        if (_selectedCategory == 'sublet' &&
+            !badge.contains('সাবলেট') &&
+            !title.contains('sublet')) {
+          return false;
+        }
+        if (_selectedCategory == 'bachelor' &&
+            !badge.contains('ব্যাচেলর') &&
+            !title.contains('bachelor')) {
+          return false;
+        }
+      }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
-      children: [
-        ScreenHeader(
-          title: context.tr(bn: 'সার্চ', en: 'Search'),
-          subtitle: context.tr(
-            bn: 'এলাকা, বাজেট এবং টাইপ অনুযায়ী লিস্টিং খুঁজুন।',
-            en: 'Search listings by area, budget, and property type.',
+      if (query.isNotEmpty) {
+        final matchesTitle = context.loc(l.title).toLowerCase().contains(query);
+        final matchesLocation =
+            context.loc(l.location).toLowerCase().contains(query);
+        final matchesBadge = context.loc(l.badge).toLowerCase().contains(query);
+        if (!matchesTitle && !matchesLocation && !matchesBadge) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF1F5F9), Color(0xFFF8FAFC), Color(0xFFFFFFFF)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          // Brand & Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: AppShadows.subtle,
+                ),
+                child: const Icon(
+                  Icons.search_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr(bn: 'লিস্টিং খুঁজুন', en: 'Search Listings'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      context.tr(
+                        bn: 'এলাকা, বাজেট বা ক্যাটাগরি অনুযায়ী প্রপার্টি ফিল্টার করুন',
+                        en: 'Filter properties by area, budget, or type',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(height: 18),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () =>
-                    _showLocationFilterBottomSheet(context, viewModel),
-                icon: const Icon(Icons.map_outlined),
-                label: Text(context.tr(bn: 'এলাকা অনুযায়ী', en: 'Area wise')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 14),
+
+          // Search Bar Input
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: AppShadows.card,
+            ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) {
+                setState(() {});
+                viewModel.updateMarketplaceSearchQuery(val.trim());
+              },
+              decoration: InputDecoration(
+                hintText: context.tr(
+                  bn: 'এলাকা, ফ্ল্যাট বা বাসা সার্চ করুন...',
+                  en: 'Search by area, flat or property...',
+                ),
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.cancel_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {});
+                          viewModel.updateMarketplaceSearchQuery('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () =>
+                      _showLocationFilterBottomSheet(context, viewModel),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: AppShadows.subtle,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          context.tr(bn: 'এলাকা ফিল্টার', en: 'Location'),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => viewModel.toggleNearMe(),
-                icon: Icon(
-                  viewModel.isNearMeActive
-                      ? Icons.my_location
-                      : Icons.location_searching,
-                ),
-                label: Text(context.tr(bn: 'আমার আশেপাশে', en: 'Near me')),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: viewModel.isNearMeActive
-                      ? Colors.white
-                      : AppColors.primary,
-                  backgroundColor: viewModel.isNearMeActive
-                      ? AppColors.primary
-                      : Colors.transparent,
-                  side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              const SizedBox(width: 10),
+              Expanded(
+                child: InkWell(
+                  onTap: () => viewModel.toggleNearMe(),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: viewModel.isNearMeActive
+                          ? AppColors.primaryGradient
+                          : null,
+                      color: viewModel.isNearMeActive ? null : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: viewModel.isNearMeActive
+                            ? Colors.transparent
+                            : const Color(0xFFE2E8F0),
+                      ),
+                      boxShadow: AppShadows.subtle,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          viewModel.isNearMeActive
+                              ? Icons.my_location_rounded
+                              : Icons.near_me_outlined,
+                          size: 16,
+                          color: viewModel.isNearMeActive
+                              ? Colors.white
+                              : AppColors.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          context.tr(bn: 'আমার আশেপাশে', en: 'Near Me'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: viewModel.isNearMeActive
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Category Chips
+          SizedBox(
+            height: 38,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              children: [
+                _buildCategoryChip(
+                  'all',
+                  context.tr(bn: '✨ সব লিস্টিং', en: 'All'),
+                ),
+                _buildCategoryChip(
+                  'rent',
+                  context.tr(bn: '🏢 ফ্ল্যাট ভাড়া', en: 'Rent'),
+                ),
+                _buildCategoryChip(
+                  'sale',
+                  context.tr(bn: '🏡 ফ্ল্যাট বিক্রি', en: 'Sale'),
+                ),
+                _buildCategoryChip(
+                  'sublet',
+                  context.tr(bn: '🚪 সাবলেট', en: 'Sublet'),
+                ),
+                _buildCategoryChip(
+                  'bachelor',
+                  context.tr(bn: '👥 ব্যাচেলর মেস', en: 'Bachelor'),
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 22),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                context.loc(AppLocalLang.matchingListings),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+
+          // Result Count
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE0E7FF)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      context.tr(
+                        bn: 'মোট ${context.digitsText(filteredListings.length)}টি প্রপার্টি পাওয়া গেছে',
+                        en: '${filteredListings.length} properties found',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Text(
-              context.tr(
-                bn: '${context.digitsText(filteredListings.length)} found',
-                en: '${filteredListings.length} found',
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (filteredListings.isEmpty)
+            _MarketplaceEmptyStateCard(
+              icon: Icons.search_off_rounded,
+              title: context.loc(AppLocalLang.noListingsForLocation),
+              subtitle: context.loc(
+                AppLocalLang.tryAnotherDivisionDistrictUpazila,
               ),
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (filteredListings.isEmpty)
-          _MarketplaceEmptyStateCard(
-            icon: Icons.search_off_rounded,
-            title: context.loc(AppLocalLang.noListingsForLocation),
-            subtitle: context.loc(
-              AppLocalLang.tryAnotherDivisionDistrictUpazila,
-            ),
-          )
-        else
+            )
+          else
           LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth < 600) {
@@ -3264,7 +3574,8 @@ class TenantMarketplaceSearchPage extends StatelessWidget {
               );
             },
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -3555,158 +3866,459 @@ class _TenantPostComposerPageState extends State<TenantPostComposerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Home Search Post'),
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).maybePop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
-        children: [
-          const ScreenHeader(
-            title: 'Post Home Requirement',
-            subtitle:
-                'Select where you want to rent a home and add room details.',
-          ),
-          const SizedBox(height: 18),
-          SectionCard(
-            title: 'Location',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_locationError != null) ...[
-                  Text(
-                    _locationError!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.danger,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                DropdownButtonFormField<String>(
-                  value: _selectedDivisionId,
-                  isExpanded: true,
-                  items: _divisions
-                      .map(
-                        (division) => DropdownMenuItem<String>(
-                          value: division.id,
-                          child: Text(division.nameBn),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: _isLoadingDivisions
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            unawaited(_loadAreas(value));
-                          }
-                        },
-                  decoration: InputDecoration(
-                    labelText: 'Division',
-                    hintText: _isLoadingDivisions
-                        ? 'Loading divisions...'
-                        : 'Select division',
-                    prefixIcon: const Icon(Icons.map_outlined),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _selectedAreaId,
-                  isExpanded: true,
-                  items: _areas
-                      .map(
-                        (area) => DropdownMenuItem<String>(
-                          value: area.id,
-                          child: Text(area.nameBn),
-                        ),
-                      )
-                      .toList(growable: false),
-                  onChanged: _isLoadingAreas || _areas.isEmpty
-                      ? null
-                      : (value) => setState(() => _selectedAreaId = value),
-                  decoration: InputDecoration(
-                    labelText: 'District / Area',
-                    hintText: _selectedDivisionId == null
-                        ? 'Select division first'
-                        : _isLoadingAreas
-                        ? 'Loading areas...'
-                        : 'Select district or area',
-                    prefixIcon: const Icon(Icons.location_city_outlined),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          SectionCard(
-            title: 'Home Details',
-            child: Column(
-              children: [
-                _TenantRequirementCounter(
-                  icon: Icons.meeting_room_outlined,
-                  label: 'Rooms',
-                  value: _rooms,
-                  minValue: 1,
-                  onChanged: (value) => setState(() => _rooms = value),
-                ),
-                const SizedBox(height: 12),
-                _TenantRequirementCounter(
-                  icon: Icons.soup_kitchen_outlined,
-                  label: 'Kitchen',
-                  value: _kitchens,
-                  minValue: 0,
-                  onChanged: (value) => setState(() => _kitchens = value),
-                ),
-                const SizedBox(height: 12),
-                _TenantRequirementCounter(
-                  icon: Icons.bathtub_outlined,
-                  label: 'Bathroom',
-                  value: _bathrooms,
-                  minValue: 1,
-                  onChanged: (value) => setState(() => _bathrooms = value),
-                ),
-                const SizedBox(height: 12),
-                _TenantRequirementCounter(
-                  icon: Icons.balcony_outlined,
-                  label: 'Balcony',
-                  value: _balconies,
-                  minValue: 0,
-                  onChanged: (value) => setState(() => _balconies = value),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          SectionCard(
-            title: 'Extra Notes',
-            child: TextField(
-              controller: _notesController,
-              minLines: 4,
-              maxLines: 6,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                hintText: 'Budget, family/bachelor, preferred road, etc.',
-                alignLabelWithHint: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr(bn: 'বাসার চাহিদা পোস্ট', en: 'Home Search Post'),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
               ),
             ),
+            Text(
+              context.tr(
+                bn: 'আপনার পছন্দমতো বাসা খুঁজুন',
+                en: 'Specify your rental requirement',
+              ),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: AppShadows.subtle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+              color: AppColors.textPrimary,
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
           ),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: _isSubmitting ? null : _submit,
-            icon: _isSubmitting
-                ? const SizedBox(
-                    height: 18,
-                    width: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.post_add_rounded),
-            label: Text(_isSubmitting ? 'Posting...' : 'Post Requirement'),
+        ),
+      ),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFEEF2FF), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-        ],
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          children: [
+            // Hero Banner
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.28),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Center(
+                      child: Icon(
+                        Icons.home_work_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr(
+                            bn: 'বাসা খোঁজার বিজ্ঞাপন দিন',
+                            en: 'Post Home Requirement',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.tr(
+                            bn: 'আপনার বাজেট ও প্রয়োজন অনুযায়ী সরাসরি যোগাযোগ পান',
+                            en: 'Get direct proposals from property owners',
+                          ),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.88),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // Card 1: Location
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEEF2FF),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.location_on_rounded,
+                          size: 18,
+                          color: Color(0xFF4F46E5),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        context.tr(bn: 'লোকেশন নির্বাচন করুন', en: 'Location Details'),
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  if (_locationError != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Text(
+                        _locationError!,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  DropdownButtonFormField<String>(
+                    value: _selectedDivisionId,
+                    isExpanded: true,
+                    items: _divisions
+                        .map(
+                          (division) => DropdownMenuItem<String>(
+                            value: division.id,
+                            child: Text(division.nameBn),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _isLoadingDivisions
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              unawaited(_loadAreas(value));
+                            }
+                          },
+                    decoration: InputDecoration(
+                      labelText: context.tr(bn: 'বিভাগ', en: 'Division'),
+                      hintText: _isLoadingDivisions
+                          ? context.tr(bn: 'বিভাগ লোড হচ্ছে...', en: 'Loading divisions...')
+                          : context.tr(bn: 'বিভাগ নির্বাচন করুন', en: 'Select division'),
+                      prefixIcon: const Icon(Icons.map_outlined),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedAreaId,
+                    isExpanded: true,
+                    items: _areas
+                        .map(
+                          (area) => DropdownMenuItem<String>(
+                            value: area.id,
+                            child: Text(area.nameBn),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _isLoadingAreas || _areas.isEmpty
+                        ? null
+                        : (value) => setState(() => _selectedAreaId = value),
+                    decoration: InputDecoration(
+                      labelText: context.tr(bn: 'জেলা / এরিয়া', en: 'District / Area'),
+                      hintText: _selectedDivisionId == null
+                          ? context.tr(bn: 'আগে বিভাগ নির্বাচন করুন', en: 'Select division first')
+                          : _isLoadingAreas
+                          ? context.tr(bn: 'এরিয়া লোড হচ্ছে...', en: 'Loading areas...')
+                          : context.tr(bn: 'জেলা বা এরিয়া নির্বাচন করুন', en: 'Select district or area'),
+                      prefixIcon: const Icon(Icons.location_city_outlined),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Card 2: Home Details
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.apartment_rounded,
+                          size: 18,
+                          color: Color(0xFF059669),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        context.tr(bn: 'বাসার বিবরণ ও কক্ষ সংখ্যা', en: 'Room Requirements'),
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _TenantRequirementCounter(
+                    icon: Icons.meeting_room_outlined,
+                    label: context.tr(bn: 'বেডরুম', en: 'Bedrooms'),
+                    value: _rooms,
+                    minValue: 1,
+                    onChanged: (value) => setState(() => _rooms = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _TenantRequirementCounter(
+                    icon: Icons.soup_kitchen_outlined,
+                    label: context.tr(bn: 'রান্নাঘর', en: 'Kitchen'),
+                    value: _kitchens,
+                    minValue: 0,
+                    onChanged: (value) => setState(() => _kitchens = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _TenantRequirementCounter(
+                    icon: Icons.bathtub_outlined,
+                    label: context.tr(bn: 'বাথরুম', en: 'Bathroom'),
+                    value: _bathrooms,
+                    minValue: 1,
+                    onChanged: (value) => setState(() => _bathrooms = value),
+                  ),
+                  const SizedBox(height: 10),
+                  _TenantRequirementCounter(
+                    icon: Icons.balcony_outlined,
+                    label: context.tr(bn: 'বারান্দা', en: 'Balcony'),
+                    value: _balconies,
+                    minValue: 0,
+                    onChanged: (value) => setState(() => _balconies = value),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Card 3: Notes & Requirements
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.edit_note_rounded,
+                          size: 18,
+                          color: Color(0xFFD97706),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        context.tr(bn: 'অতিরিক্ত তথ্য ও বাজেট', en: 'Additional Notes & Budget'),
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _notesController,
+                    minLines: 3,
+                    maxLines: 5,
+                    textInputAction: TextInputAction.newline,
+                    decoration: InputDecoration(
+                      hintText: context.tr(
+                        bn: 'যেমন: বাজেট ১৫,০০০ টাকা, ফ্যামিলি বাসা, লিফট সুবিধা প্রয়োজন...',
+                        en: 'e.g. Budget 15,000 BDT, family preferred, lift required...',
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Submit Button
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.32),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  disabledForegroundColor: Colors.white70,
+                  disabledBackgroundColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send_rounded, color: Colors.white, size: 20),
+                label: Text(
+                  _isSubmitting
+                      ? context.tr(bn: 'পোস্ট করা হচ্ছে...', en: 'Posting...')
+                      : context.tr(bn: 'চাহিদা পোস্ট করুন', en: 'Post Requirement'),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -3732,43 +4344,80 @@ class _TenantRequirementCounter extends StatelessWidget {
     final canDecrease = value > minValue;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.primary),
+          Icon(icon, size: 20, color: const Color(0xFF4F46E5)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
-          IconButton.filledTonal(
-            onPressed: canDecrease ? () => onChanged(value - 1) : null,
-            icon: const Icon(Icons.remove_rounded),
-            tooltip: 'Decrease $label',
+          Material(
+            color: canDecrease ? Colors.white : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: canDecrease ? () => onChanged(value - 1) : null,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: canDecrease ? const Color(0xFFCBD5E1) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Icon(
+                  Icons.remove_rounded,
+                  size: 18,
+                  color: canDecrease ? AppColors.textPrimary : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
           ),
           SizedBox(
-            width: 44,
+            width: 38,
             child: Text(
               context.digitsText(value),
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
-          IconButton.filled(
-            onPressed: value >= 10 ? null : () => onChanged(value + 1),
-            icon: const Icon(Icons.add_rounded),
-            tooltip: 'Increase $label',
+          Material(
+            color: value < 10 ? AppColors.primary : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: value < 10 ? () => onChanged(value + 1) : null,
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 18,
+                  color: value < 10 ? Colors.white : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -3979,12 +4628,14 @@ class _TenantMyPostsPageState extends State<TenantMyPostsPage> {
 
     _didRequestOwnerPosts = true;
     final viewModel = context.read<TenantExperienceViewModel>();
-    unawaited(
-      viewModel.loadOwnerPosts(
-        status: viewModel.ownerPostStatusFilter,
-        forceRefresh: true,
-      ),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        viewModel.loadOwnerPosts(
+          status: viewModel.ownerPostStatusFilter,
+          forceRefresh: true,
+        );
+      }
+    });
   }
 
   @override
@@ -3992,12 +4643,49 @@ class _TenantMyPostsPageState extends State<TenantMyPostsPage> {
     final viewModel = context.watch<TenantExperienceViewModel>();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(context.demoText('My Posts')),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr(bn: 'আমার পোস্ট ও বিজ্ঞাপন', en: 'My Posts & Ads'),
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              context.tr(
+                bn: 'লিস্টিং পরিচালনা ও রেসপন্স ট্র্যাকার',
+                en: 'Manage Listings & Track Inquiries',
+              ),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
         actions: [
           IconButton(
@@ -4008,135 +4696,462 @@ class _TenantMyPostsPageState extends State<TenantMyPostsPage> {
                     status: viewModel.ownerPostStatusFilter,
                     forceRefresh: true,
                   ),
-            icon: const Icon(Icons.refresh_rounded),
+            icon: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF1F5F9),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.refresh_rounded,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        children: [
-          _ShortcutPageHeroCard(
-            title: context.tr(
-              bn: 'আপনার সক্রিয় পোস্ট',
-              en: 'Your active posts',
-            ),
-            subtitle: context.tr(
-              bn: 'পোস্টের স্ট্যাটাস, রেসপন্স আর আপডেট একসাথে ম্যানেজ করুন।',
-              en: 'Manage post status, responses, and recent updates from one place.',
-            ),
-            gradient: const [Color(0xFFFFF3E8), Color(0xFFFFE1C2)],
-            icon: Icons.edit_note_rounded,
-            isDarkForeground: false,
-            actionLabel: context.tr(bn: 'নতুন পোস্ট', en: 'New Post'),
-            onAction: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const TenantPostComposerPage(),
-                ),
-              );
-            },
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: _MiniStatCard(
-                  label: context.demoText('Published'),
-                  value: context.digitsText(viewModel.publishedPostCount),
-                  icon: Icons.public_rounded,
-                  color: AppColors.success,
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+          children: [
+            // Top Action Hero Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x332563EB),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MiniStatCard(
-                  label: context.demoText('Drafts'),
-                  value: context.digitsText(viewModel.draftPostCount),
-                  icon: Icons.drafts_rounded,
-                  color: AppColors.warning,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MiniStatCard(
-                  label: context.demoText('Inquiries'),
-                  value: context.digitsText(viewModel.totalPostInquiries),
-                  icon: Icons.forum_outlined,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              ChoiceChip(
-                label: Text(context.demoText('All')),
-                selected: viewModel.ownerPostStatusFilter == null,
-                onSelected: viewModel.isLoadingOwnerPosts
-                    ? null
-                    : (_) => viewModel.loadOwnerPosts(forceRefresh: true),
-              ),
-              ChoiceChip(
-                label: Text(context.demoText('Published')),
-                selected: viewModel.ownerPostStatusFilter == 'published',
-                onSelected: viewModel.isLoadingOwnerPosts
-                    ? null
-                    : (_) => viewModel.loadOwnerPosts(
-                        status: 'published',
-                        forceRefresh: true,
+              child: Row(
+                children: [
+                  Container(
+                    height: 52,
+                    width: 52,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.post_add_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr(
+                            bn: 'আপনার সক্রিয় বিজ্ঞাপন',
+                            en: 'Your Active Listings',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          context.tr(
+                            bn: 'পোস্টের স্ট্যাটাস ও রেসপন্স একসাথে দেখুন',
+                            en: 'Track status and responses in one place',
+                          ),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const TenantPostComposerPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF2563EB),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.add_rounded, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          context.tr(bn: 'নতুন পোস্ট', en: 'New Post'),
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              ChoiceChip(
-                label: Text(context.demoText('Draft')),
-                selected: viewModel.ownerPostStatusFilter == 'draft',
-                onSelected: viewModel.isLoadingOwnerPosts
-                    ? null
-                    : (_) => viewModel.loadOwnerPosts(
-                        status: 'draft',
-                        forceRefresh: true,
-                      ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          if (viewModel.isLoadingOwnerPosts && viewModel.managedPosts.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 28),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else if (viewModel.ownerPostListError != null &&
-              viewModel.managedPosts.isEmpty)
-            _MarketplaceEmptyStateCard(
-              icon: Icons.cloud_off_rounded,
-              title: 'Unable to load posts',
-              subtitle: viewModel.ownerPostListError!,
-            )
-          else if (viewModel.managedPosts.isEmpty)
-            const _MarketplaceEmptyStateCard(
-              icon: Icons.post_add_rounded,
-              title: 'No posts found',
-              subtitle: 'Create a new post or choose another status filter.',
-            )
-          else ...[
-            if (viewModel.ownerPostListError != null) ...[
+            ),
+            const SizedBox(height: 16),
+
+            // Mini Stat Cards
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: AppShadows.subtle,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.public_rounded,
+                                color: Color(0xFF16A34A),
+                                size: 16,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              context.digitsText(viewModel.publishedPostCount),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF16A34A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.tr(bn: 'পাবলিশড', en: 'Published'),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: AppShadows.subtle,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.drafts_rounded,
+                                color: Color(0xFFD97706),
+                                size: 16,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              context.digitsText(viewModel.draftPostCount),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFFD97706),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.tr(bn: 'ড্রাফট', en: 'Drafts'),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: AppShadows.subtle,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF6FF),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.forum_outlined,
+                                color: Color(0xFF2563EB),
+                                size: 16,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              context.digitsText(viewModel.totalPostInquiries),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.tr(bn: 'জিজ্ঞাসা', en: 'Inquiries'),
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Filter Tabs
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildFilterChip(
+                  context,
+                  label: context.tr(bn: '✨ সব পোস্ট', en: 'All'),
+                  isSelected: viewModel.ownerPostStatusFilter == null,
+                  onTap: viewModel.isLoadingOwnerPosts
+                      ? null
+                      : () => viewModel.loadOwnerPosts(forceRefresh: true),
+                ),
+                _buildFilterChip(
+                  context,
+                  label: context.tr(bn: '🟢 পাবলিশড', en: 'Published'),
+                  isSelected: viewModel.ownerPostStatusFilter == 'published',
+                  onTap: viewModel.isLoadingOwnerPosts
+                      ? null
+                      : () => viewModel.loadOwnerPosts(
+                            status: 'published',
+                            forceRefresh: true,
+                          ),
+                ),
+                _buildFilterChip(
+                  context,
+                  label: context.tr(bn: '🟡 ড্রাফট', en: 'Draft'),
+                  isSelected: viewModel.ownerPostStatusFilter == 'draft',
+                  onTap: viewModel.isLoadingOwnerPosts
+                      ? null
+                      : () => viewModel.loadOwnerPosts(
+                            status: 'draft',
+                            forceRefresh: true,
+                          ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (viewModel.isLoadingOwnerPosts && viewModel.managedPosts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+              )
+            else if (viewModel.ownerPostListError != null &&
+                viewModel.managedPosts.isEmpty)
               _MarketplaceEmptyStateCard(
-                icon: Icons.info_outline_rounded,
-                title: 'Showing saved posts',
+                icon: Icons.cloud_off_rounded,
+                title: 'Unable to load posts',
                 subtitle: viewModel.ownerPostListError!,
+              )
+            else if (viewModel.managedPosts.isEmpty)
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: AppShadows.subtle,
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.post_add_rounded,
+                        color: Color(0xFF64748B),
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      context.tr(
+                        bn: 'কোনো বিজ্ঞাপন পাওয়া যায়নি',
+                        en: 'No posts found',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr(
+                        bn: 'নতুন বিজ্ঞাপন তৈরি করুন অথবা অন্য স্ট্যাটাস নির্বাচন করুন।',
+                        en: 'Create a new post or choose another status filter.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              if (viewModel.ownerPostListError != null) ...[
+                _MarketplaceEmptyStateCard(
+                  icon: Icons.info_outline_rounded,
+                  title: 'Showing saved posts',
+                  subtitle: viewModel.ownerPostListError!,
+                ),
+                const SizedBox(height: 14),
+              ],
+              ...viewModel.managedPosts.map(
+                (post) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _ManagedPostCard(post: post),
+                ),
               ),
-              const SizedBox(height: 14),
             ],
-            ...viewModel.managedPosts.map(
-              (post) => Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: _ManagedPostCard(post: post),
-              ),
-            ),
           ],
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(
+    BuildContext context, {
+    required String label,
+    required bool isSelected,
+    required VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF2563EB).withValues(alpha: 0.28),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: isSelected ? Colors.white : const Color(0xFF475569),
+          ),
+        ),
       ),
     );
   }
@@ -4150,53 +5165,196 @@ class TenantSavedListingsPage extends StatelessWidget {
     final viewModel = context.watch<TenantExperienceViewModel>();
     final savedPosts = viewModel.savedGeneralPosts;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 120),
-      children: [
-        ScreenHeader(
-          title: context.tr(bn: 'সেভড', en: 'Saved'),
-          subtitle: context.tr(
-            bn: 'পছন্দের লিস্টিংগুলো পরে দেখার জন্য এখানে রাখা আছে।',
-            en: 'Your bookmarked listings are stored here for later review.',
-          ),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFFFF7F8), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        const SizedBox(height: 18),
-        if (viewModel.isLoadingSavedPosts)
-          const Center(child: CircularProgressIndicator())
-        else if (savedPosts.isEmpty)
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Text(
-                context.tr(
-                  bn: 'আপনার কোনো সেভ করা তালিকা নেই।',
-                  en: 'You have no saved listings.',
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE11D48), Color(0xFFF43F5E)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: AppShadows.subtle,
                 ),
-                style: const TextStyle(color: Color(0xFF6E7683)),
+                child: const Icon(
+                  Icons.favorite_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-            ),
-          )
-        else
-          ...savedPosts.map((post) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 14),
-              child: buildTenantShowcaseListingCard(
-                listing: mapGeneralPostToShowcase(post),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        final listing = mapGeneralPostToShowcase(post);
-                        return TenantGeneralPostDetailsScreen(listing: listing);
-                      },
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr(bn: 'পছন্দের লিস্টিং', en: 'Saved Listings'),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
-                  );
-                },
+                    Text(
+                      context.tr(
+                        bn: 'আপনার বুকমার্ক করা সকল বাসা ও পোস্ট এখানে দেখতে পাবেন',
+                        en: 'All your bookmarked properties and posts stored here',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            );
-          }),
-      ],
+              if (savedPosts.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFE4E6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    context.digitsText(savedPosts.length),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFE11D48),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (viewModel.isLoadingSavedPosts)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (savedPosts.isEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFF1F5F9)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFE11D48).withValues(alpha: 0.15),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border_rounded,
+                      size: 32,
+                      color: Color(0xFFE11D48),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    context.tr(
+                      bn: 'কোনো সংরক্ষিত লিস্টিং নেই',
+                      en: 'No Saved Listings Yet',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    context.tr(
+                      bn: 'হোম পেজ অথবা সার্চ রেজাল্ট থেকে আপনার পছন্দের বাসার পোস্ট সেভ করে রাখুন।',
+                      en: 'Bookmark favorite listings from home feed or search results to view them anytime.',
+                    ),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textMuted,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      context.read<RoleShellViewModel>().selectTab(1);
+                    },
+                    icon: const Icon(Icons.explore_rounded, size: 18),
+                    label: Text(
+                      context.tr(
+                        bn: 'লিস্টিং এক্সপ্লোর করুন',
+                        en: 'Explore Listings',
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...savedPosts.map((post) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: buildTenantShowcaseListingCard(
+                  listing: mapGeneralPostToShowcase(post),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          final listing = mapGeneralPostToShowcase(post);
+                          return TenantGeneralPostDetailsScreen(
+                            listing: listing,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 }
@@ -4634,67 +5792,559 @@ class TenantMaintenanceRequestPage extends StatelessWidget {
 class TenantProfilePage extends StatelessWidget {
   const TenantProfilePage({super.key});
 
+  Widget _buildProfileMiniStat({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 2),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          color: Color(0xFF475569),
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileOptionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: AppShadows.subtle,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: Color(0xFF94A3B8),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModel = context.watch<TenantExperienceViewModel>();
+    final profile = viewModel.tenantProfile;
+    final property = viewModel.activeTenant.propertyName;
 
-    return ListView(
-      padding: screenPadding,
-      children: [
-        ScreenHeader(
-          title: 'Profile',
-          subtitle: 'Personal summary and access to tenant tools.',
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFEEF2FF), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
-        const SizedBox(height: 18),
-        _ProfileSummaryCard(
-          title: viewModel.tenantProfile.name,
-          subtitle: 'Tenant',
-          icon: Icons.person_outline_rounded,
-          badge: viewModel.activeTenant.propertyName,
-        ),
-        const SizedBox(height: 18),
-        _TenantMenuActionTile(
-          title: 'Rent Payment',
-          subtitle: 'Submit rent payment and view payment entries.',
-          icon: Icons.account_balance_wallet_rounded,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const TenantRentPaymentPage(),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+        children: [
+          // Profile Hero Card
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 14),
-        _TenantMenuActionTile(
-          title: context.tr(bn: 'আমার পোস্ট', en: 'My Posts'),
-          subtitle: context.tr(
-            bn: 'আপনার দেয়া সব পোস্ট এখানে দেখুন।',
-            en: 'View all the posts you have created.',
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: AppShadows.card,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Stack(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            gradient: AppColors.primaryGradient,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primary.withValues(alpha: 0.28),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.person_rounded,
+                              size: 32,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: const BoxDecoration(
+                              color: AppColors.success,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  profile.name.isNotEmpty
+                                      ? profile.name
+                                      : 'আমারঠিকানা টেন্যান্ট',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.verified_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            property.isNotEmpty
+                                ? property
+                                : 'Flat 4B, Gulshan Tower',
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFECFDF5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFFA7F3D0),
+                              ),
+                            ),
+                            child: const Text(
+                              'ভেরিফাইড টেন্যান্ট একাউন্ট',
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF059669),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 14),
+
+                // Mini Quick Stats
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildProfileMiniStat(
+                      title: 'ভাড়া স্ট্যাটাস',
+                      value: 'পরিশোধিত',
+                      icon: Icons.check_circle_outline_rounded,
+                      color: const Color(0xFF059669),
+                    ),
+                    Container(
+                      height: 28,
+                      width: 1,
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                    _buildProfileMiniStat(
+                      title: 'সেভড পোস্ট',
+                      value: context.digitsText(
+                        viewModel.savedGeneralPosts.length,
+                      ),
+                      icon: Icons.favorite_border_rounded,
+                      color: const Color(0xFFE11D48),
+                    ),
+                    Container(
+                      height: 28,
+                      width: 1,
+                      color: const Color(0xFFE2E8F0),
+                    ),
+                    _buildProfileMiniStat(
+                      title: 'আমার লিস্টিং',
+                      value: context.digitsText(viewModel.publishedPostCount),
+                      icon: Icons.post_add_rounded,
+                      color: const Color(0xFF4F46E5),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          icon: Icons.post_add_rounded,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const TenantMyPostsPage(),
+          const SizedBox(height: 20),
+
+          // Section 1: Rent & Payments
+          _buildProfileSectionHeader(
+            context.tr(bn: 'ভাড়া ও বিল পেমেন্ট', en: 'Rent & Payments'),
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'ভাড়া পরিশোধ ও ভাউচার',
+              en: 'Rent Payment & Vouchers',
+            ),
+            subtitle: context.tr(
+              bn: 'মাসের ভাড়া জমা দিন এবং রিসিপ্ট ডাউনলোড করুন',
+              en: 'Submit monthly rent and download receipts',
+            ),
+            icon: Icons.account_balance_wallet_rounded,
+            iconBg: const Color(0xFFEEF2FF),
+            iconColor: const Color(0xFF4F46E5),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TenantRentPaymentPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Section 2: Posts & Activity
+          _buildProfileSectionHeader(
+            context.tr(bn: 'আমার অ্যাক্টিভিটি', en: 'My Activity'),
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'আমার দেয়া পোস্টসমূহ',
+              en: 'My Published Posts',
+            ),
+            subtitle: context.tr(
+              bn: 'আপনার তৈরি করা সব বিজ্ঞাপন ও পোস্ট পরিচালনা করুন',
+              en: 'Manage your listings and advertisements',
+            ),
+            icon: Icons.article_rounded,
+            iconBg: const Color(0xFFFEF3C7),
+            iconColor: const Color(0xFFD97706),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TenantMyPostsPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'সংরক্ষিত পছন্দের লিস্টিং',
+              en: 'Saved Listings',
+            ),
+            subtitle: context.tr(
+              bn: 'পরবর্তীতে যোগাযোগের জন্য সেভ করা বাসা ও পোস্ট',
+              en: 'Saved properties for future reference',
+            ),
+            icon: Icons.favorite_rounded,
+            iconBg: const Color(0xFFFFF1F2),
+            iconColor: const Color(0xFFE11D48),
+            onTap: () {
+              context.read<RoleShellViewModel>().selectTab(2);
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Section 3: Specialized Services
+          _buildProfileSectionHeader(
+            context.tr(bn: 'অন্যান্য সেবা ও চুক্তি', en: 'Services & Contracts'),
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'গৃহশিক্ষক ও লার্নিং প্ল্যাটফর্ম',
+              en: 'Teach & Learn Tutor Hub',
+            ),
+            subtitle: context.tr(
+              bn: 'শিক্ষক খুঁজুন অথবা পড়ানোর জন্য পোস্ট দিন',
+              en: 'Find verified tutors or offer teaching',
+            ),
+            icon: Icons.school_rounded,
+            iconBg: const Color(0xFFEFF6FF),
+            iconColor: const Color(0xFF2563EB),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TenantTutorTeachLearnPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'বাসা পরিবর্তন ও পিকআপ সেবা',
+              en: 'Pickup & Relocation Service',
+            ),
+            subtitle: context.tr(
+              bn: 'নিরাপদ মালামাল স্থানান্তর ও ভ্যান বুকিং',
+              en: 'Reliable moving and logistics support',
+            ),
+            icon: Icons.local_shipping_rounded,
+            iconBg: const Color(0xFFFFF7ED),
+            iconColor: const Color(0xFFEA580C),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TenantPickupServiceScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'ভাড়ার চুক্তিপত্র ও শর্তাবলী',
+              en: 'Rental Agreement & Terms',
+            ),
+            subtitle: context.tr(
+              bn: 'বর্তমান চুক্তির শর্ত, নোটিশ ও নিয়মাবলী দেখুন',
+              en: 'Review tenancy agreement rules and deposit details',
+            ),
+            icon: Icons.description_rounded,
+            iconBg: const Color(0xFFF5F3FF),
+            iconColor: const Color(0xFF7C3AED),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TenantAgreementPreviewPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Section 4: App & Safety
+          _buildProfileSectionHeader(
+            context.tr(bn: 'সেটিংস ও নিরাপত্তা', en: 'Settings & Safety'),
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'জরুরি হেল্পলাইন ও সাপোর্ট',
+              en: 'Support & Helpline',
+            ),
+            subtitle: context.tr(
+              bn: 'যেকোনো প্রয়োজনে আমাদের কাস্টমার কেয়ারে যোগাযোগ করুন',
+              en: 'Contact 24/7 customer assistance',
+            ),
+            icon: Icons.support_agent_rounded,
+            iconBg: const Color(0xFFECFDF5),
+            iconColor: const Color(0xFF059669),
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    context.tr(
+                      bn: 'আমারঠিকানা হেল্পলাইন: ০৯৬৩৮-০০০০০০ (২৪/৭ সেবা)',
+                      en: 'Amar Thikanaa Hotline: 09638-000000 (24/7)',
+                    ),
+                  ),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Logout Card
+          InkWell(
+            onTap: () => _confirmTenantLogout(context),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
               ),
-            );
-          },
-        ),
-        const SizedBox(height: 14),
-        _TenantMenuActionTile(
-          title: context.tr(bn: 'লগআউট', en: 'Log Out'),
-          subtitle: context.tr(
-            bn: 'এই ডিভাইস থেকে আপনার টেন্যান্ট একাউন্ট থেকে বের হয়ে যান।',
-            en: 'Sign out from your tenant account on this device.',
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF1F2),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFFCDD2)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFE4E6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFE11D48),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.tr(bn: 'লগআউট', en: 'Log Out'),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFE11D48),
+                          ),
+                        ),
+                        Text(
+                          context.tr(
+                            bn: 'ডিভাইস থেকে সুরক্ষিতভাবে সাইনআউট করুন',
+                            en: 'Sign out safely from this device',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFFE11D48),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Color(0xFFE11D48),
+                  ),
+                ],
+              ),
+            ),
           ),
-          icon: Icons.logout_rounded,
-          iconColor: AppColors.danger,
-          iconBackgroundColor: const Color(0xFFFFECE8),
-          titleColor: AppColors.danger,
-          onTap: () => _confirmTenantLogout(context),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -4832,227 +6482,606 @@ class _TenantRentPaymentPageState extends State<TenantRentPaymentPage> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(context.demoText('Rent Payment')),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr(bn: 'ভাড়া ও বিল পেমেন্ট', en: 'Rent & Bill Payment'),
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            Text(
+              context.tr(
+                bn: 'স্মার্ট ভাড়া ও বিল ট্র্যাকার',
+                en: 'Smart Rent & Utility Tracker',
+              ),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
       ),
-      body: ListView(
-        padding: screenPadding,
-        children: [
-          ScreenHeader(
-            title: 'Rent Payment',
-            subtitle: 'Enter owner, month, year, payment type, and method.',
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
-          const SizedBox(height: 18),
-          SectionCard(
-            title: 'Payment Entry',
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _ownerNameController,
-                    textInputAction: TextInputAction.next,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: context.demoText('Owner Name'),
-                      prefixIcon: const Icon(Icons.person_pin_rounded),
-                    ),
-                    validator: (value) {
-                      if ((value ?? '').trim().isEmpty) {
-                        return context.demoText('Enter owner name');
-                      }
-                      return null;
-                    },
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
+          children: [
+            // Active Property Summary Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x280D9488),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
                   ),
-                  const SizedBox(height: 14),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.home_work_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          value: _selectedMonth,
-                          items: viewModel.rentPaymentMonthNames
-                              .map(
-                                (month) => DropdownMenuItem<String>(
-                                  value: month,
-                                  child: Text(
-                                    context.demoText(month),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _selectedMonth = value);
-                          },
-                          decoration: InputDecoration(
-                            labelText: context.demoText('Month'),
-                            prefixIcon: const Icon(
-                              Icons.calendar_month_rounded,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 132,
-                        child: DropdownButtonFormField<int>(
-                          isExpanded: true,
-                          value: _selectedYear,
-                          items: viewModel.rentPaymentYears
-                              .map(
-                                (year) => DropdownMenuItem<int>(
-                                  value: year,
-                                  child: Text(
-                                    context.digitsText(year),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(growable: false),
-                          onChanged: (value) {
-                            if (value == null) {
-                              return;
-                            }
-                            setState(() => _selectedYear = value);
-                          },
-                          decoration: InputDecoration(
-                            labelText: context.demoText('Year'),
-                            prefixIcon: const Icon(Icons.event_rounded),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.category_rounded,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            context.demoText('Payment Type'),
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: viewModel.rentPaymentTypeLabels
-                            .map(
-                              (type) => FilterChip(
-                                label: Text(context.demoText(type)),
-                                selected: _selectedPaymentTypes.contains(type),
-                                onSelected: (selected) =>
-                                    _togglePaymentType(type, selected),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr(
+                                bn: 'বর্তমান ভাড়া ও বাসা',
+                                en: 'Current Flat & Rent',
                               ),
-                            )
-                            .toList(growable: false),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                            Text(
+                              viewModel.activeTenantProperty?.name ??
+                                  context.tr(bn: 'ভাড়ার ফ্ল্যাট', en: 'Rented Flat'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          context.money(
+                            viewModel.activeTenantProperty?.monthlyRent ?? 15000,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F766E),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    textInputAction: TextInputAction.done,
-                    decoration: InputDecoration(
-                      labelText: context.demoText('Rent Amount'),
-                      prefixIcon: const Icon(Icons.payments_rounded),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    validator: (value) {
-                      if (_parseAmount(value ?? '') <= 0) {
-                        return context.demoText('Enter a valid rent amount');
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  DropdownButtonFormField<String>(
-                    isExpanded: true,
-                    value: _selectedMethod,
-                    items: viewModel.rentPaymentMethodLabels
-                        .map(
-                          (method) => DropdownMenuItem<String>(
-                            value: method,
-                            child: Text(
-                              context.demoText(method),
-                              overflow: TextOverflow.ellipsis,
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_pin_circle_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${context.tr(bn: "বাড়িওয়ালা", en: "Landlord")}: ${viewModel.ownerProfile.name}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
                             ),
                           ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value == null) {
-                        return;
-                      }
-                      setState(() => _selectedMethod = value);
-                    },
-                    decoration: InputDecoration(
-                      labelText: context.demoText('Payment Method'),
-                      prefixIcon: const Icon(Icons.account_balance_wallet),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  FilledButton.icon(
-                    onPressed: viewModel.isSubmittingRentPayment
-                        ? null
-                        : _submitPayment,
-                    icon: viewModel.isSubmittingRentPayment
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.check_circle_rounded),
-                    label: Text(
-                      context.demoText(
-                        viewModel.isSubmittingRentPayment
-                            ? 'Confirming...'
-                            : 'Payment',
-                      ),
+                        ),
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 18),
-          SectionCard(
-            title: 'Payment List',
-            child: entries.isEmpty
-                ? const _EmptyRentPaymentList()
-                : Column(
-                    children: monthGroups.entries
-                        .map(
-                          (group) => Padding(
-                            padding: const EdgeInsets.only(bottom: 14),
-                            child: _TenantRentPaymentMonthGroup(
-                              monthLabel: group.key,
-                              entries: group.value,
+            const SizedBox(height: 18),
+
+            // Payment Form Card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: AppShadows.card,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFCCFBF1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long_rounded,
+                            color: Color(0xFF0F766E),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.tr(bn: 'পেমেন্ট এন্ট্রি ফর্ম', en: 'Payment Entry Form'),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              Text(
+                                context.tr(
+                                  bn: 'মালিককে দেওয়া টাকার বিবরণ যুক্ত করুন',
+                                  en: 'Record details of payment made to owner',
+                                ),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _ownerNameController,
+                      textInputAction: TextInputAction.next,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        labelText: context.demoText('Owner Name'),
+                        prefixIcon: const Icon(Icons.person_pin_rounded, color: Color(0xFF0F766E)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                      validator: (value) {
+                        if ((value ?? '').trim().isEmpty) {
+                          return context.demoText('Enter owner name');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: _selectedMonth,
+                            items: viewModel.rentPaymentMonthNames
+                                .map(
+                                  (month) => DropdownMenuItem<String>(
+                                    value: month,
+                                    child: Text(
+                                      context.demoText(month),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+                              setState(() => _selectedMonth = value);
+                            },
+                            decoration: InputDecoration(
+                              labelText: context.demoText('Month'),
+                              prefixIcon: const Icon(
+                                Icons.calendar_month_rounded,
+                                color: Color(0xFF0F766E),
+                                size: 20,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
                             ),
                           ),
-                        )
-                        .toList(growable: false),
+                        ),
+                        const SizedBox(width: 10),
+                        SizedBox(
+                          width: 120,
+                          child: DropdownButtonFormField<int>(
+                            isExpanded: true,
+                            value: _selectedYear,
+                            items: viewModel.rentPaymentYears
+                                .map(
+                                  (year) => DropdownMenuItem<int>(
+                                    value: year,
+                                    child: Text(
+                                      context.digitsText(year),
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13),
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
+                            onChanged: (value) {
+                              if (value == null) {
+                                return;
+                              }
+                              setState(() => _selectedYear = value);
+                            },
+                            decoration: InputDecoration(
+                              labelText: context.demoText('Year'),
+                              prefixIcon: const Icon(
+                                Icons.event_rounded,
+                                color: Color(0xFF0F766E),
+                                size: 20,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFFF8FAFC),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          context.demoText('Payment Type'),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: viewModel.rentPaymentTypeLabels
+                              .map(
+                                (type) {
+                                  final isSelected = _selectedPaymentTypes.contains(type);
+                                  return ChoiceChip(
+                                    label: Text(
+                                      context.demoText(type),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: isSelected ? Colors.white : const Color(0xFF334155),
+                                      ),
+                                    ),
+                                    selected: isSelected,
+                                    selectedColor: const Color(0xFF0F766E),
+                                    backgroundColor: const Color(0xFFF1F5F9),
+                                    side: BorderSide(
+                                      color: isSelected ? const Color(0xFF0F766E) : const Color(0xFFE2E8F0),
+                                    ),
+                                    showCheckmark: false,
+                                    onSelected: (selected) => _togglePaymentType(type, selected),
+                                  );
+                                },
+                              )
+                              .toList(growable: false),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _amountController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F766E),
+                      ),
+                      decoration: InputDecoration(
+                        labelText: context.demoText('Rent Amount'),
+                        prefixIcon: const Icon(Icons.payments_rounded, color: Color(0xFF0F766E)),
+                        prefixText: '৳ ',
+                        prefixStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F766E),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (_parseAmount(value ?? '') <= 0) {
+                          return context.demoText('Enter a valid rent amount');
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: _selectedMethod,
+                      items: viewModel.rentPaymentMethodLabels
+                          .map(
+                            (method) => DropdownMenuItem<String>(
+                              value: method,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    method.toLowerCase().contains('bkash')
+                                        ? Icons.account_balance_wallet_rounded
+                                        : (method.toLowerCase().contains('cash')
+                                            ? Icons.payments_rounded
+                                            : Icons.account_balance_rounded),
+                                    size: 18,
+                                    color: const Color(0xFF0F766E),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    context.demoText(method),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setState(() => _selectedMethod = value);
+                      },
+                      decoration: InputDecoration(
+                        labelText: context.demoText('Payment Method'),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x330D9488),
+                            blurRadius: 14,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: viewModel.isSubmittingRentPayment ? null : _submitPayment,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: viewModel.isSubmittingRentPayment
+                            ? const SizedBox(
+                                height: 18,
+                                width: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_rounded, size: 20),
+                        label: Text(
+                          context.demoText(
+                            viewModel.isSubmittingRentPayment
+                                ? 'Confirming...'
+                                : 'Payment',
+                          ),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+
+            // Payment History Section
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-          ),
-        ],
+                  child: const Icon(
+                    Icons.history_rounded,
+                    color: Color(0xFF2563EB),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  context.tr(bn: 'পরিশোধের ইতিহাস', en: 'Payment History'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                if (entries.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCCFBF1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      context.tr(
+                        bn: 'মোট ${context.digitsText(entries.length)}টি এন্ট্রি',
+                        en: '${entries.length} Entries',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F766E),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (entries.isEmpty)
+              const _EmptyRentPaymentList()
+            else
+              ...monthGroups.entries.map(
+                (group) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _TenantRentPaymentMonthGroup(
+                    monthLabel: group.key,
+                    entries: group.value,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -5065,23 +7094,49 @@ class _EmptyRentPaymentList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: AppShadows.subtle,
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.receipt_long_outlined,
-            color: AppColors.primary,
-            size: 34,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              color: Color(0xFF64748B),
+              size: 34,
+            ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
-            context.demoText('No payment entries yet.'),
+            context.tr(bn: 'কোনো পেমেন্ট এন্ট্রি পাওয়া যায়নি', en: 'No payment entries yet.'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            context.tr(
+              bn: 'উপরের ফর্ম ব্যবহার করে আপনার প্রথম ভাড়ার তথ্য সংরক্ষণ করুন।',
+              en: 'Use the form above to record your first rental payment.',
+            ),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textMuted,
+            ),
           ),
         ],
       ),
@@ -5106,29 +7161,61 @@ class _TenantRentPaymentMonthGroup extends StatelessWidget {
         '${context.demoText(firstEntry.monthName)} ${context.digitsText(firstEntry.year)}';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(18),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: AppShadows.subtle,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.calendar_month_rounded,
+                  size: 16,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   localizedMonthLabel,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              Text(
-                context.money(totalAmount),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Text(
+                  context.money(totalAmount),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF16A34A),
+                  ),
+                ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFFF1F5F9), height: 1),
           const SizedBox(height: 12),
           ...entries.map(
             (entry) => Padding(
@@ -5151,49 +7238,93 @@ class _TenantRentPaymentEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final paidAt = DateFormat('dd MMM yyyy, hh:mm a').format(entry.paidAt);
     final localizedTypes = entry.paymentTypes.map(context.demoText).join(', ');
-    final localizedMonthLabel =
-        '${context.demoText(entry.monthName)} ${context.digitsText(entry.year)}';
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
           Container(
-            height: 44,
-            width: 44,
+            height: 42,
+            width: 42,
             decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.check_rounded, color: AppColors.success),
+            child: const Icon(Icons.check_rounded, color: Colors.white, size: 22),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  entry.ownerName,
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        entry.ownerName,
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E7FF),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        context.demoText(entry.method),
+                        style: const TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF4338CA),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  '$localizedTypes - ${context.demoText(entry.method)} - $localizedMonthLabel - $paidAt',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  localizedTypes,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  paidAt,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Text(
             context.money(entry.amount),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(color: AppColors.primary),
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F766E),
+            ),
           ),
         ],
       ),
@@ -5773,7 +7904,6 @@ class _ShortcutPageHeroCard extends StatelessWidget {
     required this.icon,
     required this.actionLabel,
     required this.onAction,
-    this.isDarkForeground = true,
   });
 
   final String title;
@@ -5782,7 +7912,7 @@ class _ShortcutPageHeroCard extends StatelessWidget {
   final IconData icon;
   final String actionLabel;
   final VoidCallback onAction;
-  final bool isDarkForeground;
+  static const bool isDarkForeground = true;
 
   @override
   Widget build(BuildContext context) {
@@ -6083,24 +8213,25 @@ class _ManagedPostCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: AppShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                height: 50,
-                width: 50,
+                height: 48,
+                width: 48,
                 decoration: BoxDecoration(
                   color: post.statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(post.icon, color: post.statusColor),
+                child: Icon(post.icon, color: post.statusColor, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -6111,18 +8242,39 @@ class _ManagedPostCard extends StatelessWidget {
                       context.demoText(post.title),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      post.location,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 14,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            post.location,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -6130,7 +8282,7 @@ class _ManagedPostCard extends StatelessWidget {
                     label: post.statusLabel,
                     color: post.statusColor,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 5),
                   _PostStatusChip(
                     label: post.fulfillmentLabel,
                     color: post.fulfillmentColor,
@@ -6141,40 +8293,132 @@ class _ManagedPostCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              _ListingFeatureChip(
-                icon: Icons.category_outlined,
-                label: post.categoryLabel,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.category_outlined,
+                      size: 14,
+                      color: Color(0xFF475569),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      post.categoryLabel,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              _ListingFeatureChip(
-                icon: Icons.sell_outlined,
-                label: post.priceLabel,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.sell_outlined,
+                      size: 14,
+                      color: Color(0xFF2563EB),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      post.priceLabel,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              _ListingFeatureChip(
-                icon: Icons.chat_bubble_outline_rounded,
-                label: context.tr(
-                  bn: '${context.digitsText(post.inquiryCount)}টি জিজ্ঞাসা',
-                  en: '${post.inquiryCount} inquiries',
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBBF7D0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.forum_outlined,
+                      size: 14,
+                      color: Color(0xFF16A34A),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      context.tr(
+                        bn: '${context.digitsText(post.inquiryCount)}টি জিজ্ঞাসা',
+                        en: '${post.inquiryCount} inquiries',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF15803D),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           if (post.remarks.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
-            _ListingFeatureChip(
-              icon: Icons.comment_outlined,
-              label: post.remarks,
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                post.remarks,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF475569),
+                ),
+              ),
             ),
           ],
           const SizedBox(height: 14),
+          const Divider(color: Color(0xFFF1F5F9), height: 1),
+          const SizedBox(height: 12),
           Row(
             children: [
+              const Icon(
+                Icons.access_time_rounded,
+                size: 14,
+                color: AppColors.textMuted,
+              ),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   context.demoText(post.updatedLabel),
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
               OutlinedButton(
@@ -6182,15 +8426,60 @@ class _ManagedPostCard extends StatelessWidget {
                   context,
                   context.demoText('Edit post'),
                 ),
-                child: Text(context.demoText('Edit')),
-              ),
-              const SizedBox(width: 10),
-              FilledButton(
-                onPressed: () => showComingSoonSnackBar(
-                  context,
-                  context.demoText('Boost post'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: Text(context.demoText('Boost')),
+                child: Text(
+                  context.tr(bn: 'এডিট', en: 'Edit'),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF334155),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: () => showComingSoonSnackBar(
+                    context,
+                    context.demoText('Boost post'),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.rocket_launch_rounded, size: 14),
+                  label: Text(
+                    context.tr(bn: 'বুস্ট', en: 'Boost'),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -6209,16 +8498,18 @@ class _PostStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppRadii.pill),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         context.demoText(label),
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(fontSize: 12, color: color),
+        style: TextStyle(
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
       ),
     );
   }
@@ -6419,18 +8710,15 @@ class _TenantMenuActionTile extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onTap,
-    this.iconColor = AppColors.primary,
-    this.iconBackgroundColor = AppColors.surfaceSoft,
-    this.titleColor,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
-  final Color iconColor;
-  final Color iconBackgroundColor;
-  final Color? titleColor;
+  static const Color iconColor = AppColors.primary;
+  static const Color iconBackgroundColor = AppColors.surfaceSoft;
+  static const Color? titleColor = null;
 
   @override
   Widget build(BuildContext context) {

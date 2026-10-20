@@ -559,9 +559,16 @@ public sealed class ShopkeeperController(
 
         if (profilePicture is { Length: > 0 })
         {
+            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+            if (profilePicture.Length > 5 * 1024 * 1024 || ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+            {
+                TempData["WalletError"] = "Profile picture must be JPG, PNG or WEBP and at most 5 MB.";
+                return RedirectToAction(nameof(Profile));
+            }
+
             var uploads = Path.Combine(environment.ContentRootPath, "uploads", "shopkeepers");
             Directory.CreateDirectory(uploads);
-            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filename = Guid.NewGuid().ToString() + ext;
             var filepath = Path.Combine(uploads, filename);
             using var stream = new FileStream(filepath, FileMode.Create);
             await profilePicture.CopyToAsync(stream);

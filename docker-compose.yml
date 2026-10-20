@@ -12,6 +12,9 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
     depends_on:
       - mssql
+    volumes:
+      - web_uploads:/app/uploads
+      - web_wwwroot_uploads:/app/wwwroot/uploads
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -27,3 +30,5 @@ services:
 
 volumes:
   mssql_data:
+  web_uploads:
+  web_wwwroot_uploads:

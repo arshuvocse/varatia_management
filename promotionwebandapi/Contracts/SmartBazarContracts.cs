@@ -27,3 +27,18 @@ public sealed class SmartBazarAuthResponse
     public DateTime CreatedAt { get; init; }
     public string Message { get; init; } = string.Empty;
 }
+
+public sealed class SmartBazarAddBalanceRequest
+{
+    public string ShopkeeperId { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+}
+
+public sealed class SmartBazarSaleRequest
+{
+    public string ShopkeeperId { get; init; } = string.Empty;
+    public string CustomerPhone { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public decimal CommissionAmount { get; init; }
+    public string? Remarks { get; init; }
+}

@@ -1,0 +1,110 @@
+@model CompanyDashboardViewModel
+@{
+    Layout = "_CompanyLayout";
+    var requests = ViewBag.ContactRequests as IReadOnlyList<OrderProcessAPI.Contracts.ContactAccessRequestDto> 
+        ?? Array.Empty<OrderProcessAPI.Contracts.ContactAccessRequestDto>();
+    var selectedStatus = ViewBag.SelectedStatus as string ?? "";
+}
+
+<div class="card p-3 mb-4 shadow-sm" style="border-radius: 14px; background: #ffffff;">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-1" style="font-weight: 700; color: #1e293b;">পোস্টের নম্বর দেখার অনুরোধ তালিকা</h4>
+            <p class="text-muted mb-0" style="font-size: 13.5px;">ব্যবহারকারীরা পোস্টের মোবাইল নম্বর দেখার জন্য অনুরোধ পাঠালে তা এখানে পর্যালোচনা ও অনুমোদন করা হয়।</p>
+        </div>
+        <div class="btn-group mt-2 mt-md-0" role="group">
+            <a asp-action="ContactRequests" class="btn btn-sm @(string.IsNullOrEmpty(selectedStatus) ? "btn-primary" : "btn-outline-secondary")">সব (@requests.Count)</a>
+            <a asp-action="ContactRequests" asp-route-status="pending" class="btn btn-sm @(selectedStatus == "pending" ? "btn-warning text-dark" : "btn-outline-secondary")">অপেক্ষমাণ</a>
+            <a asp-action="ContactRequests" asp-route-status="approved" class="btn btn-sm @(selectedStatus == "approved" ? "btn-success" : "btn-outline-secondary")">অনুমোদিত</a>
+            <a asp-action="ContactRequests" asp-route-status="rejected" class="btn btn-sm @(selectedStatus == "rejected" ? "btn-danger" : "btn-outline-secondary")">বাতিলকৃত</a>
+        </div>
+    </div>
+
+    @if (requests.Count == 0)
+    {
+        <div class="text-center py-5">
+            <div style="font-size: 42px; color: #94a3b8;">📋</div>
+            <h6 class="mt-2 text-muted">কোনো অনুরোধ পাওয়া যায়নি</h6>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size: 14px;">
+                <thead class="table-light">
+                    <tr>
+                        <th>আইডি</th>
+                        <th>আবেদনকারী</th>
+                        <th>পোস্টের তথ্য</th>
+                        <th>পোস্টের মালিক</th>
+                        <th>আবেদনের কারণ</th>
+                        <th>তারিখ</th>
+                        <th>অবস্থা</th>
+                        <th class="text-end">অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var req in requests)
+                    {
+                        <tr>
+                            <td><strong>#@req.Id</strong></td>
+                            <td>
+                                <div><strong>@req.RequesterName</strong></div>
+                                <small class="text-muted"><i class="bi bi-telephone"></i> @req.RequesterPhone</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">@req.PostCategory</span>
+                                <div class="text-truncate" style="max-width: 220px;" title="@req.PostTitle">@req.PostTitle</div>
+                                <small class="text-muted">(@req.PostType #@req.PostId)</small>
+                            </td>
+                            <td>
+                                <div>@req.PostOwnerName</div>
+                            </td>
+                            <td>
+                                <small class="text-muted">@(string.IsNullOrWhiteSpace(req.Purpose) ? "প্রযোজ্য নয়" : req.Purpose)</small>
+                            </td>
+                            <td>
+                                <small>@req.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")</small>
+                            </td>
+                            <td>
+                                @if (req.Status == "approved")
+                                {
+                                    <span class="badge bg-success">অনুমোদিত</span>
+                                }
+                                else if (req.Status == "rejected")
+                                {
+                                    <span class="badge bg-danger">বাতিল</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">অপেক্ষমাণ</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                @if (req.Status == "pending")
+                                {
+                                    <div class="d-inline-flex gap-1">
+                                        <form asp-action="ApproveContactRequest" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@req.Id" />
+                                            <button type="submit" class="btn btn-sm btn-success">অনুমোদন</button>
+                                        </form>
+                                        <form asp-action="RejectContactRequest" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@req.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">বাতিল</button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <small class="text-muted">নিষ্পন্ন</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

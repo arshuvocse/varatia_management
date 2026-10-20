@@ -52,9 +52,9 @@
 
         .product-entry-grid input:focus,
         .product-entry-grid select:focus {
-            border-color: #1464e9;
+            border-color: var(--primary);
             outline: none;
-            box-shadow: 0 0 0 3px rgba(20, 100, 233, .12);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, .15);
         }
 
         .product-submit {
@@ -62,12 +62,19 @@
             min-width: 170px;
             padding: 12px 20px;
             border: 0;
-            border-radius: 10px;
-            background: #1464e9;
+            border-radius: var(--radius-md);
+            background: var(--primary-gradient);
             color: #fff;
             font: inherit;
-            font-weight: 800;
+            font-weight: 700;
+            box-shadow: var(--shadow-subtle);
             cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .product-submit:hover {
+            box-shadow: var(--shadow-elevated);
+            transform: translateY(-1px);
         }
 
         .product-submit:disabled {
@@ -141,6 +148,8 @@
                     <p>Productের দাম, SKU এবং বর্তমান stock পরিচালনা করুন।</p>
                 </div>
                 <span class="table-chip">@Model.Products.Count products</span>
+            </header>
+
             @if (TempData["ProductSuccess"] is string pSuccess)
             {
                 <div class="product-message success" style="display:block; margin-bottom: 16px;">@pSuccess</div>
@@ -150,13 +159,13 @@
                 <div class="product-message error" style="display:block; margin-bottom: 16px;">@pError</div>
             }
 
-            <section class="panel product-entry-panel" style="background: #f8fafc; border: 1px dashed #cbd5e1; padding: 20px; border-radius: 16px; margin-bottom: 24px;">
-                <h3 style="margin-top: 0; color: #1e3a8a;">📁 বাল্ক প্রোডাক্ট আপলোড (Bulk CSV Upload)</h3>
-                <p style="color: #64748b; font-size: 13px;">CSV ফাইল নির্বাচন করে এক ক্লিকে একাধিক প্রোডাক্ট আপলোড করুন। (ফরম্যাট: ProductName, Category, UnitPrice, StockQuantity)</p>
+            <section class="panel product-entry-panel" style="background: var(--bg-card); border: 1px dashed var(--border); padding: 20px; border-radius: var(--radius-lg); margin-bottom: 24px; box-shadow: var(--shadow-subtle);">
+                <h3 style="margin-top: 0; color: var(--primary);">📁 বাল্ক প্রোডাক্ট আপলোড (Bulk CSV Upload)</h3>
+                <p style="color: var(--text-muted); font-size: 13px;">CSV ফাইল নির্বাচন করে এক ক্লিকে একাধিক প্রোডাক্ট আপলোড করুন। (ফরম্যাট: ProductName, Category, UnitPrice, StockQuantity)</p>
                 <form asp-action="BulkUploadProducts" method="post" enctype="multipart/form-data" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
                     @Html.AntiForgeryToken()
-                    <input type="file" name="csvFile" accept=".csv" required style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff;" />
-                    <button class="product-submit" type="submit" style="min-width: 140px; background: #059669;">আপলোড করুন</button>
+                    <input type="file" name="csvFile" accept=".csv" required style="padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card);" />
+                    <button class="product-submit" type="submit" style="min-width: 140px;">আপলোড করুন</button>
                 </form>
             </section>
 
@@ -164,7 +173,7 @@
                 <h2>নতুন Product যোগ করুন</h2>
                 <p class="panel-copy">Productের তথ্য পূরণ করে Save Product বাটনে Clicks করুন।</p>
 
-                <form id="productForm">
+                <form id="productForm" data-managed-loading="true">
                     @Html.AntiForgeryToken()
 
                     <div class="product-entry-grid">
@@ -255,7 +264,7 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="product-submit" style="min-width: auto; padding: 6px 12px; font-size: 13px; background: #10b981;" onclick="openRestockModal(@product.Id, '@Html.Raw(product.Name)', @product.StockQuantity, @product.UnitPrice)">+ Restock</button>
+                                        <button class="product-submit" style="min-width: auto; padding: 6px 14px; font-size: 13px; background: var(--primary-gradient);" onclick="openRestockModal(@product.Id, '@Html.Raw(product.Name)', @product.StockQuantity, @product.UnitPrice)">+ Restock</button>
                                     </td>
                                 </tr>
                             }
@@ -267,36 +276,28 @@
     </div>
 </main>
 
-<div id="restockModal" class="shop-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .5); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
-    <div style="background: #fff; border-radius: 16px; width: 100%; max-width: 420px; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,.1);">
-        <h3 style="margin-top: 0; font-size: 20px; color: #0f172a;">পণ্য স্টক বৃদ্ধি (Restock)</h3>
-        <p style="color: #64748b; font-size: 14px; margin-bottom: 16px;" id="restockProductName"></p>
-        <form id="restockForm" onsubmit="submitRestock(event)">
+<div id="restockModal" class="shop-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, .6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 16px;">
+    <div style="background: var(--bg-card); border-radius: var(--radius-lg); width: 100%; max-width: 420px; padding: 24px; box-shadow: var(--shadow-elevated); border: 1px solid var(--border);">
+        <h3 style="margin-top: 0; font-size: 20px; color: var(--text-primary);">পণ্য স্টক বৃদ্ধি (Restock)</h3>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;" id="restockProductName"></p>
+        <form id="restockForm" onsubmit="submitRestock(event)" data-managed-loading="true">
             @Html.AntiForgeryToken()
             <input type="hidden" id="restockProductId" name="productId" />
             <div style="margin-bottom: 14px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155;">অতিরিক্ত নতুন পরিমাণ (সংখ্যা) *</label>
-                <input type="number" id="restockAddQuantity" name="addQuantity" min="1" value="10" required style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;" />
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: var(--text-primary);">অতিরিক্ত নতুন পরিমাণ (সংখ্যা) *</label>
+                <input type="number" id="restockAddQuantity" name="addQuantity" min="1" value="10" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-primary);" />
             </div>
             <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: #334155;">নতুন ইউনিট বিক্রয়মূল্য (ঐচ্ছিক)</label>
-                <input type="number" id="restockUnitPrice" name="newUnitPrice" step="0.01" min="0" placeholder="পরিবর্তন না চাইলে ফাঁকা রাখুন" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px;" />
+                <label style="display: block; margin-bottom: 6px; font-weight: 700; color: var(--text-primary);">নতুন ইউনিট বিক্রয়মূল্য (ঐচ্ছিক)</label>
+                <input type="number" id="restockUnitPrice" name="newUnitPrice" step="0.01" min="0" placeholder="পরিবর্তন না চাইলে ফাঁকা রাখুন" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-card); color: var(--text-primary);" />
             </div>
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button type="button" onclick="closeRestockModal()" style="padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; font-weight: 700; cursor: pointer;">বাতিল</button>
-                <button type="submit" style="padding: 10px 18px; border: 0; border-radius: 8px; background: #10b981; color: #fff; font-weight: 700; cursor: pointer;">সেভ করুন</button>
+                <button type="button" onclick="closeRestockModal()" style="padding: 10px 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-app); color: var(--text-secondary); font-weight: 700; cursor: pointer;">বাতিল</button>
+                <button type="submit" style="padding: 10px 18px; border: 0; border-radius: var(--radius-sm); background: var(--primary-gradient); color: #fff; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-subtle);">সেভ করুন</button>
             </div>
         </form>
     </div>
-</div>                           </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </section>
-    </div>
-</main>
+</div>
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -423,6 +424,9 @@
             if (form.newUnitPrice.value) formData.append('newUnitPrice', form.newUnitPrice.value);
             formData.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
 
+            const submitBtn = form.querySelector('button[type="submit"]');
+            window.setButtonLoading(submitBtn, true, 'সংরক্ষণ হচ্ছে...');
+
             try {
                 const response = await fetch('@Url.Action("RestockProduct")', {
                     method: 'POST',
@@ -437,6 +441,8 @@
                 }
             } catch (err) {
                 alert("স্টক আপডেট ব্যর্থ হয়েছে। " + err.message);
+            } finally {
+                window.setButtonLoading(submitBtn, false);
             }
         }
     </script>

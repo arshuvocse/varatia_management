@@ -95,9 +95,16 @@ public sealed class FieldOfficerController(
 
         if (profilePicture is { Length: > 0 })
         {
-            var uploads = Path.Combine(environment.ContentRootPath, "wwwroot", "uploads", "profiles");
+            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+            if (profilePicture.Length > 5 * 1024 * 1024 || ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+            {
+                TempData["ErrorMessage"] = "প্রোফাইল ছবিটি JPG, PNG বা WEBP হতে হবে এবং সর্বোচ্চ ৫ MB হতে পারবে।";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var uploads = Path.Combine(environment.ContentRootPath, "uploads", "profiles");
             Directory.CreateDirectory(uploads);
-            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filename = Guid.NewGuid().ToString() + ext;
             var filepath = Path.Combine(uploads, filename);
             using var stream = new FileStream(filepath, FileMode.Create);
             await profilePicture.CopyToAsync(stream);
@@ -110,8 +117,45 @@ public sealed class FieldOfficerController(
         {
             TempData["ErrorMessage"] = "অনুগ্রহ করে একটি ছবি নির্বাচন করুন।";
         }
-        
+
         return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpPost("/FieldForce/ChangePassword")]
+    [ValidateAntiForgeryToken]
+    public IActionResult ChangePassword([FromBody] ChangePasswordInputModel? input)
+    {
+        if (!IsFieldOfficer())
+        {
+            return Unauthorized(new { success = false, message = "Session শেষ হয়েছে। আবার login করুন।" });
+        }
+
+        if (input is null)
+        {
+            return BadRequest(new { success = false, message = "তথ্য পাওয়া যায়নি।" });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var message = ModelState.Values
+                .SelectMany(value => value.Errors)
+                .Select(error => error.ErrorMessage)
+                .FirstOrDefault(error => !string.IsNullOrWhiteSpace(error))
+                ?? "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।";
+            return BadRequest(new { success = false, message });
+        }
+
+        try
+        {
+            var success = store.ChangePassword(GetUserId(), input.OldPassword.Trim(), input.NewPassword.Trim());
+            return success
+                ? Json(new { success = true, message = "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।" })
+                : BadRequest(new { success = false, message = "বর্তমান পাসওয়ার্ড সঠিক নয়।" });
+        }
+        catch
+        {
+            return BadRequest(new { success = false, message = "পাসওয়ার্ড পরিবর্তন করা যায়নি। আবার চেষ্টা করুন।" });
+        }
     }
 
     [HttpGet("/FieldForce/Reports")]
@@ -222,7 +266,7 @@ public sealed class FieldOfficerController(
     }
 
 
-    [HttpPost]
+    [HttpPost("/FieldForce/RegisterShopkeeper")]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> RegisterShopkeeper([Bind(Prefix = "Registration")] ShopkeeperRegistrationViewModel registration)
@@ -264,10 +308,12 @@ public sealed class FieldOfficerController(
             return View("Dashboard", BuildDashboard(registration));
         }
 
+        string? profilePhotoPath = null;
+        string? billboardPhotoPath = null;
         try
         {
-            var profilePhotoPath = await SaveShopkeeperImage(registration.ProfilePhoto, "profile");
-            var billboardPhotoPath = await SaveShopkeeperImage(registration.BillboardPhoto, "billboard");
+            profilePhotoPath = await SaveShopkeeperImage(registration.ProfilePhoto, "profile");
+            billboardPhotoPath = await SaveShopkeeperImage(registration.BillboardPhoto, "billboard");
             var shop = store.RegisterShopkeeper(registration, GetUserId(), profilePhotoPath, billboardPhotoPath);
             productStore.AssignProductsToShop(shop.Id, registration.ShopType, registration.SelectedProductIds);
             
@@ -298,6 +344,8 @@ public sealed class FieldOfficerController(
         }
         catch (InvalidOperationException ex)
         {
+            DeleteUploadedFile(profilePhotoPath);
+            DeleteUploadedFile(billboardPhotoPath);
             ModelState.AddModelError("Registration.Phone", ex.Message);
             if (IsAjaxRequest())
             {
@@ -310,6 +358,16 @@ public sealed class FieldOfficerController(
             }
 
             return View("Dashboard", BuildDashboard(registration));
+        }
+    }
+
+    private void DeleteUploadedFile(string? relativeUrl)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl)) return;
+        var physicalPath = Path.Combine(environment.ContentRootPath, relativeUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        if (System.IO.File.Exists(physicalPath))
+        {
+            System.IO.File.Delete(physicalPath);
         }
     }
 

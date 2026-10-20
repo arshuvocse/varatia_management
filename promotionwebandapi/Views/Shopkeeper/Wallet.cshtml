@@ -40,24 +40,24 @@
                             <button class="btn-primary" type="submit">🔒 Request Withdrawal (2FA)</button>
                         </form>
                     </div>
-                    <div style="flex: 1; border-left: 1px solid #eee; padding-left: 2rem;">
+                    <div style="flex: 1; border-left: 1px solid var(--border); padding-left: 2rem;">
                         <h2>Add Balance (SSL Commerz)</h2><p>আপনার Wallet-এ ব্যালেন্স যোগ করুন।</p>
                         <form asp-controller="Shopkeeper" asp-action="AddWalletBalance" method="post" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1rem;">
                             <input type="number" name="Amount" placeholder="Amount (৳)" min="10" step="0.01" required class="input-text" />
-                            <button class="btn-primary" type="submit" style="background-color: #28a745; border-color: #28a745;">Add Funds (SSLCommerz)</button>
+                            <button class="btn-primary" type="submit">Add Funds (SSLCommerz)</button>
                         </form>
                     </div>
                 </div>
             </section>
 
-<div id="payoutOtpModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center;">
-    <div style="background: #fff; padding: 24px; border-radius: 16px; width: min(380px, 90%); text-align: center;">
-        <h3 style="margin-top:0; color: #1e3a8a;">🔒 2FA নিরাপত্তা যাচাই</h3>
-        <p style="font-size: 13px; color: #64748b;">নিরাপত্তার স্বার্থে আপনার মোবাইলে পাঠানো ৬ সংখ্যার OTP কোডটি লিখুন। (Demo OTP: 889900)</p>
-        <input type="text" id="payoutOtpInput" placeholder="৬ সংখ্যার OTP" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 14px; text-align: center; font-size: 18px; letter-spacing: 4px;" />
-        <div style="display: flex; gap: 8px; justify-content: center;">
-            <button type="button" onclick="closePayoutModal()" style="padding: 8px 16px; border: 0; background: #e2e8f0; border-radius: 8px; cursor: pointer;">বাতিল</button>
-            <button type="button" onclick="confirmPayoutOtp()" style="padding: 8px 16px; border: 0; background: #059669; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer;">যাচাই করুন</button>
+<div id="payoutOtpModal" style="display:none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999; justify-content: center; align-items: center;">
+    <div style="background: var(--bg-card); padding: 24px; border-radius: var(--radius-lg); width: min(400px, 90%); text-align: center; border: 1px solid var(--border); box-shadow: var(--shadow-elevated);">
+        <h3 style="margin-top:0; color: var(--primary);">🔒 2FA নিরাপত্তা যাচাই</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">নিরাপত্তার স্বার্থে আপনার মোবাইলে পাঠানো ৬ সংখ্যার OTP কোডটি লিখুন। (Demo OTP: 889900)</p>
+        <input type="text" id="payoutOtpInput" placeholder="৬ সংখ্যার OTP" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 16px; text-align: center; font-size: 20px; font-weight: 700; letter-spacing: 6px; background: var(--bg-app); color: var(--text-primary); box-sizing: border-box;" />
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button type="button" onclick="closePayoutModal()" style="padding: 10px 18px; border: 1px solid var(--border); background: var(--bg-app); color: var(--text-secondary); border-radius: var(--radius-sm); font-weight: 700; cursor: pointer;">বাতিল</button>
+            <button type="button" onclick="confirmPayoutOtp()" style="padding: 10px 20px; border: 0; background: var(--primary-gradient); color: #fff; border-radius: var(--radius-sm); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-subtle);">যাচাই করুন</button>
         </div>
     </div>
 </div>

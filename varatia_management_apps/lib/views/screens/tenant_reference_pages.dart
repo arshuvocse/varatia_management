@@ -533,12 +533,33 @@ class _DetailScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(context.demoText(title)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          context.demoText(title),
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: Container(
+            padding: const EdgeInsets.all(7),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF1F5F9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 16,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
         actions: [
           if (trailing != null)
@@ -550,13 +571,22 @@ class _DetailScaffold extends StatelessWidget {
           : SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
                 child: bottomAction,
               ),
             ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-        children: [child],
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF1F5F9), Color(0xFFFFFFFF), Color(0xFFF8FAFC)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+          children: [child],
+        ),
       ),
     );
   }
@@ -578,28 +608,39 @@ class _PersonHeroCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: AppShadows.card,
       ),
       child: Row(
         children: [
           Container(
-            height: 60,
-            width: 60,
+            height: 56,
+            width: 56,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [accentColor, accentColor.withValues(alpha: 0.7)],
+                colors: [accentColor, accentColor.withValues(alpha: 0.75)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Text(
               person.name.characters.first,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: Colors.white),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -612,7 +653,11 @@ class _PersonHeroCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         person.name,
-                        style: Theme.of(context).textTheme.titleLarge,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -620,42 +665,60 @@ class _PersonHeroCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       const Icon(
                         Icons.verified_rounded,
-                        color: AppColors.success,
+                        color: Color(0xFF16A34A),
                         size: 18,
                       ),
                     ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
-                  '${person.subtitle} • ${person.identifier}',
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  person.identifier.length > 12
+                      ? '${person.subtitle} • #${person.identifier.substring(0, 8)}'
+                      : '${person.subtitle} • ${person.identifier}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                    horizontal: 9,
+                    vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     person.badgeLabel,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(fontSize: 12),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF475569),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          Text(
-            trailingText,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: accentColor,
-              fontWeight: FontWeight.w700,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              trailingText,
+              style: TextStyle(
+                color: accentColor,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -672,11 +735,11 @@ class _GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: AppShadows.card,
       ),
       child: child,

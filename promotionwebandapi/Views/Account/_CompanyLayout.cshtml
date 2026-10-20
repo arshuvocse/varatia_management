@@ -18,7 +18,9 @@
             <a class="@(activePage == "Campaigns" ? "active" : "")" asp-action="Campaigns">প্রচার</a>
             <a class="@(activePage == "Orders" ? "active" : "")" asp-action="Orders">অর্ডার</a>
             <a class="@(activePage == "Shopkeepers" ? "active" : "")" asp-action="Shopkeepers">দোকানদার</a>
+            <a class="@(activePage == "Loans" ? "active" : "")" asp-action="Loans">লোন ব্যবস্থাপনা</a>
             <a class="@(activePage == "Prices" ? "active" : "")" asp-action="Prices">দাম আপডেট</a>
+            <a class="@(activePage == "PlatformSettings" ? "active" : "")" asp-action="PlatformSettings">জেলা মূল্য ও ক্যাটাগরি</a>
             <a class="@(activePage == "Delivery" ? "active" : "")" asp-action="Delivery">ডেলিভারি</a>
             <a class="@(activePage == "Products" ? "active" : "")" asp-action="Products">পণ্য</a>
             <a class="@(activePage == "ProductDistribution" ? "active" : "")" asp-action="ProductDistribution">শতাংশ বণ্টন</a>
@@ -30,6 +32,9 @@
             <a class="@(activePage == "SupportAgents" ? "active" : "")" asp-action="SupportAgents">সাপোর্ট টিম</a>
             <a class="@(activePage == "Settings" ? "active" : "")" asp-action="Settings">সেটিংস</a>
             <a class="@(activePage == "ServiceRequests" ? "active" : "")" asp-action="ServiceRequests">সেবা অনুরোধ</a>
+            <a class="@(activePage == "ContactRequests" ? "active" : "")" asp-action="ContactRequests">যোগাযোগ অনুরোধ</a>
+            <a class="@(activePage == "TeachAndLearn" ? "active" : "")" asp-action="TeachAndLearn">টিচ অ্যান্ড লার্ন</a>
+            <a class="@(activePage == "VaratiaManagement" ? "active" : "")" asp-action="VaratiaManagement">ভাড়াটিয়া ও প্রোপার্টি</a>
         </nav>
         <form asp-action="Logout" method="post"><button type="submit">লগআউট</button></form>
     </aside>

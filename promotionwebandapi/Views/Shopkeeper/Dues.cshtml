@@ -1,15 +1,15 @@
 @model PromotionWeb.Models.ShopkeeperDashboardViewModel
 
 <div class="shop-page-header">
-    <h1 class="shop-page-title">বকেয়া খাতা</h1>
+    <h1 class="shop-page-title">বকেয়া খাতা</h1>
 </div>
 
 @if (Model.Dues.Count == 0)
 {
     <div class="shop-empty-state">
         <div class="shop-empty-icon">✓</div>
-        <h3>কোনো বকেয়া নেই</h3>
-        <p>আপনার কোনো গ্রাহকের কাছে বকেয়া পাওনা নেই।</p>
+        <h3>কোনো বকেয়া নেই</h3>
+        <p>আপনার কোনো গ্রাহকের কাছে বকেয়া পাওনা নেই।</p>
     </div>
 }
 else
@@ -19,11 +19,11 @@ else
             <thead>
                 <tr>
                     <th>তারিখ</th>
-                    <th>ইনভয়েস</th>
+                    <th>ইনভয়েস</th>
                     <th>গ্রাহক</th>
                     <th>মোট বিল</th>
                     <th>পেমেন্ট</th>
-                    <th>বকেয়া</th>
+                    <th>বকেয়া</th>
                     <th>অ্যাকশন</th>
                 </tr>
             </thead>
@@ -41,7 +41,7 @@ else
                         <td>৳@due.PaidAmount.ToString("N2")</td>
                         <td style="color: #e11d48; font-weight: bold;">৳@due.DueAmount.ToString("N2")</td>
                         <td>
-                            <button class="shop-btn shop-btn-primary shop-btn-sm" onclick="openPaymentModal(@due.SaleId, @due.DueAmount)">আদায় করুন</button>
+                            <button class="shop-btn shop-btn-primary shop-btn-sm" onclick="openPaymentModal(@due.SaleId, @due.DueAmount)">আদায় করুন</button>
                             <button class="shop-btn shop-btn-secondary shop-btn-sm" style="margin-left: 4px; background: #3b82f6; color: #fff;" onclick="sendDueReminder(@due.SaleId, '@due.CustomerPhone', @due.DueAmount)">💬 SMS রিমাইন্ডার</button>
                         </td>
                     </tr>
@@ -54,14 +54,14 @@ else
 <div id="paymentModal" class="shop-modal" style="display: none;">
     <div class="shop-modal-content" style="max-width: 400px;">
         <div class="shop-modal-header">
-            <h2>বকেয়া আদায়</h2>
+            <h2>বকেয়া আদায়</h2>
             <button class="shop-modal-close" onclick="closePaymentModal()">&times;</button>
         </div>
-        <form id="paymentForm" onsubmit="submitPayment(event)">
+        <form id="paymentForm" onsubmit="submitPayment(event)" data-managed-loading="true">
             @Html.AntiForgeryToken()
             <input type="hidden" id="SaleId" name="SaleId" />
             <div class="shop-form-group">
-                <label>আদায়ের পরিমাণ (সর্বোচ্চ: ৳<span id="maxDueLabel">0</span>)</label>
+                <label>আদায়ের পরিমাণ (সর্বোচ্চ: ৳<span id="maxDueLabel">0</span>)</label>
                 <input type="number" id="Amount" name="Amount" step="0.01" min="1" required class="shop-input" />
             </div>
             <div class="shop-form-group">
@@ -99,7 +99,7 @@ else
         }
 
         async function sendDueReminder(saleId, customerPhone, dueAmount) {
-            if (!confirm(`গ্রাহক ${customerPhone}-এ ৳${dueAmount.toFixed(2)} বকেয়া আদায়ের SMS রিমাইন্ডার পাঠাতে চান?`)) return;
+            if (!confirm(`গ্রাহক ${customerPhone}-এ ৳${dueAmount.toFixed(2)} বকেয়া আদায়ের SMS রিমাইন্ডার পাঠাতে চান?`)) return;
 
             try {
                 const formData = new FormData();
@@ -113,9 +113,9 @@ else
                     body: formData
                 });
                 const result = await response.json();
-                alert(result.message || result.error || "SMS পাঠানো হয়েছে।");
+                alert(result.message || result.error || "SMS পাঠানো হয়েছে।");
             } catch (err) {
-                alert("SMS পাঠানো ব্যর্থ হয়েছে। " + err.message);
+                alert("SMS পাঠানো ব্যর্থ হয়েছে। " + err.message);
             }
         }
 
@@ -127,11 +127,14 @@ else
                 Amount: parseFloat(form.Amount.value),
                 PaymentMethod: form.PaymentMethod.value
             };
-            
+
             if (data.Amount <= 0 || data.Amount > maxDue) {
-                alert("আদায়ের পরিমাণ সঠিক নয়।");
+                alert("আদায়ের পরিমাণ সঠিক নয়।");
                 return;
             }
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            window.setButtonLoading(submitBtn, true, 'সংরক্ষণ হচ্ছে...');
 
             try {
                 const response = await fetch('@Url.Action("PayDue")', {
@@ -142,16 +145,19 @@ else
                     },
                     body: JSON.stringify(data)
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     alert(result.message);
                     location.reload();
-                } else {
-                    alert(result.message || "পেমেন্ট ব্যর্থ হয়েছে।");
+                    return;
                 }
+
+                alert(result.message || "পেমেন্ট ব্যর্থ হয়েছে।");
             } catch (err) {
-                alert("পেমেন্ট ব্যর্থ হয়েছে। " + err.message);
+                alert("পেমেন্ট ব্যর্থ হয়েছে। " + err.message);
+            } finally {
+                window.setButtonLoading(submitBtn, false);
             }
         }
     </script>

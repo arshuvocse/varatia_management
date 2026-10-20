@@ -12,7 +12,7 @@ import 'management_repository.dart';
 class ManagementRepositoryBootstrap {
   ManagementRepositoryBootstrap._();
 
-  static const Duration _bootstrapTimeout = Duration(seconds: 8);
+  static const Duration _bootstrapTimeout = Duration(seconds: 2);
 
   static Future<ManagementRepository> initialize({http.Client? client}) async {
     if (ApiConfig.isDemoMode) {

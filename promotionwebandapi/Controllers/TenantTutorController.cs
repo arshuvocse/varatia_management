@@ -9,10 +9,14 @@ namespace OrderProcessAPI.Controllers;
 public sealed class TenantTutorController : ControllerBase
 {
     private readonly ITenantTutorService _tenantTutorService;
+    private readonly IPostingEntitlementService _postingEntitlementService;
 
-    public TenantTutorController(ITenantTutorService tenantTutorService)
+    public TenantTutorController(
+        ITenantTutorService tenantTutorService,
+        IPostingEntitlementService postingEntitlementService)
     {
         _tenantTutorService = tenantTutorService;
+        _postingEntitlementService = postingEntitlementService;
     }
 
     [HttpGet("posts")]
@@ -53,9 +57,33 @@ public sealed class TenantTutorController : ControllerBase
     {
         try
         {
+            var userId = request.TenantId;
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                var entitlement = await _postingEntitlementService.GetEntitlementAsync(userId, cancellationToken);
+                if (!entitlement.CanPost)
+                {
+                    return StatusCode(
+                        StatusCodes.Status402PaymentRequired,
+                        new
+                        {
+                            message = "You have exhausted your 4 free posts. A payment of at least BDT 100 is required to post.",
+                            requiresPayment = true,
+                            freePostsAllowed = entitlement.FreePostsAllowed,
+                            freePostsUsed = entitlement.FreePostsUsed,
+                            minimumPaymentAmount = entitlement.MinimumPaymentAmount
+                        });
+                }
+            }
+
             var response = await _tenantTutorService.CreatePostAsync(
                 request,
                 cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                await _postingEntitlementService.ConsumePostingSlotAsync(userId, cancellationToken);
+            }
 
             return Ok(response);
         }

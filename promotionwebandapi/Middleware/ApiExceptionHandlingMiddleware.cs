@@ -47,9 +47,9 @@ public sealed class ApiExceptionHandlingMiddleware
                 new
                 {
                     status = "failed",
-                    message = _environment.IsDevelopment()
-                        ? exception.Message
-                        : "Internal server error.",
+                    message = exception.Message,
+                    errorType = exception.GetType().FullName,
+                    details = exception.ToString(),
                 },
                 JsonOptions,
                 context.RequestAborted);

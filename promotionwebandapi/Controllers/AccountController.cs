@@ -17,7 +17,8 @@ public sealed class AccountController(
     DeliveryStore deliveryStore,
     ShopkeeperActivationStore activationStore,
     ProductDistributionStore distributionStore,
-    ShopkeeperRequestStore requestStore) : Controller
+    ShopkeeperRequestStore requestStore,
+    LoanStore loanStore) : Controller
 {
     [HttpGet]
     public IActionResult Login()
@@ -239,6 +240,174 @@ public sealed class AccountController(
 
     [HttpGet]
     public IActionResult Shopkeepers() => CompanyPage(nameof(Shopkeepers));
+
+    [HttpGet]
+    public IActionResult Loans(string? status, string? role)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        var loans = loanStore.GetAllLoans(status, role);
+        var model = new AdminLoanManagementViewModel
+        {
+            Loans = loans,
+            FilterStatus = status,
+            FilterRole = role,
+            Config = loanStore.GetLoanConfigRow(),
+            SuccessMessage = TempData["CompanyMessage"] as string,
+            ErrorMessage = TempData["CompanyError"] as string
+        };
+        ViewBag.LoanManagement = model;
+        return CompanyPage(nameof(Loans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateLoanStatus(int loanId, string status, string? note)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        try
+        {
+            var adminId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var ok = loanStore.UpdateLoanStatus(loanId, status, note, adminId);
+            if (ok)
+            {
+                TempData["CompanyMessage"] = $"লোন নং #{loanId:D5} সফলভাবে '{status}' করা হয়েছে।";
+            }
+            else
+            {
+                TempData["CompanyError"] = "লোন স্ট্যাটাস পরিবর্তন করা যায়নি।";
+            }
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Loans));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateLoanConfig(LoanConfigInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid)
+        {
+            TempData["CompanyError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(Loans));
+        }
+        try
+        {
+            loanStore.UpdateLoanConfig(input);
+            TempData["CompanyMessage"] = "লোন কনফিগারেশন সফলভাবে আপডেট হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(Loans));
+    }
+
+    [HttpGet]
+    public IActionResult PlatformSettings()
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        var model = new PlatformSettingsViewModel
+        {
+            DistrictPricing = loanStore.GetDistrictPricingRows(),
+            ShopCategories = loanStore.GetShopCategoriesAdmin(),
+            SuccessMessage = TempData["CompanyMessage"] as string,
+            ErrorMessage = TempData["CompanyError"] as string
+        };
+        ViewBag.PlatformSettings = model;
+        return CompanyPage(nameof(PlatformSettings));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateDistrictPricing(DistrictPricingConfigInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid)
+        {
+            TempData["CompanyError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(PlatformSettings));
+        }
+        try
+        {
+            loanStore.UpdateDistrictPricing(input);
+            TempData["CompanyMessage"] = "জেলার মূল্য কনফিগারেশন আপডেট হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(PlatformSettings));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddDistrictPricing(DistrictPricingConfigCreateInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid)
+        {
+            TempData["CompanyError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(PlatformSettings));
+        }
+        try
+        {
+            loanStore.AddDistrictPricing(input);
+            TempData["CompanyMessage"] = $"{input.DistrictName} জেলার মূল্য কনফিগারেশন যোগ হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(PlatformSettings));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateShopCategory(ShopCategoryInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid)
+        {
+            TempData["CompanyError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(PlatformSettings));
+        }
+        try
+        {
+            loanStore.UpdateShopCategory(input);
+            TempData["CompanyMessage"] = "ক্যাটাগরি আপডেট হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(PlatformSettings));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddShopCategory(ShopCategoryCreateInputModel input)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+        if (!ModelState.IsValid)
+        {
+            TempData["CompanyError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(PlatformSettings));
+        }
+        try
+        {
+            loanStore.AddShopCategory(input);
+            TempData["CompanyMessage"] = $"{input.BanglaName} ক্যাটাগরি যোগ হয়েছে।";
+        }
+        catch (Exception ex)
+        {
+            TempData["CompanyError"] = ex.Message;
+        }
+        return RedirectToAction(nameof(PlatformSettings));
+    }
 
     [HttpGet]
     public IActionResult Prices() => CompanyPage(nameof(Prices), includeShopsModel: true);
@@ -463,6 +632,44 @@ public sealed class AccountController(
     [HttpGet]
     public IActionResult Settings() => CompanyPage(nameof(Settings));
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult ChangePassword([FromBody] ChangePasswordInputModel? input)
+    {
+        if (!IsCompany())
+        {
+            return Unauthorized(new { success = false, message = "Session শেষ হয়েছে। আবার login করুন।" });
+        }
+
+        if (input is null)
+        {
+            return BadRequest(new { success = false, message = "তথ্য পাওয়া যায়নি।" });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            var message = ModelState.Values
+                .SelectMany(value => value.Errors)
+                .Select(error => error.ErrorMessage)
+                .FirstOrDefault(error => !string.IsNullOrWhiteSpace(error))
+                ?? "পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।";
+            return BadRequest(new { success = false, message });
+        }
+
+        try
+        {
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var success = store.ChangePassword(userId, input.OldPassword.Trim(), input.NewPassword.Trim());
+            return success
+                ? Json(new { success = true, message = "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।" })
+                : BadRequest(new { success = false, message = "বর্তমান পাসওয়ার্ড সঠিক নয়।" });
+        }
+        catch
+        {
+            return BadRequest(new { success = false, message = "পাসওয়ার্ড পরিবর্তন করা যায়নি। আবার চেষ্টা করুন।" });
+        }
+    }
+
     [HttpGet]
     public IActionResult ServiceRequests() => CompanyPage(nameof(ServiceRequests), includeServiceRequests: true);
 
@@ -619,6 +826,312 @@ public sealed class AccountController(
             DistributionProducts = distributionStore.GetProducts(HttpContext.Session.GetInt32("UserId") ?? 0),
             Locations = store.GetLocationCatalog()
         };
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ContactRequests(
+        [FromServices] IContactRequestService contactRequestService,
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        ViewData["ActivePage"] = "ContactRequests";
+        ViewData["PageTitle"] = "যোগাযোগ অনুরোধ ও ফোন নম্বর অনুমোদন";
+
+        var requests = await contactRequestService.GetAllRequestsAsync(status, cancellationToken);
+        var model = store.GetCompanyDashboard(
+            HttpContext.Session.GetString("UserName") ?? "Company",
+            HttpContext.Session.GetString("UserPhone") ?? "");
+
+        ViewBag.ContactRequests = requests;
+        ViewBag.SelectedStatus = status;
+
+        return View("ContactRequests", model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveContactRequest(
+        int requestId,
+        [FromServices] IContactRequestService contactRequestService,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var adminPhone = HttpContext.Session.GetString("UserPhone") ?? "Admin";
+        await contactRequestService.ReviewRequestAsync(requestId, true, adminPhone, null, cancellationToken);
+
+        TempData["CompanyMessage"] = "যোগাযোগ অনুরোধ সফলভাবে অনুমোদন করা হয়েছে। আবেদনকারী এখন নম্বরটি দেখতে পারবেন।";
+        return RedirectToAction(nameof(ContactRequests));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectContactRequest(
+        int requestId,
+        string? reason,
+        [FromServices] IContactRequestService contactRequestService,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var adminPhone = HttpContext.Session.GetString("UserPhone") ?? "Admin";
+        await contactRequestService.ReviewRequestAsync(requestId, false, adminPhone, reason, cancellationToken);
+
+        TempData["CompanyMessage"] = "যোগাযোগ অনুরোধ বাতিল করা হয়েছে।";
+        return RedirectToAction(nameof(ContactRequests));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TeachAndLearn(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromQuery] string? type = null,
+        [FromQuery] string? verification = null,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        ViewData["ActivePage"] = "TeachAndLearn";
+        ViewData["PageTitle"] = "টিচ অ্যান্ড লার্ন প্ল্যাটফর্ম পরিচালনা";
+
+        var teachLearnData = await varatiaAdminService.GetTeachLearnDataAsync(
+            type, verification, search, cancellationToken);
+        var model = store.GetCompanyDashboard(
+            HttpContext.Session.GetString("UserName") ?? "Company",
+            HttpContext.Session.GetString("UserPhone") ?? "");
+
+        ViewBag.TeachLearn = teachLearnData;
+        return View("TeachAndLearn", model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleTutorVerification(
+        string postId,
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.ToggleTutorPostVerificationAsync(postId, cancellationToken);
+        if (success)
+        {
+            TempData["CompanyMessage"] = $"পোস্ট #{postId}-এর ভেরিফিকেশন স্ট্যাটাস সফলভাবে পরিবর্তন করা হয়েছে।";
+        }
+        else
+        {
+            TempData["CompanyError"] = "ভেরিফিকেশন স্ট্যাটাস পরিবর্তন করা সম্ভব হয়নি।";
+        }
+
+        return RedirectToAction(nameof(TeachAndLearn));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteTutorPost(
+        string postId,
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.DeleteTutorPostAsync(postId, cancellationToken);
+        if (success)
+        {
+            TempData["CompanyMessage"] = $"পোস্ট #{postId} সফলভাবে মুছে ফেলা হয়েছে।";
+        }
+        else
+        {
+            TempData["CompanyError"] = "পোস্টটি মুছে ফেলা সম্ভব হয়নি।";
+        }
+
+        return RedirectToAction(nameof(TeachAndLearn));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> VaratiaManagement(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? tab = "tenants",
+        [FromQuery] string? category = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        ViewData["ActivePage"] = "VaratiaManagement";
+        ViewData["PageTitle"] = "ভাড়াটিয়া ও প্রোপার্টি পরিচালনা";
+
+        var varatiaData = await varatiaAdminService.GetVaratiaManagementDataAsync(
+            search, status, tab, category, cancellationToken);
+        var model = store.GetCompanyDashboard(
+            HttpContext.Session.GetString("UserName") ?? "Company",
+            HttpContext.Session.GetString("UserPhone") ?? "");
+
+        ViewBag.Varatia = varatiaData;
+        return View("VaratiaManagement", model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateRegistrationFee(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromForm] decimal registrationFee,
+        [FromForm] bool isRegistrationFeeActive,
+        [FromQuery] string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        await varatiaAdminService.UpdateRegistrationFeeAsync(
+            registrationFee, isRegistrationFeeActive, cancellationToken);
+
+        store.UpdateRegistrationFee(registrationFee, isRegistrationFeeActive);
+
+        TempData["CompanyMessage"] = "ব্যবহারকারী রেজিস্ট্রেশন ফি সফলভাবে আপডেট করা হয়েছে।";
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "settings" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateSubscriptionPlan(
+        [FromServices] ISubscriptionService subscriptionService,
+        [FromForm] string serviceCode,
+        [FromForm] string title,
+        [FromForm] string description,
+        [FromForm] decimal fee,
+        [FromForm] int deliveryDays,
+        [FromForm] bool isActive,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        await subscriptionService.UpdatePlanAsync(new OrderProcessAPI.Contracts.UpdateSubscriptionPlanRequest
+        {
+            ServiceCode = serviceCode,
+            Title = title,
+            Description = description,
+            Fee = fee,
+            DeliveryDays = deliveryDays,
+            IsActive = isActive
+        }, cancellationToken);
+
+        TempData["CompanyMessage"] = $"সাবস্ক্রিপশন প্যাকেজ '{title}' সফলভাবে আপডেট করা হয়েছে।";
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "subscriptions" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateSubscriptionStatus(
+        [FromServices] ISubscriptionService subscriptionService,
+        [FromForm] int subscriptionId,
+        [FromForm] string subscriptionStatus,
+        [FromForm] string? adminNotes,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        await subscriptionService.UpdateSubscriptionStatusAsync(
+            subscriptionId,
+            subscriptionStatus,
+            adminNotes,
+            cancellationToken);
+
+        TempData["CompanyMessage"] = "সাবস্ক্রিপশন ম্যাচমেকিং স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে।";
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "subscriptions" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleGeneralPostStatus(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromForm] int postId,
+        [FromQuery] string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.ToggleGeneralPostStatusAsync(postId, cancellationToken);
+        TempData["CompanyMessage"] = success ? "বিজ্ঞাপনের স্ট্যাটাস সফলভাবে পরিবর্তন করা হয়েছে।" : "বিজ্ঞাপন আপডেট ব্যর্থ হয়েছে।";
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "generalposts" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleGeneralPostVerification(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromForm] int postId,
+        [FromQuery] string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.ToggleGeneralPostVerificationAsync(postId, cancellationToken);
+        TempData["CompanyMessage"] = success ? "বিজ্ঞাপনের ভেরিফিকেশন স্ট্যাটাস সফলভাবে পরিবর্তন করা হয়েছে।" : "ভেরিফিকেশন ব্যর্থ হয়েছে।";
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "generalposts" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteGeneralPost(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromForm] int postId,
+        [FromQuery] string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.DeleteGeneralPostAsync(postId, cancellationToken);
+        TempData["CompanyMessage"] = success ? "বিজ্ঞাপন সফলভাবে মুছে ফেলা হয়েছে।" : "বিজ্ঞাপন মুছতে ব্যর্থ হয়েছে।";
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "generalposts" });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GrantPostingCredits(
+        [FromServices] IVaratiaAdminService varatiaAdminService,
+        [FromForm] string userId,
+        [FromForm] int credits,
+        [FromQuery] string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsCompany()) return RedirectToAction(nameof(Login));
+
+        var success = await varatiaAdminService.GrantPostingCreditsAsync(userId, credits, cancellationToken);
+        TempData["CompanyMessage"] = success ? $"ব্যবহারকারীকে {credits} টি পেইড বিজ্ঞাপন ক্রেডিট সফলভাবে যুক্ত করা হয়েছে।" : "ক্রেডিট প্রদান ব্যর্থ হয়েছে।";
+
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return Redirect(returnUrl);
+        }
+
+        return RedirectToAction(nameof(VaratiaManagement), new { tab = "generalposts" });
     }
 
     private IActionResult CompanyPage(

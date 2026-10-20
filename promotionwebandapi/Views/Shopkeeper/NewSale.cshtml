@@ -42,7 +42,7 @@
                 </div>
             </header>
 
-            <form class="shop-sale-layout" id="new-sale-form" asp-action="SubmitSale" method="post">
+            <form class="shop-sale-layout" id="new-sale-form" asp-action="SubmitSale" method="post" data-managed-loading="true">
                 @Html.AntiForgeryToken()
                 <div class="shop-sale-main">
                     <section class="panel sale-customer-panel">
@@ -714,16 +714,16 @@
             user-select: none;
         }
         .sb-pay-option-card:hover {
-            border-color: #a7f3d0;
-            background: #ecfdf5;
+            border-color: rgba(79, 70, 229, 0.3);
+            background: var(--bg-secondary);
         }
         .sb-pay-option-card.active {
-            border-color: #059669;
-            background: #ecfdf5;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
+            border-color: var(--primary);
+            background: var(--bg-secondary);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.18);
         }
         .sb-pay-option-card.active strong {
-            color: #059669;
+            color: var(--primary);
         }
     </style>
 }

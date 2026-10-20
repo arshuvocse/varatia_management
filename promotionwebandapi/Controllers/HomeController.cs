@@ -13,6 +13,7 @@ public sealed class HomeController(AppStore store, DeliveryStore deliveryStore, 
     public IActionResult LandingAspx() => PhysicalFile(System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "landing.aspx"), "text/html");
 
     [HttpGet("track-order")]
+    [HttpGet("/Home/TrackOrder")]
     public IActionResult TrackOrder(int? orderId, string? phone)
     {
         if (!orderId.HasValue || string.IsNullOrWhiteSpace(phone))
@@ -97,19 +98,26 @@ public sealed class HomeController(AppStore store, DeliveryStore deliveryStore, 
         {
             return Json(store.GetTeamDirectory(districtId, role));
         }
-        catch
+        catch (Exception ex)
         {
-            return Json(Array.Empty<object>());
+            return StatusCode(500, ex.ToString());
         }
     }
 
     [Route("payment/success")]
     public IActionResult PaymentSuccess() => View();
 
-    [HttpGet("Home/Error")]
+    [HttpGet("/Home/Error")]
+    [HttpPost("/Home/Error")]
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
+        var feature = HttpContext.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var error = feature?.Error;
+        if (error != null)
+        {
+            return Content($"500 Error: {error.GetType().FullName}: {error.Message}\nPath: {feature?.Path}\n\nStack:\n{error.StackTrace}", "text/plain; charset=utf-8");
+        }
         return View(new ErrorViewModel { RequestId = System.Diagnostics.Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 

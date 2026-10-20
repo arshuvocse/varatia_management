@@ -41,3 +41,47 @@ public sealed class MonthlyPaymentHistoryItem
     public DateTime? PaidAt { get; init; }
     public bool AccessAllowed { get; init; }
 }
+
+public sealed class RegistrationFeeInfoResponse
+{
+    public decimal Fee { get; init; }
+    public bool IsActive { get; init; }
+    public string Currency { get; init; } = "BDT";
+}
+
+public sealed class RegistrationFeeStatusResponse
+{
+    public string UserId { get; init; } = string.Empty;
+    public bool IsPaid { get; init; }
+    public bool IsRequired { get; init; }
+    public decimal Fee { get; init; }
+    public string Currency { get; init; } = "BDT";
+    public string? TransactionId { get; init; }
+    public DateTime? PaidAt { get; init; }
+}
+
+public sealed class InitiateRegistrationPaymentRequest
+{
+    public string UserId { get; init; } = string.Empty;
+}
+
+public sealed class UserPaymentHistoryResponse
+{
+    public string UserId { get; init; } = string.Empty;
+    public decimal TotalPaid { get; init; }
+    public IReadOnlyList<UserPaymentHistoryItem> Payments { get; init; } = [];
+}
+
+public sealed class UserPaymentHistoryItem
+{
+    public int Id { get; init; }
+    public string TransactionId { get; init; } = string.Empty;
+    public string PaymentType { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public string MonthYear { get; init; } = string.Empty;
+    public string Gateway { get; init; } = "SSLCommerz";
+    public DateTime? PaymentDate { get; init; }
+    public DateTime CreatedOn { get; init; }
+}

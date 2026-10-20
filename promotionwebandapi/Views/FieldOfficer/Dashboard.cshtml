@@ -4,15 +4,15 @@
     ViewData["Title"] = "ফিল্ড অফিসার ড্যাশবোর্ড - Smart Bazar";
     ViewData["ActivePage"] = "Dashboard";
     
-    var totalShops = Model.Shops.Count > 0 ? Model.Shops.Count : 300;
-    var verifiedShops = (int)(totalShops * 0.82);
-    if (verifiedShops == 0 && Model.Shops.Count > 0) { verifiedShops = Model.Shops.Count; }
-    var totalProducts = Model.Products.Count > 0 ? Model.Products.Count : 1850;
-    var todayNewShops = 12;
-    var todayUpdatedPrices = 28;
+    var totalShops = Model.Shops.Count;
+    var verifiedShops = Model.Shops.Count;
+    var totalProducts = Model.Products.Count;
+    var todayNewShops = Model.Shops.Count(s => s.RegisteredAt.Date == DateTime.Today);
+    var todayUpdatedPrices = Model.Products.Count;
 
     var locationJson = JsonSerializer.Serialize(new
     {
+        divisions = Model.Locations.Divisions.Select(x => new { x.Id, x.Name }),
         districts = Model.Locations.Districts.Select(x => new { x.Id, x.Name, x.ParentId }),
         thanas = Model.Locations.Thanas.Select(x => new { x.Id, x.Name, x.ParentId })
     });
@@ -25,6 +25,17 @@
         product.UnitPrice,
         product.ImageUrl
     }));
+    var shopTypeOptions = Model.Products.Select(product => product.Category).Distinct().OrderBy(value => value).ToList();
+    var reg = Model.Registration;
+    var hasRegistrationErrors = !ViewData.ModelState.IsValid;
+    var prefillJson = JsonSerializer.Serialize(new
+    {
+        divisionId = reg.DivisionId,
+        districtId = reg.DistrictId,
+        thanaId = reg.ThanaId,
+        shopType = reg.ShopType,
+        selectedProductIds = reg.SelectedProductIds
+    });
 }
 
 <div class="sb-app-layout">
@@ -41,7 +52,7 @@
                 </button>
                 <div class="sb-user-greeting">
                     <div class="sb-greeting-title">
-                        সালাম, <span class="sb-officer-name">@(string.IsNullOrWhiteSpace(Model.OfficerName) ? "মোঃ রফিকুল ইসলাম" : Model.OfficerName)</span>
+                        সালাম, <span class="sb-officer-name">@(string.IsNullOrWhiteSpace(Model.OfficerName) ? "ফিল্ড অফিসার" : Model.OfficerName)</span>
                         <span class="sb-verified-pill">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="#059669"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                         </span>
@@ -52,14 +63,13 @@
 
             <div class="sb-topbar-right">
                 <div class="sb-date-badge">
-                    <span class="sb-date-text">১৬ আগস্ট, ২০২৬</span>
+                    <span class="sb-date-text">@DateTime.Now.ToString("dd MMMM, yyyy")</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 </div>
 
-                <button type="button" class="sb-bell-btn" aria-label="Notifications">
+                <a href="/FieldForce/Notifications" class="sb-bell-btn" aria-label="Notifications" style="text-decoration:none; display:flex; align-items:center; justify-content:center;">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    <span class="sb-bell-badge">১২</span>
-                </button>
+                </a>
             </div>
         </header>
 
@@ -144,32 +154,24 @@
                         <h3 class="sb-card-title">সাম্প্রতিক যুক্ত দোকান</h3>
                     </div>
                     <div class="sb-recent-list">
-                        <div class="sb-recent-item">
-                            <div class="sb-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=100&q=80');"></div>
-                            <div class="sb-shop-info">
-                                <h4>আল-আমিন স্টোর</h4>
-                                <p>পল্লী, কুমিল্লা</p>
-                            </div>
-                            <span class="sb-status-badge sb-badge-verified">Verified</span>
-                        </div>
-
-                        <div class="sb-recent-item">
-                            <div class="sb-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=100&q=80');"></div>
-                            <div class="sb-shop-info">
-                                <h4>মা এন্টারপ্রাইজ</h4>
-                                <p>কোটবাড়ী রোড, যশোর</p>
-                            </div>
-                            <span class="sb-status-badge sb-badge-pending">Pending</span>
-                        </div>
-
-                        <div class="sb-recent-item">
-                            <div class="sb-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1542838132-92c53300491e?w=100&q=80');"></div>
-                            <div class="sb-shop-info">
-                                <h4>রহমান স্টোর</h4>
-                                <p>বীরগঞ্জ, দিনাজপুর</p>
-                            </div>
-                            <span class="sb-status-badge sb-badge-verified">Verified</span>
-                        </div>
+                        @if (Model.Shops.Count == 0)
+                        {
+                            <p class="sb-empty-txt" style="padding: 16px; color: #64748b; font-size: 13px;">এখনও কোনো দোকান নিবন্ধিত হয়নি।</p>
+                        }
+                        else
+                        {
+                            @foreach (var shop in Model.Shops.Take(3))
+                            {
+                                <div class="sb-recent-item">
+                                    <div class="sb-shop-avatar" style="background-image: url('@(string.IsNullOrEmpty(shop.BillboardPhotoPath) ? "/images/amar_thikanaa_icon.png" : shop.BillboardPhotoPath)');"></div>
+                                    <div class="sb-shop-info">
+                                        <h4>@shop.ShopName</h4>
+                                        <p>@(string.IsNullOrWhiteSpace(shop.Area) ? shop.ThanaName : $"{shop.Area}, {shop.ThanaName}")</p>
+                                    </div>
+                                    <span class="sb-status-badge sb-badge-verified">Verified</span>
+                                </div>
+                            }
+                        }
                     </div>
                     <div class="sb-card-footer">
                         <a href="/FieldForce/Shops" class="sb-link-center">সব দেখুন</a>
@@ -218,7 +220,7 @@
                             <span>দাম আপডেট করুন</span>
                         </button>
 
-                        <a href="#reports" class="sb-action-btn sb-btn-view-report">
+                        <a href="/FieldForce/Reports" class="sb-action-btn sb-btn-view-report">
                             <div class="sb-action-btn-icon">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
                             </div>
@@ -233,28 +235,28 @@
                 <!-- Credit (বাকি) সারসংক্ষেপ -->
                 <div class="sb-card sb-card-credit" id="credit-summary">
                     <div class="sb-card-header">
-                        <h3 class="sb-card-title">ক্রেডিট (বাকি) সারসংক্ষেপ</h3>
-                        <a href="#all-credits" class="sb-link-sm">সব দেখুন</a>
+                        <h3 class="sb-card-title">দোকান ও পণ্য সারসংক্ষেপ</h3>
+                        <a href="/FieldForce/Shops" class="sb-link-sm">সব দেখুন</a>
                     </div>
                     <div class="sb-credit-stats-grid">
                         <div class="sb-credit-stat-item">
-                            <span class="sb-stat-label">মোট ক্রেডিট অর্ডার</span>
-                            <strong class="sb-stat-val sb-text-blue">৭৮</strong>
+                            <span class="sb-stat-label">মোট দোকান</span>
+                            <strong class="sb-stat-val sb-text-blue">@totalShops টি</strong>
                         </div>
 
                         <div class="sb-credit-stat-item">
-                            <span class="sb-stat-label">মোট বাকি টাকা</span>
-                            <strong class="sb-stat-val sb-text-red">৳ ৪৫,৩২০</strong>
+                            <span class="sb-stat-label">ভেরিফাইড দোকান</span>
+                            <strong class="sb-stat-val sb-text-green">@verifiedShops টি</strong>
                         </div>
 
                         <div class="sb-credit-stat-item">
-                            <span class="sb-stat-label">পরিশোধিত</span>
-                            <strong class="sb-stat-val sb-text-green">৳ ২৮,৭৫০</strong>
+                            <span class="sb-stat-label">মোট পণ্য</span>
+                            <strong class="sb-stat-val sb-text-purple">@totalProducts টি</strong>
                         </div>
 
                         <div class="sb-credit-stat-item">
-                            <span class="sb-stat-label">অপরিশোধিত</span>
-                            <strong class="sb-stat-val sb-text-amber">৳ ১৬,৫৭০</strong>
+                            <span class="sb-stat-label">নতুন দোকান</span>
+                            <strong class="sb-stat-val sb-text-amber">@todayNewShops টি</strong>
                         </div>
                     </div>
                 </div>
@@ -262,42 +264,30 @@
                 <!-- শীর্ষ পারফর্মিং দোকান -->
                 <div class="sb-card sb-card-top-shops">
                     <div class="sb-card-header">
-                        <h3 class="sb-card-title">শীর্ষ পারফর্মিং দোকান</h3>
-                        <button type="button" class="sb-more-btn" aria-label="More options">•••</button>
+                        <h3 class="sb-card-title">নিবন্ধিত শীর্ষ দোকান</h3>
+                        <a href="/FieldForce/Shops" class="sb-link-sm">সব দোকান</a>
                     </div>
                     <div class="sb-top-shops-list">
-                        <div class="sb-top-shop-item">
-                            <div class="sb-top-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&q=80');"></div>
-                            <div class="sb-top-shop-info">
-                                <h4>রহমান স্টোর</h4>
-                                <p>বিক্রয়: ৳ ৪৫,২৫০</p>
-                            </div>
-                            <div class="sb-rating-badge">
-                                <span class="sb-star">★</span> 4.8
-                            </div>
-                        </div>
-
-                        <div class="sb-top-shop-item">
-                            <div class="sb-top-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=80&q=80');"></div>
-                            <div class="sb-top-shop-info">
-                                <h4>মা এন্টারপ্রাইজ</h4>
-                                <p>বিক্রয়: ৳ ৩২,৮৪০</p>
-                            </div>
-                            <div class="sb-rating-badge">
-                                <span class="sb-star">★</span> 4.6
-                            </div>
-                        </div>
-
-                        <div class="sb-top-shop-item">
-                            <div class="sb-top-shop-avatar" style="background-image: url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=80&q=80');"></div>
-                            <div class="sb-top-shop-info">
-                                <h4>আল-আমিন স্টোর</h4>
-                                <p>বিক্রয়: ৳ ২৮,৭৩০</p>
-                            </div>
-                            <div class="sb-rating-badge">
-                                <span class="sb-star">★</span> 4.5
-                            </div>
-                        </div>
+                        @if (Model.Shops.Count == 0)
+                        {
+                            <p class="sb-empty-txt" style="padding: 16px; color: #64748b; font-size: 13px;">এখনও কোনো দোকান পাওয়া যায়নি।</p>
+                        }
+                        else
+                        {
+                            @foreach (var shop in Model.Shops.Take(3))
+                            {
+                                <div class="sb-top-shop-item">
+                                    <div class="sb-top-shop-avatar" style="background-image: url('@(string.IsNullOrEmpty(shop.BillboardPhotoPath) ? "/images/amar_thikanaa_icon.png" : shop.BillboardPhotoPath)');"></div>
+                                    <div class="sb-top-shop-info">
+                                        <h4>@shop.ShopName</h4>
+                                        <p>@shop.ShopType • @shop.ThanaName</p>
+                                    </div>
+                                    <div class="sb-rating-badge">
+                                        <span class="sb-star">★</span> 5.0
+                                    </div>
+                                </div>
+                            }
+                        }
                     </div>
                 </div>
             </div>
@@ -306,7 +296,7 @@
 </div>
 
 <!-- ========================================== -->
-<!-- 4-STEP SHOP & PRODUCT REGISTRATION WIZARD MODAL -->
+<!-- SHOP & SHOPKEEPER REGISTRATION WIZARD MODAL -->
 <!-- ========================================== -->
 <div class="sb-modal-backdrop" id="wizardModal" style="display: none;">
     <div class="sb-modal-box">
@@ -315,26 +305,31 @@
             <div class="sb-wizard-steps-indicator">
                 <button type="button" class="sb-step-tab active" id="tab-step-1" onclick="switchWizardStep(1)">
                     <span class="sb-step-num">১</span>
-                    <span class="sb-step-text">নতুন দোকান রেজিস্ট্রেশন</span>
+                    <span class="sb-step-text">দোকান ও দোকানদার তথ্য</span>
                 </button>
                 <button type="button" class="sb-step-tab" id="tab-step-2" onclick="switchWizardStep(2)">
                     <span class="sb-step-num">২</span>
-                    <span class="sb-step-text">বর্তমান স্টক পণ্য নির্বাচন</span>
+                    <span class="sb-step-text">পণ্য নির্বাচন</span>
                 </button>
                 <button type="button" class="sb-step-tab" id="tab-step-3" onclick="switchWizardStep(3)">
                     <span class="sb-step-num">৩</span>
-                    <span class="sb-step-text">দাম ও লাভ ইনপুট</span>
-                </button>
-                <button type="button" class="sb-step-tab" id="tab-step-4" onclick="switchWizardStep(4)">
-                    <span class="sb-step-num">৪</span>
-                    <span class="sb-step-text">পণ্যের তালিকা (দোকানের)</span>
+                    <span class="sb-step-text">যাচাই ও এন্ট্রি</span>
                 </button>
             </div>
             <button type="button" class="sb-modal-close-btn" onclick="closeStepWizardModal()">&times;</button>
         </div>
 
-        <div class="sb-modal-body">
-            <!-- ================= STEP 1: দোকান রেজিস্ট্রেশন ================= -->
+        <form id="shopRegistrationForm" class="sb-modal-body" method="post" action="/FieldForce/RegisterShopkeeper" enctype="multipart/form-data" data-managed-loading="true">
+            @Html.AntiForgeryToken()
+
+            @if (hasRegistrationErrors)
+            {
+                <div class="sb-alert sb-alert-error" style="margin-bottom:14px;">
+                    @Html.ValidationSummary(false, null, new { @class = "wizard-validation-summary" })
+                </div>
+            }
+
+            <!-- ================= STEP 1: দোকান ও দোকানদার তথ্য ================= -->
             <div class="sb-wizard-pane" id="wizard-pane-1">
                 <div class="sb-step-content-card">
                     <div class="sb-pane-header">
@@ -358,39 +353,96 @@
                         </div>
                     </div>
 
-                    <form id="step1-form" class="sb-form-stack" onsubmit="event.preventDefault(); switchWizardStep(2);">
+                    <div class="sb-form-stack">
                         <div class="sb-form-group">
                             <label>দোকানের নাম <span class="sb-req">*</span></label>
-                            <input type="text" id="wz-shopname" class="sb-input" placeholder="রহমান স্টোর" value="রহমান স্টোর" required />
+                            <input type="text" id="reg-shopname" name="Registration.ShopName" class="sb-input" placeholder="যেমনঃ রহমান স্টোর" value="@reg.ShopName" required maxlength="150" />
                         </div>
 
                         <div class="sb-form-group">
                             <label>মালিকের নাম <span class="sb-req">*</span></label>
-                            <input type="text" id="wz-ownername" class="sb-input" placeholder="মোঃ রহমান" value="মোঃ রহমান" required />
+                            <input type="text" id="reg-ownername" name="Registration.OwnerName" class="sb-input" placeholder="যেমনঃ মোঃ রহমান" value="@reg.OwnerName" required maxlength="150" />
                         </div>
 
                         <div class="sb-form-group">
                             <label>মোবাইল নম্বর <span class="sb-req">*</span></label>
-                            <input type="tel" id="wz-phone" class="sb-input" placeholder="01712-345678" value="01712-345678" required />
+                            <input type="tel" id="reg-phone" name="Registration.Phone" class="sb-input" placeholder="01712345678" value="@reg.Phone" required maxlength="20" />
                         </div>
 
                         <div class="sb-form-group">
-                            <label>ঠিকানা <span class="sb-req">*</span></label>
-                            <input type="text" id="wz-address" class="sb-input" placeholder="পল্লী, কুমিল্লা" value="পল্লী, কুমিল্লা" required />
+                            <label>দোকানদারের লগইন পাসওয়ার্ড <span class="sb-req">*</span></label>
+                            <input type="password" id="reg-password" name="Registration.Password" class="sb-input" placeholder="ন্যূনতম ৪ ডিজিট" required minlength="4" />
                         </div>
 
                         <div class="sb-form-group">
-                            <label>লোকেশন (GPS)</label>
+                            <label>জাতীয় পরিচয়পত্র নম্বর (ঐচ্ছিক)</label>
+                            <input type="text" id="reg-nid" name="Registration.NidNumber" class="sb-input" value="@reg.NidNumber" maxlength="30" />
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>বিভাগ <span class="sb-req">*</span></label>
+                            <select id="reg-division" name="Registration.DivisionId" class="sb-input" required></select>
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>জেলা <span class="sb-req">*</span></label>
+                            <select id="reg-district" name="Registration.DistrictId" class="sb-input" required disabled></select>
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>থানা <span class="sb-req">*</span></label>
+                            <select id="reg-thana" name="Registration.ThanaId" class="sb-input" required disabled></select>
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>এলাকা <span class="sb-req">*</span></label>
+                            <input type="text" id="reg-area" name="Registration.Area" class="sb-input" placeholder="যেমনঃ মিরপুর-১০" value="@reg.Area" required maxlength="150" />
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>বিস্তারিত ঠিকানা <span class="sb-req">*</span></label>
+                            <input type="text" id="reg-address" name="Registration.Address" class="sb-input" placeholder="দোকানের বিস্তারিত ঠিকানা" value="@reg.Address" required maxlength="250" />
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>দোকানের ধরন <span class="sb-req">*</span></label>
+                            <select id="reg-shoptype" name="Registration.ShopType" class="sb-input" required>
+                                <option value="">দোকানের ধরন নির্বাচন করুন</option>
+                                @foreach (var category in shopTypeOptions)
+                                {
+                                    <option value="@category" selected="@(category == reg.ShopType)">@category</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>দোকানের অবস্থান (GPS) <span class="sb-req">*</span></label>
                             <div class="sb-gps-picker-box">
-                                <div class="sb-gps-map-placeholder">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#059669"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
-                                    <span>২৩.৪৬৪৩° N, ৯১.১৮৭২° E (পল্লী, কুমিল্লা)</span>
-                                </div>
+                                <button type="button" class="sb-btn-gps" id="gps-capture-btn" onclick="captureGpsLocation()">
+                                    <span class="sb-btn-spinner" id="gps-spinner" hidden></span>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" id="gps-icon"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                    <span id="gps-btn-text">বর্তমান অবস্থান সংগ্রহ করুন</span>
+                                </button>
+                                <span id="gps-status" class="sb-gps-status">দোকানে দাঁড়িয়ে GPS বাটনে চাপুন, অথবা নিচে সরাসরি লিখুন।</span>
+                            </div>
+                            <div class="sb-gps-coord-grid">
+                                <input type="number" id="reg-latitude" name="Registration.Latitude" class="sb-input" placeholder="Latitude" step="0.000001" min="-90" max="90" required />
+                                <input type="number" id="reg-longitude" name="Registration.Longitude" class="sb-input" placeholder="Longitude" step="0.000001" min="-180" max="180" required />
                             </div>
                         </div>
 
-                        <button type="submit" class="sb-btn-primary-full">পরবর্তী</button>
-                    </form>
+                        <div class="sb-form-group">
+                            <label>দোকানদারের ছবি (ঐচ্ছিক)</label>
+                            <input type="file" name="Registration.ProfilePhoto" class="sb-input" accept="image/*" />
+                        </div>
+
+                        <div class="sb-form-group">
+                            <label>সাইনবোর্ডের ছবি (ঐচ্ছিক)</label>
+                            <input type="file" name="Registration.BillboardPhoto" class="sb-input" accept="image/*" />
+                        </div>
+
+                        <button type="button" class="sb-btn-primary-full" onclick="goToProductStep()">পরবর্তী: পণ্য নির্বাচন</button>
+                    </div>
                 </div>
             </div>
 
@@ -409,160 +461,39 @@
                         <input type="text" placeholder="পণ্য খুঁজুন..." id="wz-product-search" oninput="filterWizardProducts()" />
                     </div>
 
-                    <div class="sb-product-checklist" id="wz-product-list">
-                        <label class="sb-check-item">
-                            <input type="checkbox" checked onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">চিনি ১ কেজি</span>
-                        </label>
-
-                        <label class="sb-check-item">
-                            <input type="checkbox" checked onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">সয়াবিন তেল ১ লিটার</span>
-                        </label>
-
-                        <label class="sb-check-item">
-                            <input type="checkbox" checked onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">মশুর ডাল ১ কেজি</span>
-                        </label>
-
-                        <label class="sb-check-item">
-                            <input type="checkbox" onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">লবণ ১ কেজি</span>
-                        </label>
-
-                        <label class="sb-check-item">
-                            <input type="checkbox" onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">ময়দা ১ কেজি</span>
-                        </label>
-
-                        <label class="sb-check-item">
-                            <input type="checkbox" onchange="updateSelectedCount()" />
-                            <span class="sb-checkmark">✔</span>
-                            <span class="sb-check-name">আটা ১ কেজি</span>
-                        </label>
+                    <div class="sb-select-all-row">
+                        <button type="button" class="sb-link-btn" onclick="toggleAllProducts(true)">সব নির্বাচন করুন</button>
+                        <span>·</span>
+                        <button type="button" class="sb-link-btn" onclick="toggleAllProducts(false)">সব বাতিল করুন</button>
                     </div>
 
-                    <button type="button" class="sb-btn-primary-full" id="wz-btn-step2" onclick="switchWizardStep(3)">পরবর্তী (৩)</button>
+                    <div class="sb-product-checklist" id="reg-product-list">
+                        <p class="empty-state">প্রথমে দোকানের ধরন নির্বাচন করুন।</p>
+                    </div>
+
+                    <button type="button" class="sb-btn-primary-full" id="wz-btn-step2" onclick="goToReviewStep()">পরবর্তী: যাচাই করুন</button>
                 </div>
             </div>
 
-            <!-- ================= STEP 3: দাম ও লাভ ইনপুট ================= -->
+            <!-- ================= STEP 3: যাচাই ও এন্ট্রি ================= -->
             <div class="sb-wizard-pane" id="wizard-pane-3" style="display: none;">
                 <div class="sb-step-content-card">
                     <div class="sb-pane-header">
                         <button type="button" class="sb-pane-back" onclick="switchWizardStep(2)">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
                         </button>
-                        <h4>দাম ও লাভ ইনপুট</h4>
+                        <h4>তথ্য যাচাই করুন</h4>
                     </div>
 
-                    <div class="sb-selected-product-header">
-                        <div class="sb-prod-thumb" style="background-image: url('https://images.unsplash.com/photo-1581447109200-bf276912b64d?w=100&q=80');"></div>
-                        <h3>চিনি ১ কেজি</h3>
-                    </div>
+                    <div class="sb-table-responsive" id="reg-review-summary"></div>
 
-                    <div class="sb-price-input-form">
-                        <div class="sb-form-group">
-                            <label>ক্রয় মূল্য (৳)</label>
-                            <input type="number" id="wz-buy-price" class="sb-input" value="100" oninput="calculateProfitSplit()" />
-                        </div>
-
-                        <div class="sb-form-group">
-                            <label>বিক্রয় মূল্য (৳)</label>
-                            <input type="number" id="wz-sell-price" class="sb-input" value="110" oninput="calculateProfitSplit()" />
-                        </div>
-
-                        <div class="sb-form-group">
-                            <label>মোট লাভ (৳)</label>
-                            <input type="text" id="wz-total-profit" class="sb-input sb-input-profit" value="10" readonly />
-                        </div>
-
-                        <!-- 50% - 50% Profit Sharing Box -->
-                        <div class="sb-profit-split-wrapper">
-                            <div class="sb-split-title">লাভ ভাগ (50% - 50%)</div>
-                            <div class="sb-split-cards">
-                                <div class="sb-split-card">
-                                    <span class="sb-split-target">দোকানদার অংশ</span>
-                                    <strong class="sb-split-val" id="wz-shop-share">৳ ৫</strong>
-                                    <span class="sb-split-pct">(50%)</span>
-                                </div>
-
-                                <div class="sb-split-card sb-split-card-sb">
-                                    <span class="sb-split-target">Smart Bazar অংশ</span>
-                                    <strong class="sb-split-val" id="wz-sb-share">৳ ৫</strong>
-                                    <span class="sb-split-pct">(50%)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button type="button" class="sb-btn-primary-full" onclick="switchWizardStep(4)">সেভ করুন</button>
-                    </div>
+                    <button type="submit" class="sb-btn-primary-full" id="reg-submit-btn">
+                        <span class="sb-btn-spinner" id="reg-submit-spinner" hidden></span>
+                        <span id="reg-submit-text">দোকান ও দোকানদার এন্ট্রি সম্পন্ন করুন</span>
+                    </button>
                 </div>
             </div>
-
-            <!-- ================= STEP 4: পণ্যের তালিকা (দোকানের) ================= -->
-            <div class="sb-wizard-pane" id="wizard-pane-4" style="display: none;">
-                <div class="sb-step-content-card">
-                    <div class="sb-pane-header">
-                        <button type="button" class="sb-pane-back" onclick="switchWizardStep(3)">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                        </button>
-                        <h4>রহমান স্টোর - পণ্যের তালিকা</h4>
-                    </div>
-
-                    <div class="sb-table-responsive">
-                        <table class="sb-product-table">
-                            <thead>
-                                <tr>
-                                    <th>পণ্য</th>
-                                    <th>ক্রয় মূল্য</th>
-                                    <th>বিক্রয় মূল্য</th>
-                                    <th>লাভ</th>
-                                    <th>স্ট্যাটাস</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>চিনি</strong><br><small>১ কেজি</small></td>
-                                    <td>১০০</td>
-                                    <td>১১০</td>
-                                    <td><span class="sb-profit-pill">১০</span></td>
-                                    <td><span class="sb-badge-avail">Available</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>তেল</strong><br><small>১ লিটার</small></td>
-                                    <td>১৬০</td>
-                                    <td>১৭৫</td>
-                                    <td><span class="sb-profit-pill">১৫</span></td>
-                                    <td><span class="sb-badge-avail">Available</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>ডাল</strong><br><small>১ কেজি</small></td>
-                                    <td>৭০</td>
-                                    <td>৭৮</td>
-                                    <td><span class="sb-profit-pill">৮</span></td>
-                                    <td><span class="sb-badge-avail">Available</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>লবণ</strong><br><small>১ কেজি</small></td>
-                                    <td>২০</td>
-                                    <td>২৫</td>
-                                    <td><span class="sb-profit-pill">৫</span></td>
-                                    <td><span class="sb-badge-avail">Available</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <button type="button" class="sb-btn-primary-full" onclick="completeRegistrationSuccess()">আপডেট সম্পন্ন</button>
-                </div>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
@@ -572,24 +503,24 @@
     /* SMART BAZAR DESIGN SYSTEM - FIELD OFFICER THEME            */
     /* ========================================================== */
     :root {
-        --sb-primary: #059669;
-        --sb-primary-hover: #047857;
-        --sb-primary-light: #ecfdf5;
-        --sb-accent: #10b981;
-        --sb-dark: #0f172a;
-        --sb-gray: #64748b;
-        --sb-border: #e2e8f0;
-        --sb-bg: #f8fafc;
-        --sb-card-bg: #ffffff;
-        --sb-radius-sm: 8px;
-        --sb-radius-md: 12px;
-        --sb-radius-lg: 18px;
-        --sb-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+        --sb-primary: var(--primary);
+        --sb-primary-hover: var(--primary-hover);
+        --sb-primary-light: var(--bg-secondary);
+        --sb-accent: var(--accent);
+        --sb-dark: var(--text-primary);
+        --sb-gray: var(--text-muted);
+        --sb-border: var(--border);
+        --sb-bg: var(--bg-app);
+        --sb-card-bg: var(--bg-card);
+        --sb-radius-sm: var(--radius-sm);
+        --sb-radius-md: var(--radius-md);
+        --sb-radius-lg: var(--radius-lg);
+        --sb-shadow: var(--shadow-card);
     }
 
     body {
         background-color: var(--sb-bg);
-        font-family: 'Anek Bangla', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-family: 'Anek Bangla', 'Inter', system-ui, sans-serif;
         color: var(--sb-dark);
         margin: 0;
         padding: 0;
@@ -1698,6 +1629,170 @@
             grid-template-columns: 1fr 1fr;
         }
     }
+
+    /* SHOP REGISTRATION WIZARD - GPS & VALIDATION */
+    .sb-gps-picker-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .sb-btn-gps {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        align-self: flex-start;
+        background: #ecfdf5;
+        border: 1px dashed #059669;
+        color: #065f46;
+        padding: 9px 14px;
+        border-radius: var(--sb-radius-md);
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .sb-btn-gps:hover {
+        background: #d1fae5;
+    }
+
+    .sb-btn-gps:disabled,
+    .sb-btn-primary-full:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+
+    .sb-gps-status {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .sb-btn-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(0, 0, 0, 0.15);
+        border-top-color: currentColor;
+        border-radius: 50%;
+        display: inline-block;
+        animation: sb-spin 0.7s linear infinite;
+    }
+
+    .sb-btn-primary-full .sb-btn-spinner {
+        width: 16px;
+        height: 16px;
+        border-color: rgba(255, 255, 255, 0.4);
+        border-top-color: #ffffff;
+        vertical-align: -3px;
+        margin-right: 6px;
+    }
+
+    @@keyframes sb-spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .sb-select-all-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: -6px 0 10px;
+        font-size: 12.5px;
+        color: #94a3b8;
+    }
+
+    .sb-link-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--sb-primary);
+        font-weight: 700;
+        font-size: 12.5px;
+        cursor: pointer;
+    }
+
+    .sb-link-btn:hover {
+        text-decoration: underline;
+    }
+
+    .sb-gps-status.ready {
+        color: #059669;
+        font-weight: 700;
+    }
+
+    .sb-gps-coord-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .sb-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px;
+        border-radius: var(--sb-radius-md);
+        font-size: 14px;
+        font-weight: 600;
+        animation: sb-alert-in 0.25s ease;
+    }
+
+    .sb-alert-success {
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+
+    .sb-alert-success svg {
+        flex-shrink: 0;
+        color: #059669;
+    }
+
+    @@keyframes sb-alert-in {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sb-alert-error {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: var(--sb-radius-md);
+        padding: 12px 14px;
+        color: #b91c1c;
+        font-size: 13px;
+    }
+
+    .wizard-validation-summary ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    .empty-state {
+        color: #94a3b8;
+        font-size: 13px;
+        padding: 12px 4px;
+    }
+
+    #reg-review-summary table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    #reg-review-summary th {
+        text-align: left;
+        color: #64748b;
+        font-weight: 700;
+        padding: 8px;
+        width: 40%;
+        vertical-align: top;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    #reg-review-summary td {
+        padding: 8px;
+        color: #0f172a;
+        border-bottom: 1px solid #f1f5f9;
+    }
 </style>
 }
 
@@ -1792,9 +1887,170 @@
         dailyOrdersChart.update();
     });
 
+    // ================= Shop Registration Wizard =================
+    const locationData = @Html.Raw(locationJson);
+    const productCatalog = @Html.Raw(productCatalogJson);
+    const registrationPrefill = @Html.Raw(prefillJson);
+
+    const escapeHtml = value => String(value ?? '')
+        .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+
+    const divisionSelect = document.getElementById('reg-division');
+    const districtSelect = document.getElementById('reg-district');
+    const thanaSelect = document.getElementById('reg-thana');
+
+    function fillLocationSelect(select, items, placeholder) {
+        select.innerHTML = '<option value="">' + placeholder + '</option>' +
+            items.map(item => '<option value="' + item.Id + '">' + escapeHtml(item.Name) + '</option>').join('');
+        select.disabled = items.length === 0;
+    }
+
+    if (divisionSelect && districtSelect && thanaSelect) {
+        fillLocationSelect(divisionSelect, locationData.divisions, 'বিভাগ নির্বাচন করুন');
+        fillLocationSelect(districtSelect, [], 'জেলা নির্বাচন করুন');
+        fillLocationSelect(thanaSelect, [], 'থানা নির্বাচন করুন');
+
+        divisionSelect.addEventListener('change', () => {
+            const districts = locationData.districts.filter(d => d.ParentId === Number(divisionSelect.value));
+            fillLocationSelect(districtSelect, districts, 'জেলা নির্বাচন করুন');
+            fillLocationSelect(thanaSelect, [], 'থানা নির্বাচন করুন');
+        });
+
+        districtSelect.addEventListener('change', () => {
+            const thanas = locationData.thanas.filter(t => t.ParentId === Number(districtSelect.value));
+            fillLocationSelect(thanaSelect, thanas, 'থানা নির্বাচন করুন');
+        });
+
+        if (registrationPrefill.divisionId) {
+            divisionSelect.value = String(registrationPrefill.divisionId);
+            divisionSelect.dispatchEvent(new Event('change'));
+            if (registrationPrefill.districtId) {
+                districtSelect.value = String(registrationPrefill.districtId);
+                districtSelect.dispatchEvent(new Event('change'));
+                if (registrationPrefill.thanaId) {
+                    thanaSelect.value = String(registrationPrefill.thanaId);
+                }
+            }
+        }
+    }
+
+    function setGpsButtonLoading(isLoading) {
+        const btn = document.getElementById('gps-capture-btn');
+        const spinner = document.getElementById('gps-spinner');
+        const icon = document.getElementById('gps-icon');
+        const text = document.getElementById('gps-btn-text');
+        if (!btn) return;
+        btn.disabled = isLoading;
+        if (spinner) spinner.hidden = !isLoading;
+        if (icon) icon.hidden = isLoading;
+        if (text) text.textContent = isLoading ? 'অবস্থান সংগ্রহ করা হচ্ছে...' : 'বর্তমান অবস্থান সংগ্রহ করুন';
+    }
+
+    function captureGpsLocation() {
+        const status = document.getElementById('gps-status');
+        if (!navigator.geolocation) {
+            status.textContent = 'এই ব্রাউজারে GPS সমর্থিত নয়। অনুগ্রহ করে ম্যানুয়ালি Latitude/Longitude লিখুন।';
+            return;
+        }
+        status.textContent = 'অবস্থান সংগ্রহ করা হচ্ছে...';
+        status.classList.remove('ready');
+        setGpsButtonLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                document.getElementById('reg-latitude').value = pos.coords.latitude.toFixed(6);
+                document.getElementById('reg-longitude').value = pos.coords.longitude.toFixed(6);
+                status.textContent = 'অবস্থান সংগৃহীত হয়েছে: ' + pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+                status.classList.add('ready');
+                setGpsButtonLoading(false);
+            },
+            err => {
+                status.textContent = 'অবস্থান সংগ্রহ করা যায়নি (' + err.message + ')। অনুগ্রহ করে ম্যানুয়ালি লিখুন।';
+                setGpsButtonLoading(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    }
+
+    function goToProductStep() {
+        const pane1 = document.getElementById('wizard-pane-1');
+        const fields = pane1.querySelectorAll('input, select');
+        for (const field of fields) {
+            if (!field.checkValidity()) {
+                field.reportValidity();
+                return;
+            }
+        }
+        switchWizardStep(2);
+    }
+
+    let lastRenderedShopType = null;
+
+    function renderProductChecklist() {
+        const shopType = document.getElementById('reg-shoptype').value;
+        const container = document.getElementById('reg-product-list');
+        if (!shopType) {
+            lastRenderedShopType = null;
+            container.innerHTML = '<p class="empty-state">প্রথমে দোকানের ধরন নির্বাচন করুন।</p>';
+            return;
+        }
+        if (shopType === lastRenderedShopType) {
+            // Already rendered for this shop type - avoid wiping out the user's in-progress selections.
+            return;
+        }
+        lastRenderedShopType = shopType;
+        const currentlyChecked = new Set(
+            [...container.querySelectorAll('input[type="checkbox"]:checked')].map(cb => Number(cb.value))
+        );
+        const previouslyChecked = currentlyChecked.size > 0
+            ? currentlyChecked
+            : new Set(registrationPrefill.selectedProductIds || []);
+        const items = productCatalog.filter(p => p.Category === shopType);
+        container.innerHTML = items.length
+            ? items.map(product => '<label class="sb-check-item">' +
+                '<input type="checkbox" name="Registration.SelectedProductIds" value="' + product.Id + '" ' + (previouslyChecked.has(product.Id) ? 'checked' : '') + ' onchange="updateSelectedCount()" />' +
+                '<span class="sb-checkmark">✔</span>' +
+                '<span class="sb-check-name">' + escapeHtml(product.Name) + ' <small>(' + escapeHtml(product.ProductCode) + ')</small></span>' +
+                '</label>').join('')
+            : '<p class="empty-state">এই দোকানের ধরনে কোনো সক্রিয় পণ্য পাওয়া যায়নি। অনুগ্রহ করে আগে প্রোডাক্ট পেজ থেকে পণ্য যুক্ত করুন।</p>';
+        updateSelectedCount();
+    }
+
+    function goToReviewStep() {
+        const checked = document.querySelectorAll('#reg-product-list input[type="checkbox"]:checked');
+        if (checked.length === 0) {
+            alert('অন্তত একটি পণ্য নির্বাচন করুন।');
+            return;
+        }
+        switchWizardStep(3);
+    }
+
+    function renderReviewSummary() {
+        const val = id => (document.getElementById(id) && document.getElementById(id).value) || '';
+        const selectedText = select => (select && select.selectedOptions[0] && select.selectedOptions[0].text) || '';
+        const products = [...document.querySelectorAll('#reg-product-list input[type="checkbox"]:checked')]
+            .map(cb => cb.closest('.sb-check-item').querySelector('.sb-check-name').textContent.trim());
+
+        document.getElementById('reg-review-summary').innerHTML =
+            '<table><tbody>' +
+            '<tr><th>দোকানের নাম</th><td>' + escapeHtml(val('reg-shopname')) + '</td></tr>' +
+            '<tr><th>মালিকের নাম</th><td>' + escapeHtml(val('reg-ownername')) + '</td></tr>' +
+            '<tr><th>মোবাইল</th><td>' + escapeHtml(val('reg-phone')) + '</td></tr>' +
+            '<tr><th>ঠিকানা</th><td>' + escapeHtml(val('reg-address')) + ', ' + escapeHtml(val('reg-area')) + '</td></tr>' +
+            '<tr><th>বিভাগ/জেলা/থানা</th><td>' + escapeHtml(selectedText(divisionSelect)) + ' / ' + escapeHtml(selectedText(districtSelect)) + ' / ' + escapeHtml(selectedText(thanaSelect)) + '</td></tr>' +
+            '<tr><th>GPS অবস্থান</th><td>' + escapeHtml(val('reg-latitude')) + ', ' + escapeHtml(val('reg-longitude')) + '</td></tr>' +
+            '<tr><th>দোকানের ধরন</th><td>' + escapeHtml(selectedText(document.getElementById('reg-shoptype'))) + '</td></tr>' +
+            '<tr><th>নির্বাচিত পণ্য (' + products.length + ')</th><td>' + products.map(escapeHtml).join(', ') + '</td></tr>' +
+            '</tbody></table>';
+    }
+
     // Modal & Step Wizard Logic
     function openStepWizardModal(stepNumber = 1) {
         document.getElementById('wizardModal').style.display = 'flex';
+        const shopTypeSelected = document.getElementById('reg-shoptype') && document.getElementById('reg-shoptype').value;
+        if (stepNumber > 1 && !shopTypeSelected) {
+            stepNumber = 1;
+        }
         switchWizardStep(stepNumber);
     }
 
@@ -1803,7 +2059,7 @@
     }
 
     function switchWizardStep(stepNumber) {
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 3; i++) {
             const pane = document.getElementById('wizard-pane-' + i);
             const tab = document.getElementById('tab-step-' + i);
             if (pane) pane.style.display = (i === stepNumber) ? 'block' : 'none';
@@ -1812,38 +2068,71 @@
                 else tab.classList.remove('active');
             }
         }
+        // Always (re)build the target pane's dynamic content so every navigation
+        // path - Next/Back buttons, the top tabs, or opening the modal directly -
+        // stays in sync instead of only refreshing on one specific button click.
+        if (stepNumber === 2) renderProductChecklist();
+        if (stepNumber === 3) renderReviewSummary();
     }
 
     function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll('#wz-product-list input[type="checkbox"]');
+        const checkboxes = document.querySelectorAll('#reg-product-list input[type="checkbox"]');
         let checkedCount = 0;
         checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
-        document.getElementById('wz-btn-step2').textContent = 'পরবর্তী (' + checkedCount + ')';
+        const btn = document.getElementById('wz-btn-step2');
+        if (btn) btn.textContent = checkedCount > 0 ? ('পরবর্তী: যাচাই করুন (' + checkedCount + ')') : 'পরবর্তী: যাচাই করুন';
     }
 
     function filterWizardProducts() {
         const q = document.getElementById('wz-product-search').value.toLowerCase();
-        const items = document.querySelectorAll('.sb-check-item');
+        const items = document.querySelectorAll('#reg-product-list .sb-check-item');
         items.forEach(item => {
             const text = item.querySelector('.sb-check-name').textContent.toLowerCase();
             item.style.display = text.includes(q) ? 'flex' : 'none';
         });
     }
 
-    function calculateProfitSplit() {
-        const buy = parseFloat(document.getElementById('wz-buy-price').value) || 0;
-        const sell = parseFloat(document.getElementById('wz-sell-price').value) || 0;
-        const profit = Math.max(0, sell - buy);
-        const split = (profit / 2).toFixed(1);
-
-        document.getElementById('wz-total-profit').value = profit;
-        document.getElementById('wz-shop-share').textContent = '৳ ' + split;
-        document.getElementById('wz-sb-share').textContent = '৳ ' + split;
+    function toggleAllProducts(checked) {
+        const items = document.querySelectorAll('#reg-product-list .sb-check-item');
+        items.forEach(item => {
+            // Only touch products currently visible under the active search filter.
+            if (item.style.display === 'none') return;
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = checked;
+        });
+        updateSelectedCount();
     }
 
-    function completeRegistrationSuccess() {
-        closeStepWizardModal();
-        alert('অভিনন্দন! দোকান ও পণ্যের দাম সফলভাবে আপডেট এবং সংরক্ষিত হয়েছে।');
+    // Give feedback while the entry is being saved: block double-submits, revalidate
+    // every pane (a required field in a hidden earlier pane doesn't stop native
+    // submission), and jump back to whichever step needs attention.
+    const shopRegistrationForm = document.getElementById('shopRegistrationForm');
+    if (shopRegistrationForm) {
+        shopRegistrationForm.addEventListener('submit', function (event) {
+            const allFields = this.querySelectorAll('input, select');
+            for (const field of allFields) {
+                if (!field.checkValidity()) {
+                    const pane = field.closest('.sb-wizard-pane');
+                    if (pane) {
+                        const stepNum = Number(pane.id.replace('wizard-pane-', ''));
+                        if (stepNum) switchWizardStep(stepNum);
+                    }
+                    field.reportValidity();
+                    event.preventDefault();
+                    return;
+                }
+            }
+            const submitBtn = document.getElementById('reg-submit-btn');
+            const spinner = document.getElementById('reg-submit-spinner');
+            const text = document.getElementById('reg-submit-text');
+            if (submitBtn) submitBtn.disabled = true;
+            if (spinner) spinner.hidden = false;
+            if (text) text.textContent = 'সংরক্ষণ করা হচ্ছে...';
+        });
     }
 </script>
+}
+@if (hasRegistrationErrors)
+{
+    <script>document.addEventListener('DOMContentLoaded', () => openStepWizardModal(1));</script>
 }

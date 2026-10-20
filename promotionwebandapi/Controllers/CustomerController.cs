@@ -69,7 +69,7 @@ public sealed class CustomerController(
         try
         {
             var loan = loanStore.ApplyLoan(userId, Roles.Customer, name, phone, input);
-            TempData["SuccessMessage"] = $"অভিনন্দন! আপনার ৳{loan.LoanAmount:N0} টাকার লোন তাৎক্ষণিক অনুমোদন ও ওয়ালেটে জমা হয়েছে।";
+            TempData["SuccessMessage"] = $"অভিনন্দন! আপনার ৳{loan.LoanAmount:N0} টাকার ডিজিটাল লোন তাৎক্ষণিক অনুমোদন ও ওয়ালেটে জমা হয়েছে।";
             return RedirectToAction(nameof(Loan));
         }
         catch (Exception ex)
@@ -105,19 +105,20 @@ public sealed class CustomerController(
     }
 
     [HttpGet]
-    public IActionResult AgentLocation()
+    public IActionResult AgentLocation(string? districtName = null, double? lat = null, double? lon = null)
     {
         if (!IsCustomer()) return RedirectToAction("Login", "Account");
-        var agent = loanStore.GetAgentOfficeForDistrict("ঢাকা");
+        var agent = loanStore.GetAgentOfficeForDistrict(districtName ?? "Dhaka", lat, lon);
         return View(agent);
     }
 
     [HttpGet]
-    public IActionResult PlaceOrder(int? shopkeeperId)
+    public IActionResult PlaceOrder(int? shopkeeperId, string? district = null, double? lat = null, double? lon = null)
     {
         return CustomerView(shopkeeperId is null
             ? null
-            : new CustomerOrderInputModel { ShopkeeperId = shopkeeperId });
+            : new CustomerOrderInputModel { ShopkeeperId = shopkeeperId, DistrictName = district ?? "Dhaka" },
+            district, lat, lon);
     }
 
     [HttpGet]
@@ -127,9 +128,32 @@ public sealed class CustomerController(
     }
 
     [HttpGet]
-    public IActionResult Shops()
+    public IActionResult Shops(string? district = null, string? category = null, double? lat = null, double? lon = null)
     {
-        return CustomerView();
+        var model = BuildDashboard(null, district, lat, lon, category);
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult UpdateLocation([FromBody] CustomerLocationInputModel? input)
+    {
+        if (!IsCustomer())
+        {
+            return Unauthorized(new { success = false, message = "Session শেষ হয়েছে। আবার login করুন।" });
+        }
+
+        if (input?.Latitude is not { } latitude || latitude is < -90 or > 90
+            || input.Longitude is not { } longitude || longitude is < -180 or > 180)
+        {
+            return BadRequest(new { success = false, message = "সঠিক লোকেশন পাওয়া যায়নি।" });
+        }
+
+        var phone = HttpContext.Session.GetString("UserPhone");
+        if (string.IsNullOrWhiteSpace(phone)) return RedirectToAction("Login", "Account");
+
+        store.UpdateCustomerLocation(phone, latitude, longitude);
+        return Json(new { success = true });
     }
 
     [HttpGet]
@@ -164,9 +188,16 @@ public sealed class CustomerController(
 
         if (profilePicture is { Length: > 0 })
         {
+            var ext = Path.GetExtension(profilePicture.FileName).ToLowerInvariant();
+            if (profilePicture.Length > 5 * 1024 * 1024 || ext is not (".jpg" or ".jpeg" or ".png" or ".webp"))
+            {
+                TempData["ErrorMessage"] = "Profile picture must be JPG, PNG or WEBP and at most 5 MB.";
+                return RedirectToAction(nameof(Profile));
+            }
+
             var uploads = Path.Combine(environment.ContentRootPath, "uploads", "customers");
             Directory.CreateDirectory(uploads);
-            var filename = Guid.NewGuid().ToString() + Path.GetExtension(profilePicture.FileName);
+            var filename = Guid.NewGuid().ToString() + ext;
             var filepath = Path.Combine(uploads, filename);
             using var stream = new FileStream(filepath, FileMode.Create);
             await profilePicture.CopyToAsync(stream);
@@ -250,7 +281,7 @@ public sealed class CustomerController(
 
         if (!ModelState.IsValid || shopkeeper is null)
         {
-            return View(nameof(PlaceOrder), BuildDashboard(order));
+            return View(nameof(PlaceOrder), BuildDashboard(order, order.DistrictName));
         }
 
         try
@@ -268,43 +299,48 @@ public sealed class CustomerController(
         catch (InvalidOperationException ex)
         {
             ModelState.AddModelError("", ex.Message);
-            return View(nameof(PlaceOrder), BuildDashboard(order));
+            return View(nameof(PlaceOrder), BuildDashboard(order, order.DistrictName));
         }
     }
 
-    private IActionResult CustomerView(CustomerOrderInputModel? order = null)
+    private IActionResult CustomerView(CustomerOrderInputModel? order = null, string? district = null, double? lat = null, double? lon = null)
     {
         if (!IsCustomer())
         {
             return RedirectToAction("Login", "Account");
         }
 
-        return View(BuildDashboard(order));
+        return View(BuildDashboard(order, district, lat, lon));
     }
 
-    private CustomerDashboardViewModel BuildDashboard(CustomerOrderInputModel? order = null)
+    private CustomerDashboardViewModel BuildDashboard(
+        CustomerOrderInputModel? order = null,
+        string? district = null,
+        double? lat = null,
+        double? lon = null,
+        string? category = null)
     {
-        var shops = store.GetShopkeepers()
-            .Select(shop => new CustomerShopkeeperOptionViewModel
+        var activeDistrict = string.IsNullOrWhiteSpace(district) ? "Dhaka" : district.Trim();
+
+        if (lat is null || lon is null)
+        {
+            var savedPhone = HttpContext.Session.GetString("UserPhone");
+            if (!string.IsNullOrWhiteSpace(savedPhone)
+                && store.GetCustomerLocation(savedPhone) is { Latitude: { } savedLat, Longitude: { } savedLon })
             {
-                Id = shop.Id,
-                ShopName = shop.ShopName,
-                OwnerName = shop.OwnerName,
-                Phone = shop.Phone,
-                Area = shop.Area,
-                Address = shop.Address,
-                ThanaName = shop.ThanaName,
-                DistrictName = shop.DistrictName,
-                Latitude = shop.Latitude,
-                Longitude = shop.Longitude,
-                ShopType = shop.ShopType,
-                FieldOfficerName = shop.FieldOfficerName,
-                FieldOfficerPhone = shop.FieldOfficerPhone
-            })
-            .ToList();
+                lat ??= (double)savedLat;
+                lon ??= (double)savedLon;
+            }
+        }
+
+        var nearbyShops = orderStore.GetNearbyShops(lat, lon, activeDistrict, category);
+        var products = orderStore.GetProducts(activeDistrict);
+        var categories = orderStore.GetCategories();
+        var districtPricing = orderStore.GetDistrictPricing(activeDistrict);
 
         var input = order ?? new CustomerOrderInputModel
         {
+            DistrictName = activeDistrict,
             Items =
             [
                 new() { Quantity = 1 },
@@ -325,9 +361,12 @@ public sealed class CustomerController(
             CustomerName = HttpContext.Session.GetString("UserName") ?? "Customer",
             CustomerPhone = phone,
             ProfilePhotoPath = store.GetCustomerProfilePhotoPath(phone),
+            SelectedDistrict = activeDistrict,
             Order = input,
-            Shopkeepers = shops,
-            Products = orderStore.GetProducts(),
+            Shopkeepers = nearbyShops,
+            Products = products,
+            Categories = categories,
+            DistrictPricing = districtPricing,
             Orders = orderStore.GetOrdersByCustomer(GetUserId()),
             DeliveryAssignments = deliveryStore.GetAssignmentsForCustomer(GetUserId()),
             UnreadChatCount = chatStore.GetUnreadCount(GetUserId()),

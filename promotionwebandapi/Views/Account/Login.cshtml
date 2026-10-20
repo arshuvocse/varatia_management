@@ -24,8 +24,8 @@
             <span asp-validation-for="Password" class="validation"></span>
 
             <button class="btn-primary" type="submit">লগইন</button>
-            <div style="text-align: right; margin-top: -6px; margin-bottom: 10px;">
-                <a href="#" onclick="openForgotPasswordModal(event)" style="color: #2563eb; font-size: 13px; font-weight: bold; text-decoration: none;">🔑 পাসওয়ার্ড ভুলে গেছেন?</a>
+            <div style="text-align: right; margin-top: -4px; margin-bottom: 6px;">
+                <a href="#" onclick="openForgotPasswordModal(event)" style="color: var(--primary); font-size: 13.5px; font-weight: 700; text-decoration: none;">🔑 পাসওয়ার্ড ভুলে গেছেন?</a>
             </div>
             <a class="btn-light" asp-action="Register">নতুন ক্রেতা অ্যাকাউন্ট খুলুন</a>
             <small class="login-persistence-note">এই ব্রাউজারে ৩০ দিন লগইন মনে রাখা হবে। লগআউট করলে সংরক্ষিত লগইন মুছে যাবে।</small>
@@ -33,29 +33,29 @@
     </section>
 </main>
 
-<div id="forgotPasswordModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center;">
-    <div style="background: #fff; padding: 24px; border-radius: 16px; width: min(400px, 90%); box-shadow: 0 20px 40px rgba(0,0,0,0.2);">
-        <h3 style="margin-top:0; color: #1e3a8a;">🔑 পাসওয়ার্ড রিসেট</h3>
-        <p style="font-size: 13px; color: #64748b;">আপনার অ্যাকাউন্টের ১১ সংখ্যার মোবাইল নম্বর দিন। আমরা একটি OTP কোড পাঠাব।</p>
-        <div id="forgotMsg" style="display:none; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 12px;"></div>
+<div id="forgotPasswordModal" style="display:none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999; justify-content: center; align-items: center;">
+    <div style="background: rgba(255, 255, 255, 0.98); padding: 28px; border-radius: var(--radius-xl); width: min(420px, 92%); border: 1px solid var(--border); box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);">
+        <h3 style="margin-top:0; color: var(--text-primary); font-size: 20px; font-weight: 800;">🔑 পাসওয়ার্ড রিসেট</h3>
+        <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 18px;">আপনার অ্যাকাউন্টের ১১ সংখ্যার মোবাইল নম্বর দিন। আমরা একটি OTP কোড পাঠাব।</p>
+        <div id="forgotMsg" style="display:none; padding: 12px; border-radius: var(--radius-md); font-weight: 700; font-size: 13.5px; margin-bottom: 14px;"></div>
 
         <div id="step1">
-            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">মোবাইল নম্বর</label>
-            <input type="tel" id="resetPhone" placeholder="01XXXXXXXXX" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 14px;" />
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button type="button" onclick="closeForgotPasswordModal()" style="padding: 8px 16px; border: 0; background: #e2e8f0; border-radius: 8px; cursor: pointer;">বাতিল</button>
-                <button type="button" onclick="sendResetOtp()" style="padding: 8px 16px; border: 0; background: #2563eb; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer;">OTP পাঠান</button>
+            <label style="display:block; font-weight:700; font-size:13.5px; margin-bottom:6px; color: var(--text-primary);">মোবাইল নম্বর</label>
+            <input type="tel" id="resetPhone" placeholder="01XXXXXXXXX" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 16px; font-size: 14px; outline: none; box-sizing: border-box;" />
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeForgotPasswordModal()" class="btn-light" style="min-height: 42px; padding: 0 16px;">বাতিল</button>
+                <button type="button" onclick="sendResetOtp()" class="btn-primary" style="min-height: 42px; padding: 0 18px;">OTP পাঠান</button>
             </div>
         </div>
 
         <div id="step2" style="display:none;">
-            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">OTP কোড</label>
-            <input type="text" id="resetOtp" placeholder="৬ সংখ্যার OTP" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 10px;" />
-            <label style="display:block; font-weight:bold; font-size:13px; margin-bottom:4px;">নতুন পাসওয়ার্ড</label>
-            <input type="password" id="resetNewPassword" placeholder="নতুন পাসওয়ার্ড" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; margin-bottom: 14px;" />
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button type="button" onclick="closeForgotPasswordModal()" style="padding: 8px 16px; border: 0; background: #e2e8f0; border-radius: 8px; cursor: pointer;">বাতিল</button>
-                <button type="button" onclick="submitPasswordReset()" style="padding: 8px 16px; border: 0; background: #059669; color: #fff; border-radius: 8px; font-weight: bold; cursor: pointer;">পাসওয়ার্ড পরিবর্তন করুন</button>
+            <label style="display:block; font-weight:700; font-size:13.5px; margin-bottom:6px; color: var(--text-primary);">OTP কোড</label>
+            <input type="text" id="resetOtp" placeholder="৬ সংখ্যার OTP" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px; font-size: 14px; outline: none; box-sizing: border-box;" />
+            <label style="display:block; font-weight:700; font-size:13.5px; margin-bottom:6px; color: var(--text-primary);">নতুন পাসওয়ার্ড</label>
+            <input type="password" id="resetNewPassword" placeholder="নতুন পাসওয়ার্ড" style="width: 100%; height: 48px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 16px; font-size: 14px; outline: none; box-sizing: border-box;" />
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="closeForgotPasswordModal()" class="btn-light" style="min-height: 42px; padding: 0 16px;">বাতিল</button>
+                <button type="button" onclick="submitPasswordReset()" class="btn-primary" style="min-height: 42px; padding: 0 18px;">পাসওয়ার্ড পরিবর্তন করুন</button>
             </div>
         </div>
     </div>

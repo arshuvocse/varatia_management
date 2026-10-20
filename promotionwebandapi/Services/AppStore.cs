@@ -144,6 +144,7 @@ public sealed class AppStore(IConfiguration configuration)
 
     public AppUser RegisterCustomer(CustomerRegistrationViewModel model)
     {
+        EnsureCustomerProfileSchema();
         using var connection = CreateConnection();
         connection.Open();
         using var transaction = connection.BeginTransaction();
@@ -165,18 +166,26 @@ public sealed class AppStore(IConfiguration configuration)
             using (var command = new SqlCommand("""
                 IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Customers WHERE Phone = @Phone)
                 BEGIN
-                    INSERT INTO dbo.tbl_Customers (Name, Phone, Address)
-                    VALUES (@Name, @Phone, @Address);
+                    INSERT INTO dbo.tbl_Customers (Name, Phone, Address, Latitude, Longitude, LocationUpdatedAt)
+                    VALUES (@Name, @Phone, @Address, @Latitude, @Longitude,
+                        CASE WHEN @Latitude IS NULL THEN NULL ELSE SYSUTCDATETIME() END);
                 END
                 ELSE
                 BEGIN
-                    UPDATE dbo.tbl_Customers SET Name = @Name, Address = @Address WHERE Phone = @Phone;
+                    UPDATE dbo.tbl_Customers
+                    SET Name = @Name, Address = @Address,
+                        Latitude = COALESCE(@Latitude, Latitude),
+                        Longitude = COALESCE(@Longitude, Longitude),
+                        LocationUpdatedAt = CASE WHEN @Latitude IS NULL THEN LocationUpdatedAt ELSE SYSUTCDATETIME() END
+                    WHERE Phone = @Phone;
                 END
                 """, connection, transaction))
             {
                 command.Parameters.AddWithValue("@Name", model.Name.Trim());
                 command.Parameters.AddWithValue("@Phone", model.Phone.Trim());
                 command.Parameters.AddWithValue("@Address", string.IsNullOrWhiteSpace(model.Address) ? DBNull.Value : model.Address.Trim());
+                command.Parameters.AddWithValue("@Latitude", (object?)model.Latitude ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Longitude", (object?)model.Longitude ?? DBNull.Value);
                 command.ExecuteNonQuery();
             }
 
@@ -200,7 +209,13 @@ public sealed class AppStore(IConfiguration configuration)
             using var command = new SqlCommand("""
                 IF COL_LENGTH(N'dbo.tbl_Customers', N'ProfilePhotoPath') IS NULL
                     ALTER TABLE dbo.tbl_Customers ADD ProfilePhotoPath NVARCHAR(500) NULL;
-                """, connection);
+                IF COL_LENGTH(N'dbo.tbl_Customers', N'Latitude') IS NULL
+                    ALTER TABLE dbo.tbl_Customers ADD Latitude DECIMAL(9,6) NULL;
+                IF COL_LENGTH(N'dbo.tbl_Customers', N'Longitude') IS NULL
+                    ALTER TABLE dbo.tbl_Customers ADD Longitude DECIMAL(9,6) NULL;
+                IF COL_LENGTH(N'dbo.tbl_Customers', N'LocationUpdatedAt') IS NULL
+                    ALTER TABLE dbo.tbl_Customers ADD LocationUpdatedAt DATETIME2(0) NULL;
+                """, connection) { CommandTimeout = 120 };
             connection.Open();
             command.ExecuteNonQuery();
             _customerSchemaReady = true;
@@ -233,6 +248,37 @@ public sealed class AppStore(IConfiguration configuration)
         return result != DBNull.Value ? result as string : null;
     }
 
+    public void UpdateCustomerLocation(string phone, decimal latitude, decimal longitude)
+    {
+        EnsureCustomerProfileSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("""
+            UPDATE dbo.tbl_Customers
+            SET Latitude = @Latitude, Longitude = @Longitude, LocationUpdatedAt = SYSUTCDATETIME()
+            WHERE Phone = @Phone
+            """, connection);
+        command.Parameters.AddWithValue("@Phone", phone.Trim());
+        command.Parameters.AddWithValue("@Latitude", latitude);
+        command.Parameters.AddWithValue("@Longitude", longitude);
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
+    public (decimal? Latitude, decimal? Longitude)? GetCustomerLocation(string phone)
+    {
+        EnsureCustomerProfileSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand(
+            "SELECT Latitude, Longitude FROM dbo.tbl_Customers WHERE Phone = @Phone", connection);
+        command.Parameters.AddWithValue("@Phone", phone.Trim());
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        if (!reader.Read()) return null;
+        return (
+            reader.IsDBNull(0) ? null : reader.GetDecimal(0),
+            reader.IsDBNull(1) ? null : reader.GetDecimal(1));
+    }
+
     public IReadOnlyList<Shopkeeper> GetShopkeepers(int? fieldOfficerUserId = null)
     {
         EnsureShopkeeperRegistrationSchema();
@@ -253,10 +299,11 @@ public sealed class AppStore(IConfiguration configuration)
 
     public IReadOnlyList<AppUser> GetFieldOfficersByAgent(int agentUserId)
     {
+        EnsureUserProfilePictureSchema();
         using var connection = CreateConnection();
         using var command = new SqlCommand("""
             SELECT Id, Name, Phone, PasswordHash AS [Password], Role, ShopCode,
-                   ParentUserId, IsActive, CreatedAt
+                   ParentUserId, IsActive, CreatedAt, ProfilePictureUrl
             FROM dbo.tbl_Users
             WHERE ParentUserId = @AgentUserId AND Role = N'FieldOfficer'
             ORDER BY CreatedAt DESC, Id DESC;
@@ -276,8 +323,36 @@ public sealed class AppStore(IConfiguration configuration)
 
     public IReadOnlyList<Shopkeeper> GetShopkeepersByAgent(int agentUserId)
     {
-        var fieldOfficerIds = GetFieldOfficersByAgent(agentUserId).Select(x => x.Id).ToHashSet();
-        return GetShopkeepers().Where(x => fieldOfficerIds.Contains(x.FieldOfficerUserId)).ToList();
+        EnsureShopkeeperRegistrationSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("""
+            SELECT
+                s.Id, s.ShopName, s.OwnerName, s.Phone, s.NidNumber, s.ProfilePhotoPath,
+                s.BillboardPhotoPath, s.DivisionId, dv.Name AS DivisionName, s.DistrictId,
+                ds.Name AS DistrictName, s.ThanaId, th.Name AS ThanaName, s.Address,
+                s.Latitude, s.Longitude, s.Area, s.ShopType, u.PasswordHash AS [Password],
+                s.ShopCode, s.FieldOfficerUserId, fo.Name AS FieldOfficerName,
+                fo.Phone AS FieldOfficerPhone, s.RegisteredAt
+            FROM dbo.tbl_Shopkeepers AS s
+            INNER JOIN dbo.tbl_Users AS u ON u.Id = s.UserId
+            INNER JOIN dbo.tbl_Users AS fo ON fo.Id = s.FieldOfficerUserId
+            INNER JOIN dbo.tbl_Divisions AS dv ON dv.Id = s.DivisionId
+            INNER JOIN dbo.tbl_Districts AS ds ON ds.Id = s.DistrictId
+            INNER JOIN dbo.tbl_Thanas AS th ON th.Id = s.ThanaId
+            WHERE fo.ParentUserId = @AgentUserId AND fo.Role = N'FieldOfficer'
+            ORDER BY s.Id DESC;
+            """, connection);
+        command.Parameters.AddWithValue("@AgentUserId", agentUserId);
+        var shops = new List<Shopkeeper>();
+
+        connection.Open();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            shops.Add(MapShopkeeper(reader));
+        }
+
+        return shops;
     }
 
     public bool SetFieldOfficerActive(int agentUserId, int fieldOfficerUserId, bool isActive)
@@ -577,7 +652,11 @@ public sealed class AppStore(IConfiguration configuration)
                 CashbackRate = reader.GetDecimal(reader.GetOrdinal("CashbackRate")),
                 DeliveryCharge = reader.GetDecimal(reader.GetOrdinal("DeliveryCharge")),
                 SupportPhone = reader.GetString(reader.GetOrdinal("SupportPhone")),
-                PaymentGateway = reader.GetString(reader.GetOrdinal("PaymentGateway"))
+                PaymentGateway = reader.GetString(reader.GetOrdinal("PaymentGateway")),
+                RegistrationFee = HasColumn(reader, "RegistrationFee") && !reader.IsDBNull(reader.GetOrdinal("RegistrationFee"))
+                    ? reader.GetDecimal(reader.GetOrdinal("RegistrationFee"))
+                    : 50.00m,
+                IsRegistrationFeeActive = !HasColumn(reader, "IsRegistrationFeeActive") || reader.GetBoolean(reader.GetOrdinal("IsRegistrationFeeActive"))
             }
             : new CompanySettingsViewModel();
 
@@ -902,6 +981,8 @@ public sealed class AppStore(IConfiguration configuration)
                 DeliveryCharge = @DeliveryCharge,
                 SupportPhone = @SupportPhone,
                 PaymentGateway = @PaymentGateway,
+                RegistrationFee = @RegistrationFee,
+                IsRegistrationFeeActive = @IsRegistrationFeeActive,
                 UpdatedAt = SYSUTCDATETIME()
             WHERE Id = 1;
             """, connection);
@@ -910,6 +991,25 @@ public sealed class AppStore(IConfiguration configuration)
         command.Parameters.AddWithValue("@DeliveryCharge", Math.Max(0, input.DeliveryCharge));
         command.Parameters.AddWithValue("@SupportPhone", input.SupportPhone?.Trim() ?? "");
         command.Parameters.AddWithValue("@PaymentGateway", input.PaymentGateway?.Trim() ?? "");
+        command.Parameters.AddWithValue("@RegistrationFee", Math.Max(0, input.RegistrationFee));
+        command.Parameters.AddWithValue("@IsRegistrationFeeActive", input.IsRegistrationFeeActive);
+        connection.Open();
+        command.ExecuteNonQuery();
+    }
+
+    public void UpdateRegistrationFee(decimal registrationFee, bool isRegistrationFeeActive)
+    {
+        EnsureCompanyDashboardSchema();
+        using var connection = CreateConnection();
+        using var command = new SqlCommand("""
+            UPDATE dbo.tbl_CompanySettings
+            SET RegistrationFee = @RegistrationFee,
+                IsRegistrationFeeActive = @IsRegistrationFeeActive,
+                UpdatedAt = SYSUTCDATETIME()
+            WHERE Id = 1;
+            """, connection);
+        command.Parameters.AddWithValue("@RegistrationFee", Math.Max(0, registrationFee));
+        command.Parameters.AddWithValue("@IsRegistrationFeeActive", isRegistrationFeeActive);
         connection.Open();
         command.ExecuteNonQuery();
     }
@@ -1159,6 +1259,53 @@ public sealed class AppStore(IConfiguration configuration)
                     INNER JOIN dbo.tbl_Users AS fo ON fo.Id = s.FieldOfficerUserId
                     WHERE s.Id = @ShopId;
                 END');
+
+                EXEC(N'
+                CREATE OR ALTER PROCEDURE dbo.sp_Shopkeeper_List
+                    @FieldOfficerUserId INT = NULL
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    SELECT
+                        s.Id, s.ShopName, s.OwnerName, s.Phone, s.NidNumber, s.ProfilePhotoPath,
+                        s.BillboardPhotoPath, s.DivisionId, dv.Name AS DivisionName, s.DistrictId,
+                        ds.Name AS DistrictName, s.ThanaId, th.Name AS ThanaName, s.Address,
+                        s.Latitude, s.Longitude, s.Area, s.ShopType, u.PasswordHash AS [Password],
+                        s.ShopCode, s.FieldOfficerUserId, fo.Name AS FieldOfficerName,
+                        fo.Phone AS FieldOfficerPhone, s.RegisteredAt
+                    FROM dbo.tbl_Shopkeepers AS s
+                    INNER JOIN dbo.tbl_Users AS u ON u.Id = s.UserId
+                    INNER JOIN dbo.tbl_Users AS fo ON fo.Id = s.FieldOfficerUserId
+                    INNER JOIN dbo.tbl_Divisions AS dv ON dv.Id = s.DivisionId
+                    INNER JOIN dbo.tbl_Districts AS ds ON ds.Id = s.DistrictId
+                    INNER JOIN dbo.tbl_Thanas AS th ON th.Id = s.ThanaId
+                    WHERE @FieldOfficerUserId IS NULL OR s.FieldOfficerUserId = @FieldOfficerUserId
+                    ORDER BY s.Id DESC;
+                END');
+
+                EXEC(N'
+                CREATE OR ALTER PROCEDURE dbo.sp_Shopkeeper_GetByPhone
+                    @Phone NVARCHAR(20)
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    SELECT TOP (1)
+                        s.Id, s.ShopName, s.OwnerName, s.Phone, s.NidNumber, s.ProfilePhotoPath,
+                        s.BillboardPhotoPath, s.DivisionId, dv.Name AS DivisionName, s.DistrictId,
+                        ds.Name AS DistrictName, s.ThanaId, th.Name AS ThanaName, s.Address,
+                        s.Latitude, s.Longitude, s.Area, s.ShopType, u.PasswordHash AS [Password],
+                        s.ShopCode, s.FieldOfficerUserId, fo.Name AS FieldOfficerName,
+                        fo.Phone AS FieldOfficerPhone, s.RegisteredAt
+                    FROM dbo.tbl_Shopkeepers AS s
+                    INNER JOIN dbo.tbl_Users AS u ON u.Id = s.UserId
+                    INNER JOIN dbo.tbl_Users AS fo ON fo.Id = s.FieldOfficerUserId
+                    INNER JOIN dbo.tbl_Divisions AS dv ON dv.Id = s.DivisionId
+                    INNER JOIN dbo.tbl_Districts AS ds ON ds.Id = s.DistrictId
+                    INNER JOIN dbo.tbl_Thanas AS th ON th.Id = s.ThanaId
+                    WHERE s.Phone = @Phone;
+                END');
                 """, connection);
             connection.Open();
             command.ExecuteNonQuery();
@@ -1182,6 +1329,26 @@ public sealed class AppStore(IConfiguration configuration)
                     CONSTRAINT FK_tbl_AgentDistricts_User FOREIGN KEY (AgentUserId) REFERENCES dbo.tbl_Users(Id),
                     CONSTRAINT FK_tbl_AgentDistricts_District FOREIGN KEY (DistrictId) REFERENCES dbo.tbl_Districts(Id)
                 );
+
+                IF COL_LENGTH(N'dbo.tbl_Users', N'ProfilePictureUrl') IS NULL
+                    ALTER TABLE dbo.tbl_Users ADD ProfilePictureUrl NVARCHAR(500) NULL;
+
+                EXEC(N'
+                CREATE OR ALTER PROCEDURE dbo.sp_FieldOfficer_ListByAgent
+                    @AgentUserId INT
+                AS
+                BEGIN
+                    SET NOCOUNT ON;
+
+                    SELECT
+                        Id, Name, Phone, PasswordHash AS [Password], Role, ShopCode,
+                        ParentUserId, CreatedAt, ProfilePictureUrl
+                    FROM dbo.tbl_Users
+                    WHERE Role = N''FieldOfficer''
+                      AND ParentUserId = @AgentUserId
+                      AND IsActive = 1
+                    ORDER BY Id DESC;
+                END');
                 """, connection);
             connection.Open();
             command.ExecuteNonQuery();
@@ -1221,11 +1388,22 @@ public sealed class AppStore(IConfiguration configuration)
                         DeliveryCharge DECIMAL(18,2) NOT NULL,
                         SupportPhone NVARCHAR(30) NOT NULL,
                         PaymentGateway NVARCHAR(100) NOT NULL,
+                        RegistrationFee DECIMAL(18,2) NOT NULL CONSTRAINT DF_tbl_CompanySettings_RegistrationFee DEFAULT (50.00),
+                        IsRegistrationFeeActive BIT NOT NULL CONSTRAINT DF_tbl_CompanySettings_IsRegistrationFeeActive DEFAULT (1),
                         UpdatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_tbl_CompanySettings_UpdatedAt DEFAULT SYSUTCDATETIME()
                     );
-                    INSERT INTO dbo.tbl_CompanySettings
-                        (Id, CommissionRate, CashbackRate, DeliveryCharge, SupportPhone, PaymentGateway)
-                    VALUES (1, 1, 2, 60, N'09678-123456', N'Cash / Manual');
+                    EXEC(N'INSERT INTO dbo.tbl_CompanySettings (Id, CommissionRate, CashbackRate, DeliveryCharge, SupportPhone, PaymentGateway, RegistrationFee, IsRegistrationFeeActive) VALUES (1, 1, 2, 60, N''09678-123456'', N''Cash / Manual'', 50.00, 1)');
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH(N'dbo.tbl_CompanySettings', N'RegistrationFee') IS NULL
+                    BEGIN
+                        EXEC(N'ALTER TABLE dbo.tbl_CompanySettings ADD RegistrationFee DECIMAL(18,2) NOT NULL CONSTRAINT DF_tbl_CompanySettings_RegistrationFee DEFAULT (50.00)');
+                    END;
+                    IF COL_LENGTH(N'dbo.tbl_CompanySettings', N'IsRegistrationFeeActive') IS NULL
+                    BEGIN
+                        EXEC(N'ALTER TABLE dbo.tbl_CompanySettings ADD IsRegistrationFeeActive BIT NOT NULL CONSTRAINT DF_tbl_CompanySettings_IsRegistrationFeeActive DEFAULT (1)');
+                    END;
                 END;
 
                 IF OBJECT_ID(N'dbo.tbl_CompanyBulletins', N'U') IS NULL
@@ -1376,7 +1554,7 @@ public sealed class AppStore(IConfiguration configuration)
                     ) activity
                     ORDER BY OccurredAt DESC;
 
-                    SELECT CommissionRate, CashbackRate, DeliveryCharge, SupportPhone, PaymentGateway
+                    SELECT CommissionRate, CashbackRate, DeliveryCharge, SupportPhone, PaymentGateway, RegistrationFee, IsRegistrationFeeActive
                     FROM dbo.tbl_CompanySettings
                     WHERE Id = 1;
                 END
@@ -1587,10 +1765,151 @@ public sealed class AppStore(IConfiguration configuration)
         }
     }
 
+    private static bool _teamSeedReady;
+    private static readonly object TeamSeedLock = new();
+
+    public void EnsureSeedTeamMembers()
+    {
+        if (_teamSeedReady) return;
+        lock (TeamSeedLock)
+        {
+            if (_teamSeedReady) return;
+            try
+            {
+                EnsureAgentSchema();
+                EnsureUserProfilePictureSchema();
+                using var connection = CreateConnection();
+                connection.Open();
+
+                using var checkCmd = new SqlCommand("SELECT COUNT(1) FROM dbo.tbl_Users WHERE Role IN (N'Agent', N'FieldOfficer');", connection);
+                var count = Convert.ToInt32(checkCmd.ExecuteScalar() ?? 0);
+                if (count == 0)
+                {
+                    using var seedCmd = new SqlCommand("""
+                        DECLARE @DhakaId INT, @CtgId INT, @SylhetId INT, @RajshahiId INT;
+                        SELECT TOP 1 @DhakaId = Id FROM dbo.tbl_Districts WHERE Name LIKE N'%Dhaka%' OR Name LIKE N'%ঢাকা%' ORDER BY Id;
+                        SELECT TOP 1 @CtgId = Id FROM dbo.tbl_Districts WHERE Name LIKE N'%Chatto%' OR Name LIKE N'%Chittagong%' OR Name LIKE N'%চট্টগ্রাম%' ORDER BY Id;
+                        SELECT TOP 1 @SylhetId = Id FROM dbo.tbl_Districts WHERE Name LIKE N'%Sylhet%' OR Name LIKE N'%সিলেট%' ORDER BY Id;
+                        SELECT TOP 1 @RajshahiId = Id FROM dbo.tbl_Districts WHERE Name LIKE N'%Rajshahi%' OR Name LIKE N'%রাজশাহী%' ORDER BY Id;
+
+                        IF @DhakaId IS NULL SELECT TOP 1 @DhakaId = Id FROM dbo.tbl_Districts;
+                        IF @CtgId IS NULL SELECT TOP 1 @CtgId = Id FROM dbo.tbl_Districts WHERE Id <> @DhakaId;
+                        IF @CtgId IS NULL SET @CtgId = @DhakaId;
+                        IF @SylhetId IS NULL SELECT TOP 1 @SylhetId = Id FROM dbo.tbl_Districts WHERE Id NOT IN (@DhakaId, @CtgId);
+                        IF @SylhetId IS NULL SET @SylhetId = @DhakaId;
+                        IF @RajshahiId IS NULL SELECT TOP 1 @RajshahiId = Id FROM dbo.tbl_Districts WHERE Id NOT IN (@DhakaId, @CtgId, @SylhetId);
+                        IF @RajshahiId IS NULL SET @RajshahiId = @DhakaId;
+
+                        -- 1. Agent: মোঃ রফিকুল ইসলাম (Dhaka)
+                        DECLARE @Agent1Id INT;
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01711000101')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'মোঃ রফিকুল ইসলাম', '01711000101', '1234', N'Agent', 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80');
+                            SET @Agent1Id = SCOPE_IDENTITY();
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT @Agent1Id = Id FROM dbo.tbl_Users WHERE Phone = '01711000101';
+                        END
+
+                        IF @Agent1Id IS NOT NULL AND @DhakaId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.tbl_AgentDistricts WHERE AgentUserId = @Agent1Id)
+                        BEGIN
+                            INSERT INTO dbo.tbl_AgentDistricts (AgentUserId, DistrictId) VALUES (@Agent1Id, @DhakaId);
+                        END
+
+                        -- 2. FieldOfficer: তানভীর আহমেদ (under Agent 1)
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01812000202')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, ParentUserId, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'তানভীর আহমেদ', '01812000202', '1234', N'FieldOfficer', @Agent1Id, 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80');
+                        END
+
+                        -- 3. Agent: আব্দুল কাদের (Chittagong)
+                        DECLARE @Agent2Id INT;
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01913000303')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'আব্দুল কাদের', '01913000303', '1234', N'Agent', 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80');
+                            SET @Agent2Id = SCOPE_IDENTITY();
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT @Agent2Id = Id FROM dbo.tbl_Users WHERE Phone = '01913000303';
+                        END
+
+                        IF @Agent2Id IS NOT NULL AND @CtgId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.tbl_AgentDistricts WHERE AgentUserId = @Agent2Id)
+                        BEGIN
+                            INSERT INTO dbo.tbl_AgentDistricts (AgentUserId, DistrictId) VALUES (@Agent2Id, @CtgId);
+                        END
+
+                        -- 4. FieldOfficer: মাহমুদুল হাসান (under Agent 2)
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01714000404')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, ParentUserId, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'মাহমুদুল হাসান', '01714000404', '1234', N'FieldOfficer', @Agent2Id, 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80');
+                        END
+
+                        -- 5. Agent: সাইফুল ইসলাম (Sylhet)
+                        DECLARE @Agent3Id INT;
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01515000505')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'সাইফুল ইসলাম', '01515000505', '1234', N'Agent', 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80');
+                            SET @Agent3Id = SCOPE_IDENTITY();
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT @Agent3Id = Id FROM dbo.tbl_Users WHERE Phone = '01515000505';
+                        END
+
+                        IF @Agent3Id IS NOT NULL AND @SylhetId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.tbl_AgentDistricts WHERE AgentUserId = @Agent3Id)
+                        BEGIN
+                            INSERT INTO dbo.tbl_AgentDistricts (AgentUserId, DistrictId) VALUES (@Agent3Id, @SylhetId);
+                        END
+
+                        -- 6. FieldOfficer: মেহেদী হাসান রনি (under Agent 3)
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01616000606')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, ParentUserId, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'মেহেদী হাসান রনি', '01616000606', '1234', N'FieldOfficer', @Agent3Id, 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&auto=format&fit=crop&q=80');
+                        END
+
+                        -- 7. Agent: আরিফুল হক (Rajshahi)
+                        DECLARE @Agent4Id INT;
+                        IF NOT EXISTS (SELECT 1 FROM dbo.tbl_Users WHERE Phone = '01817000707')
+                        BEGIN
+                            INSERT INTO dbo.tbl_Users (Name, Phone, PasswordHash, Role, IsActive, CreatedAt, ProfilePictureUrl)
+                            VALUES (N'আরিফুল হক', '01817000707', '1234', N'Agent', 1, SYSUTCDATETIME(), 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80');
+                            SET @Agent4Id = SCOPE_IDENTITY();
+                        END
+                        ELSE
+                        BEGIN
+                            SELECT @Agent4Id = Id FROM dbo.tbl_Users WHERE Phone = '01817000707';
+                        END
+
+                        IF @Agent4Id IS NOT NULL AND @RajshahiId IS NOT NULL AND NOT EXISTS (SELECT 1 FROM dbo.tbl_AgentDistricts WHERE AgentUserId = @Agent4Id)
+                        BEGIN
+                            INSERT INTO dbo.tbl_AgentDistricts (AgentUserId, DistrictId) VALUES (@Agent4Id, @RajshahiId);
+                        END
+                    """, connection);
+                    seedCmd.ExecuteNonQuery();
+                }
+                _teamSeedReady = true;
+            }
+            catch
+            {
+                // Ignore if already seeded or temporary db issue
+            }
+        }
+    }
+
     public IReadOnlyList<TeamMemberDirectoryItem> GetTeamDirectory(int? districtId = null, string? role = null)
     {
+        EnsureAgentSchema();
         EnsureShopkeeperRegistrationSchema();
         EnsureUserProfilePictureSchema();
+        EnsureSeedTeamMembers();
         var list = new List<TeamMemberDirectoryItem>();
 
         try
@@ -1624,7 +1943,7 @@ public sealed class AppStore(IConfiguration configuration)
                     fo.CreatedAt,
                     fo.ParentUserId,
                     parent.Name AS ParentAgentName,
-                    COALESCE(d.Id, parentDist.Id) AS DistrictId,
+                    COALESCE(d.DistrictId, parentDist.Id) AS DistrictId,
                     COALESCE(d.Name, parentDist.Name, N'এলাকা নির্ধারিত') AS DistrictName,
                     (SELECT COUNT(1) FROM dbo.tbl_Shopkeepers s WHERE s.FieldOfficerUserId = fo.Id) AS ShopCount
                 FROM dbo.tbl_Users fo
@@ -1647,15 +1966,15 @@ public sealed class AppStore(IConfiguration configuration)
             while (reader.Read())
             {
                 var id = reader.GetInt32(0);
-                var name = reader.GetString(1);
-                var phone = reader.GetString(2);
+                var name = reader.IsDBNull(1) ? "এরিয়া এজেন্ট" : reader.GetString(1);
+                var phone = reader.IsDBNull(2) ? "" : reader.GetString(2);
                 var pic = reader.IsDBNull(3) ? null : reader.GetString(3);
-                var isActive = reader.GetBoolean(4);
-                var createdAt = reader.GetDateTime(5);
+                var isActive = reader.IsDBNull(4) || reader.GetBoolean(4);
+                var createdAt = reader.IsDBNull(5) ? DateTime.UtcNow : reader.GetDateTime(5);
                 var distId = reader.IsDBNull(6) ? (int?)null : reader.GetInt32(6);
-                var distName = reader.GetString(7);
-                var foCount = reader.GetInt32(8);
-                var shopCount = reader.GetInt32(9);
+                var distName = reader.IsDBNull(7) ? "সারাদেশ / অল ডিস্ট্রিক্ট" : reader.GetString(7);
+                var foCount = reader.IsDBNull(8) ? 0 : reader.GetInt32(8);
+                var shopCount = reader.IsDBNull(9) ? 0 : reader.GetInt32(9);
 
                 list.Add(new TeamMemberDirectoryItem
                 {
@@ -1680,15 +1999,15 @@ public sealed class AppStore(IConfiguration configuration)
                 while (reader.Read())
                 {
                     var id = reader.GetInt32(0);
-                    var name = reader.GetString(1);
-                    var phone = reader.GetString(2);
+                    var name = reader.IsDBNull(1) ? "ফিল্ড অফিসার" : reader.GetString(1);
+                    var phone = reader.IsDBNull(2) ? "" : reader.GetString(2);
                     var pic = reader.IsDBNull(3) ? null : reader.GetString(3);
-                    var isActive = reader.GetBoolean(4);
-                    var createdAt = reader.GetDateTime(5);
+                    var isActive = reader.IsDBNull(4) || reader.GetBoolean(4);
+                    var createdAt = reader.IsDBNull(5) ? DateTime.UtcNow : reader.GetDateTime(5);
                     var parentName = reader.IsDBNull(7) ? null : reader.GetString(7);
                     var distId = reader.IsDBNull(8) ? (int?)null : reader.GetInt32(8);
-                    var distName = reader.GetString(9);
-                    var shopCount = reader.GetInt32(10);
+                    var distName = reader.IsDBNull(9) ? "এলাকা নির্ধারিত" : reader.GetString(9);
+                    var shopCount = reader.IsDBNull(10) ? 0 : reader.GetInt32(10);
 
                     list.Add(new TeamMemberDirectoryItem
                     {
@@ -1710,9 +2029,10 @@ public sealed class AppStore(IConfiguration configuration)
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback gracefully on exception
+            Console.WriteLine($"[GetTeamDirectory Error] {ex}");
+            throw;
         }
 
         var query = list.AsEnumerable();

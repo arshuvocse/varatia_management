@@ -31,6 +31,10 @@
             <input asp-for="Address" placeholder="ঠিকানা (ঐচ্ছিক)" />
             <span asp-validation-for="Address" class="validation"></span>
 
+            <input asp-for="Latitude" type="hidden" id="regLatitude" />
+            <input asp-for="Longitude" type="hidden" id="regLongitude" />
+            <small id="locationStatus" class="location-status">📍 কাছাকাছি দোকান দেখানোর জন্য লোকেশন সংগ্রহ করা হচ্ছে…</small>
+
             <button class="btn-primary" type="submit">নিবন্ধন করুন</button>
             <a class="btn-light" asp-action="Login">আগে থেকেই অ্যাকাউন্ট আছে? লগইন করুন</a>
         </form>
@@ -39,4 +43,25 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var statusEl = document.getElementById('locationStatus');
+            if (!('geolocation' in navigator)) {
+                if (statusEl) statusEl.textContent = '';
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    document.getElementById('regLatitude').value = position.coords.latitude;
+                    document.getElementById('regLongitude').value = position.coords.longitude;
+                    if (statusEl) statusEl.textContent = '📍 লোকেশন সংগ্রহ করা হয়েছে — কাছাকাছি দোকান দেখানো হবে।';
+                },
+                function () {
+                    // Best-effort only: registration must work even when the user denies permission.
+                    if (statusEl) statusEl.textContent = '';
+                },
+                { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+            );
+        })();
+    </script>
 }

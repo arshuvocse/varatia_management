@@ -16,24 +16,30 @@
   <link rel="icon" type="image/png" href="amar_thikanaa_icon.png">
   <style>
     :root {
-      --bg: #f6f8ff;
-      --dark: #071629;
-      --text: #31415a;
-      --muted: #6d7b91;
-      --primary: #2563eb;
-      --primary-dark: #1747b9;
-      --secondary: #10b981;
-      --accent: #f97316;
-      --danger: #ef4444;
-      --violet: #7c3aed;
-      --teal: #0f766e;
-      --card: #ffffff;
-      --border: rgba(23, 39, 64, 0.1);
-      --shadow: 0 24px 70px rgba(15, 23, 42, 0.13);
-      --soft-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-      --radius-lg: 30px;
-      --radius-md: 22px;
-      --radius-sm: 14px;
+      --bg: #F5F7FF;
+      --bg-secondary: #EEF2FF;
+      --surface-soft: #F0ECFF;
+      --dark: #172033;
+      --text: #172033;
+      --muted: #64748B;
+      --primary: #4F46E5;
+      --primary-dark: #4338CA;
+      --secondary: #7C3AED;
+      --accent: #06B6D4;
+      --accent-hover: #0891B2;
+      --danger: #B91C1C;
+      --violet: #7C3AED;
+      --teal: #06B6D4;
+      --card: #FFFFFF;
+      --border: #E2E8F0;
+      --border-focus: #6366F1;
+      --shadow: 0 20px 60px rgba(30, 41, 59, 0.08);
+      --soft-shadow: 0 12px 32px rgba(30, 41, 59, 0.06);
+      --elevated-shadow: 0 16px 40px rgba(79, 70, 229, 0.14);
+      --primary-gradient: linear-gradient(135deg, #4F46E5 0%, #7C3AED 55%, #06B6D4 100%);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
       --max: 100%;
     }
 
@@ -44,9 +50,10 @@
       font-family: "Anek Bangla", "Inter", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 32%),
-        radial-gradient(circle at 88% 8%, rgba(16, 185, 129, 0.15), transparent 30%),
-        linear-gradient(180deg, #f7faff 0%, #eef4ff 48%, #ffffff 100%);
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.12), transparent 35%),
+        radial-gradient(circle at 88% 8%, rgba(124, 58, 237, 0.10), transparent 32%),
+        radial-gradient(circle at 50% 85%, rgba(6, 182, 212, 0.08), transparent 30%),
+        linear-gradient(180deg, #F5F7FF 0%, #EEF2FF 45%, #F8FAFF 100%);
       overflow-x: hidden;
     }
 
@@ -5236,93 +5243,9 @@
       let currentDistrict = '';
       let currentSearch = '';
 
-      const fallbackMembers = [
-        {
-          id: 1,
-          name: 'মোঃ রফিকুল ইসলাম',
-          phone: '01711000001',
-          role: 'Agent',
-          roleTitle: 'এরিয়া এজেন্ট',
-          districtId: 1,
-          districtName: 'ঢাকা (মিরপুর ও উত্তরা)',
-          connectedCount: 45,
-          connectedLabel: '৪৫+ ভেরিফাইড শপ',
-          rating: 4.9,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 2,
-          name: 'তানভীর আহমেদ',
-          phone: '01812000002',
-          role: 'FieldOfficer',
-          roleTitle: 'ফিল্ড অফিসার',
-          districtId: 1,
-          districtName: 'ঢাকা (মিরপুর)',
-          parentName: 'এজেন্ট: মোঃ রফিকুল ইসলাম',
-          connectedCount: 22,
-          connectedLabel: '২২+ সক্রিয় শপ',
-          rating: 4.8,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 3,
-          name: 'আব্দুল কাদের',
-          phone: '01913000003',
-          role: 'Agent',
-          roleTitle: 'এরিয়া এজেন্ট',
-          districtId: 4,
-          districtName: 'চট্টগ্রাম (কোতোয়ালি ও আগ্রাবাদ)',
-          connectedCount: 38,
-          connectedLabel: '৩৮+ ভেরিফাইড শপ',
-          rating: 5.0,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 4,
-          name: 'মাহমুদুল হাসান',
-          phone: '01714000004',
-          role: 'FieldOfficer',
-          roleTitle: 'ফিল্ড অফিসার',
-          districtId: 4,
-          districtName: 'চট্টগ্রাম (আগ্রাবাদ)',
-          parentName: 'এজেন্ট: আব্দুল কাদের',
-          connectedCount: 16,
-          connectedLabel: '১৬+ সক্রিয় শপ',
-          rating: 4.9,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=200&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 5,
-          name: 'সাইফুল ইসলাম',
-          phone: '01515000005',
-          role: 'Agent',
-          roleTitle: 'এরিয়া এজেন্ট',
-          districtId: 12,
-          districtName: 'সিলেট (সদর ও শাহজালাল উপশহর)',
-          connectedCount: 30,
-          connectedLabel: '৩০+ ভেরিফাইড শপ',
-          rating: 4.9,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&auto=format&fit=crop&q=80'
-        },
-        {
-          id: 6,
-          name: 'মেহেদী হাসান রনি',
-          phone: '01616000006',
-          role: 'FieldOfficer',
-          roleTitle: 'ফিল্ড অফিসার',
-          districtId: 12,
-          districtName: 'সিলেট (উপশহর)',
-          parentName: 'এজেন্ট: সাইফুল ইসলাম',
-          connectedCount: 14,
-          connectedLabel: '১৪+ সক্রিয় শপ',
-          rating: 4.7,
-          profilePictureUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&auto=format&fit=crop&q=80'
-        }
-      ];
-
       function renderMembers() {
         let filtered = allMembers.filter(m => {
-          const matchRole = currentRole === 'all' || m.role.toLowerCase() === currentRole.toLowerCase();
+          const matchRole = currentRole === 'all' || (m.role && m.role.toLowerCase() === currentRole.toLowerCase());
           const matchDistrict = !currentDistrict || String(m.districtId) === String(currentDistrict) || (m.districtName && m.districtName.toLowerCase().includes(currentDistrict.toLowerCase()));
           const s = currentSearch.toLowerCase().trim();
           const matchSearch = !s || (m.name && m.name.toLowerCase().includes(s)) ||
@@ -5336,16 +5259,16 @@
           grid.innerHTML = `
             <div style="grid-column: 1 / -1; padding: 40px 20px; text-align: center; background: #f8fafc; border-radius: 16px; color: var(--muted);">
               <p style="font-size: 16px; font-weight: 700; margin: 0 0 6px; color: var(--dark);">কোনো প্রতিনিধি পাওয়া যায়নি</p>
-              <small>অনুগ্রহ করে ভিন্ন জেলা বা ফিল্টার নির্বাচন করে পুনরায় চেষ্টা করুন।</small>
+              <small>ডেটাবেজে নিবন্ধিত এরিয়া এজেন্ট ও ফিল্ড অফিসারগণ এখানে স্বয়ংক্রিয়ভাবে প্রদর্শিত হবেন।</small>
             </div>
           `;
           return;
         }
 
         grid.innerHTML = filtered.map(m => {
-          const isAgent = m.role.toLowerCase() === 'agent';
+          const isAgent = (m.role || '').toLowerCase() === 'agent';
           const avatarHtml = m.profilePictureUrl
-            ? `<img class="team-avatar-img" src="${m.profilePictureUrl}" alt="${m.name}" onerror="this.outerHTML='<div class=\\'team-avatar-fallback ${isAgent ? 'agent' : 'field'}\\'>${m.name ? m.name.charAt(0) : 'A'}</div>'">`
+            ? `<img class="team-avatar-img" src="${m.profilePictureUrl}" alt="${m.name || 'Member'}" onerror="this.outerHTML='<div class=\\'team-avatar-fallback ${isAgent ? 'agent' : 'field'}\\'>${m.name ? m.name.charAt(0) : 'A'}</div>'">`
             : `<div class="team-avatar-fallback ${isAgent ? 'agent' : 'field'}">${m.name ? m.name.charAt(0) : 'A'}</div>`;
 
           const cleanPhone = m.phone ? m.phone.replace(/[^0-9+]/g, '') : '';
@@ -5362,7 +5285,7 @@
                   <span class="team-role-tag ${isAgent ? 'agent' : 'field'}">
                     ${isAgent ? '👑 এরিয়া এজেন্ট' : '🛡️ ফিল্ড অফিসার'}
                   </span>
-                  <h3 class="team-name" title="${m.name}">${m.name}</h3>
+                  <h3 class="team-name" title="${m.name || ''}">${m.name || 'অফিসিয়াল প্রতিনিধি'}</h3>
                   <div class="team-location">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/><circle cx="12" cy="10" r="3"/></svg>
                     <span>${m.districtName || 'বাংলাদেশ'}</span>
@@ -5376,7 +5299,7 @@
                   <span class="team-meta-value">${m.connectedLabel || (isAgent ? 'এরিয়া ইনচার্জ' : 'সক্রিয় প্রতিনিধি')}</span>
                 </div>
                 <div class="team-meta-rating">
-                  ⭐ <span>${m.rating ? m.rating.toFixed(1) : '4.9'}</span>
+                  ⭐ <span>${m.rating ? m.rating.toFixed(1) : '5.0'}</span>
                 </div>
               </div>
 
@@ -5399,15 +5322,11 @@
         fetch('/Home/TeamDirectory')
           .then(res => res.ok ? res.json() : [])
           .then(data => {
-            if (Array.isArray(data) && data.length > 0) {
-              allMembers = data;
-            } else {
-              allMembers = fallbackMembers;
-            }
+            allMembers = Array.isArray(data) ? data : [];
             renderMembers();
           })
           .catch(() => {
-            allMembers = fallbackMembers;
+            allMembers = [];
             renderMembers();
           });
       }

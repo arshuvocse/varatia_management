@@ -13,6 +13,7 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
     private readonly SqlConnectionFactory _connectionFactory;
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
+    private readonly IPostingEntitlementService _postingEntitlementService;
     private const string StoreId = "amarthikanaalive";
     private const string StorePassword = "6A27E77A0A4AC55109";
     private const string InitiateUrl = "https://securepay.sslcommerz.com/gwprocess/v4/api.php";
@@ -22,11 +23,13 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
     public MonthlyPaymentService(
         SqlConnectionFactory connectionFactory,
         HttpClient httpClient,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IPostingEntitlementService postingEntitlementService)
     {
         _connectionFactory = connectionFactory;
         _httpClient = httpClient;
         _configuration = configuration;
+        _postingEntitlementService = postingEntitlementService;
     }
 
     public async Task<PaymentStatusResponse> GetPaymentStatusAsync(string userId, CancellationToken cancellationToken)
@@ -204,6 +207,513 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
         };
     }
 
+    public async Task<InitiatePaymentResponse> InitiatePostingPaymentAsync(
+        string userId,
+        decimal amount,
+        string baseUrl,
+        CancellationToken cancellationToken)
+    {
+        if (amount < 100.00m)
+        {
+            throw new ArgumentException("Posting credit payment must be at least BDT 100.00.", nameof(amount));
+        }
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("Valid user id is required.", nameof(userId));
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var user = await connection.QuerySingleOrDefaultAsync<UserLookup>(
+            new CommandDefinition(
+                """
+                SELECT FullName, PhoneNumber
+                FROM dbo.Users
+                WHERE Id = TRY_CAST(@userId AS uniqueidentifier)
+                   OR PhoneNumber = @userId;
+                """,
+                new { userId },
+                cancellationToken: cancellationToken));
+
+        var transactionId = $"POST-{Guid.NewGuid():N}".Substring(0, 20).ToUpper();
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                INSERT INTO dbo.MonthlyPayments (UserId, TransactionId, Amount, Status, MonthYear)
+                VALUES (@userId, @transactionId, @amount, 'pending', 'POSTING');
+                """,
+                new
+                {
+                    userId,
+                    transactionId,
+                    amount
+                },
+                cancellationToken: cancellationToken));
+
+        var values = new Dictionary<string, string>
+        {
+            { "store_id", GetStoreId() },
+            { "store_passwd", GetStorePassword() },
+            { "total_amount", amount.ToString("F2") },
+            { "currency", "BDT" },
+            { "tran_id", transactionId },
+            { "success_url", $"{baseUrl}/api/payments/success?tran_id={transactionId}" },
+            { "fail_url", $"{baseUrl}/api/payments/fail?tran_id={transactionId}" },
+            { "cancel_url", $"{baseUrl}/api/payments/cancel?tran_id={transactionId}" },
+            { "ipn_url", $"{baseUrl}/api/payments/ipn?tran_id={transactionId}" },
+            { "cus_name", string.IsNullOrWhiteSpace(user?.FullName) ? "Amar Thikana User" : user.FullName },
+            { "cus_email", "payment@amarthikana.com" },
+            { "cus_phone", string.IsNullOrWhiteSpace(user?.PhoneNumber) ? "01700000000" : user.PhoneNumber },
+            { "cus_add1", "Dhaka" },
+            { "cus_city", "Dhaka" },
+            { "cus_country", "Bangladesh" },
+            { "shipping_method", "NO" },
+            { "product_name", "Amar Thikanaa Post Creation Fee" },
+            { "product_category", "Service" },
+            { "product_profile", "general" },
+            { "value_b", "PostingCredit" }
+        };
+
+        var content = new FormUrlEncodedContent(values);
+        var response = await _httpClient.PostAsync(InitiateUrl, content, cancellationToken);
+        var rawResponse = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"SSLCOMMERZ gateway returned status {response.StatusCode}: {rawResponse}");
+        }
+
+        using var jsonDoc = JsonDocument.Parse(rawResponse);
+        var root = jsonDoc.RootElement;
+        var status = root.TryGetProperty("status", out var s) ? s.GetString() : null;
+
+        if (string.Equals(status, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+        {
+            var gatewayPageUrl = root.GetProperty("GatewayPageURL").GetString() ?? "";
+            return new InitiatePaymentResponse
+            {
+                GatewayPageUrl = gatewayPageUrl,
+                TransactionId = transactionId
+            };
+        }
+
+        var failedReason = root.TryGetProperty("failedreason", out var fr) ? fr.GetString() : "Unknown error";
+        throw new InvalidOperationException($"Could not initiate SSLCommerz payment: {failedReason}");
+    }
+
+    private static bool _schemaEnsured;
+
+    private async Task EnsureSchemaAsync(SqlConnection connection, CancellationToken cancellationToken)
+    {
+        if (_schemaEnsured) return;
+
+        const string sql = """
+            IF OBJECT_ID(N'dbo.tbl_CompanySettings', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.tbl_CompanySettings (
+                    Id INT NOT NULL CONSTRAINT PK_tbl_CompanySettings PRIMARY KEY,
+                    CommissionRate DECIMAL(5,2) NOT NULL DEFAULT (1),
+                    CashbackRate DECIMAL(5,2) NOT NULL DEFAULT (2),
+                    DeliveryCharge DECIMAL(18,2) NOT NULL DEFAULT (60),
+                    SupportPhone NVARCHAR(30) NOT NULL DEFAULT (N'09678-123456'),
+                    PaymentGateway NVARCHAR(100) NOT NULL DEFAULT (N'SSLCommerz'),
+                    RegistrationFee DECIMAL(18,2) NOT NULL CONSTRAINT DF_tbl_CompanySettings_RegistrationFee DEFAULT (50.00),
+                    IsRegistrationFeeActive BIT NOT NULL CONSTRAINT DF_tbl_CompanySettings_IsRegistrationFeeActive DEFAULT (1),
+                    UpdatedAt DATETIME2(0) NOT NULL CONSTRAINT DF_tbl_CompanySettings_UpdatedAt DEFAULT SYSUTCDATETIME()
+                );
+                EXEC(N'INSERT INTO dbo.tbl_CompanySettings (Id, CommissionRate, CashbackRate, DeliveryCharge, SupportPhone, PaymentGateway, RegistrationFee, IsRegistrationFeeActive) VALUES (1, 1, 2, 60, N''09678-123456'', N''SSLCommerz'', 50.00, 1)');
+            END
+            ELSE
+            BEGIN
+                IF COL_LENGTH(N'dbo.tbl_CompanySettings', N'RegistrationFee') IS NULL
+                BEGIN
+                    EXEC(N'ALTER TABLE dbo.tbl_CompanySettings ADD RegistrationFee DECIMAL(18,2) NOT NULL CONSTRAINT DF_tbl_CompanySettings_RegistrationFee DEFAULT (50.00)');
+                END;
+                IF COL_LENGTH(N'dbo.tbl_CompanySettings', N'IsRegistrationFeeActive') IS NULL
+                BEGIN
+                    EXEC(N'ALTER TABLE dbo.tbl_CompanySettings ADD IsRegistrationFeeActive BIT NOT NULL CONSTRAINT DF_tbl_CompanySettings_IsRegistrationFeeActive DEFAULT (1)');
+                END;
+            END;
+
+            IF COL_LENGTH(N'dbo.Users', N'IsRegistrationFeePaid') IS NULL
+            BEGIN
+                EXEC(N'ALTER TABLE dbo.Users ADD IsRegistrationFeePaid BIT NOT NULL CONSTRAINT DF_Users_IsRegistrationFeePaid DEFAULT (0)');
+            END;
+            IF COL_LENGTH(N'dbo.Users', N'RegistrationFeeTransactionId') IS NULL
+            BEGIN
+                EXEC(N'ALTER TABLE dbo.Users ADD RegistrationFeeTransactionId NVARCHAR(100) NULL');
+            END;
+            IF COL_LENGTH(N'dbo.Users', N'RegistrationFeePaidAt') IS NULL
+            BEGIN
+                EXEC(N'ALTER TABLE dbo.Users ADD RegistrationFeePaidAt DATETIME2 NULL');
+            END;
+
+            IF EXISTS (
+                SELECT 1 FROM sys.columns 
+                WHERE object_id = OBJECT_ID(N'dbo.MonthlyPayments') 
+                  AND name = N'MonthYear' 
+                  AND max_length < 40
+            )
+            BEGIN
+                EXEC(N'ALTER TABLE dbo.MonthlyPayments ALTER COLUMN MonthYear NVARCHAR(20) NOT NULL');
+            END;
+            """;
+
+        try
+        {
+            await connection.ExecuteAsync(new CommandDefinition(sql, cancellationToken: cancellationToken));
+            _schemaEnsured = true;
+        }
+        catch
+        {
+            // Ignore if concurrently initialized
+        }
+    }
+
+    private async Task<(decimal Fee, bool IsActive)> GetRegistrationFeeSettingsAsync(
+        SqlConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await EnsureSchemaAsync(connection, cancellationToken);
+
+        const string sql = """
+            SELECT TOP (1)
+                COALESCE(RegistrationFee, 50.00) AS Fee,
+                COALESCE(IsRegistrationFeeActive, CAST(1 AS BIT)) AS IsActive
+            FROM dbo.tbl_CompanySettings
+            WHERE Id = 1;
+            """;
+
+        try
+        {
+            var result = await connection.QuerySingleOrDefaultAsync<dynamic>(
+                new CommandDefinition(sql, cancellationToken: cancellationToken));
+            if (result != null)
+            {
+                decimal fee = Convert.ToDecimal(result.Fee);
+                bool isActive = Convert.ToBoolean(result.IsActive);
+                return (fee, isActive);
+            }
+        }
+        catch
+        {
+            // fallback
+        }
+
+        return (50.00m, true);
+    }
+
+    public async Task<RegistrationFeeInfoResponse> GetRegistrationFeeInfoAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var (fee, isActive) = await GetRegistrationFeeSettingsAsync(connection, cancellationToken);
+        return new RegistrationFeeInfoResponse
+        {
+            Fee = fee,
+            IsActive = isActive,
+            Currency = "BDT"
+        };
+    }
+
+    public async Task<RegistrationFeeStatusResponse> GetRegistrationFeeStatusAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("Valid user id is required.", nameof(userId));
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var (fee, isActive) = await GetRegistrationFeeSettingsAsync(connection, cancellationToken);
+
+        const string userSql = """
+            SELECT TOP (1)
+                Id,
+                IsRegistrationFeePaid,
+                RegistrationFeeTransactionId,
+                RegistrationFeePaidAt
+            FROM dbo.Users
+            WHERE Id = TRY_CAST(@userId AS uniqueidentifier)
+               OR PhoneNumber = @userId;
+            """;
+
+        var user = await connection.QuerySingleOrDefaultAsync<dynamic>(
+            new CommandDefinition(userSql, new { userId = userId.Trim() }, cancellationToken: cancellationToken));
+
+        if (user is null)
+        {
+            return new RegistrationFeeStatusResponse
+            {
+                UserId = userId,
+                IsPaid = false,
+                IsRequired = isActive,
+                Fee = fee,
+                Currency = "BDT"
+            };
+        }
+
+        bool isPaid = user.IsRegistrationFeePaid != null && Convert.ToBoolean(user.IsRegistrationFeePaid);
+        string? tranId = user.RegistrationFeeTransactionId as string;
+        DateTime? paidAt = user.RegistrationFeePaidAt != null ? Convert.ToDateTime(user.RegistrationFeePaidAt) : null;
+
+        return new RegistrationFeeStatusResponse
+        {
+            UserId = userId,
+            IsPaid = isPaid,
+            IsRequired = isActive && !isPaid,
+            Fee = fee,
+            Currency = "BDT",
+            TransactionId = tranId,
+            PaidAt = paidAt
+        };
+    }
+
+    public async Task<InitiatePaymentResponse> InitiateRegistrationFeePaymentAsync(
+        string userId,
+        string baseUrl,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("Valid user id is required.", nameof(userId));
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var (fee, isActive) = await GetRegistrationFeeSettingsAsync(connection, cancellationToken);
+
+        var user = await connection.QuerySingleOrDefaultAsync<UserLookup>(
+            new CommandDefinition(
+                """
+                SELECT FullName, PhoneNumber
+                FROM dbo.Users
+                WHERE Id = TRY_CAST(@userId AS uniqueidentifier)
+                   OR PhoneNumber = @userId;
+                """,
+                new { userId = userId.Trim() },
+                cancellationToken: cancellationToken));
+
+        if (user is null)
+        {
+            throw new InvalidOperationException("User not found.");
+        }
+
+        var transactionId = $"REG-{Guid.NewGuid():N}".Substring(0, 20).ToUpper();
+
+        await connection.ExecuteAsync(
+            new CommandDefinition(
+                """
+                INSERT INTO dbo.MonthlyPayments (UserId, TransactionId, Amount, Status, MonthYear)
+                VALUES (@userId, @transactionId, @amount, 'pending', 'REG');
+                """,
+                new
+                {
+                    userId = userId.Trim(),
+                    transactionId,
+                    amount = fee
+                },
+                cancellationToken: cancellationToken));
+
+        var values = new Dictionary<string, string>
+        {
+            { "store_id", GetStoreId() },
+            { "store_passwd", GetStorePassword() },
+            { "total_amount", fee.ToString("F2") },
+            { "currency", "BDT" },
+            { "tran_id", transactionId },
+            { "success_url", $"{baseUrl}/api/payments/success?tran_id={transactionId}" },
+            { "fail_url", $"{baseUrl}/api/payments/fail?tran_id={transactionId}" },
+            { "cancel_url", $"{baseUrl}/api/payments/cancel?tran_id={transactionId}" },
+            { "ipn_url", $"{baseUrl}/api/payments/ipn?tran_id={transactionId}" },
+            { "cus_name", string.IsNullOrWhiteSpace(user.FullName) ? "Amar Thikana User" : user.FullName },
+            { "cus_email", "payment@amarthikana.com" },
+            { "cus_phone", string.IsNullOrWhiteSpace(user.PhoneNumber) ? "01700000000" : user.PhoneNumber },
+            { "cus_add1", "Dhaka" },
+            { "cus_city", "Dhaka" },
+            { "cus_country", "Bangladesh" },
+            { "shipping_method", "NO" },
+            { "product_name", "User Registration Fee" },
+            { "product_category", "Registration" },
+            { "product_profile", "general" }
+        };
+
+        var content = new FormUrlEncodedContent(values);
+        var response = await _httpClient.PostAsync(InitiateUrl, content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var responseString = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var document = JsonDocument.Parse(responseString);
+        var root = document.RootElement;
+
+        var status = root.GetProperty("status").GetString();
+        if (string.Equals(status, "SUCCESS", StringComparison.OrdinalIgnoreCase))
+        {
+            return new InitiatePaymentResponse
+            {
+                GatewayPageUrl = root.GetProperty("GatewayPageURL").GetString() ?? string.Empty,
+                TransactionId = transactionId
+            };
+        }
+
+        var failedReason = root.TryGetProperty("failedreason", out var fr) ? fr.GetString() : "Unknown error";
+        throw new InvalidOperationException($"Could not initiate SSLCommerz payment: {failedReason}");
+    }
+
+    public async Task<UserPaymentHistoryResponse> GetUserPaymentHistoryAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new ArgumentException("Valid user id is required.", nameof(userId));
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureSchemaAsync(connection, cancellationToken);
+
+        var user = await connection.QuerySingleOrDefaultAsync<UserLookup>(
+            new CommandDefinition(
+                """
+                SELECT Id, FullName, PhoneNumber
+                FROM dbo.Users
+                WHERE Id = TRY_CAST(@userId AS uniqueidentifier)
+                   OR PhoneNumber = @userId;
+                """,
+                new { userId = userId.Trim() },
+                cancellationToken: cancellationToken));
+
+        var userGuidStr = user?.Id?.ToString() ?? "";
+        var userName = user?.FullName ?? "";
+        var userPhone = user?.PhoneNumber ?? "";
+
+        const string paymentsSql = """
+            SELECT
+                Id,
+                TransactionId,
+                Amount,
+                Status,
+                MonthYear,
+                PaymentDate,
+                CreatedOn
+            FROM dbo.MonthlyPayments
+            WHERE UserId = @userId
+               OR (@userGuidStr != '' AND UserId = @userGuidStr)
+               OR (@userPhone != '' AND UserId = @userPhone)
+               OR (@userName != '' AND UserId = @userName)
+            ORDER BY CreatedOn DESC;
+            """;
+
+        var paymentRows = (await connection.QueryAsync<dynamic>(
+            new CommandDefinition(
+                paymentsSql,
+                new { userId = userId.Trim(), userGuidStr, userPhone, userName },
+                cancellationToken: cancellationToken))).ToList();
+
+        const string rentSql = """
+            SELECT
+                Id,
+                PropertyId,
+                TenantName,
+                MonthLabel,
+                Amount,
+                Status,
+                PaidOn
+            FROM dbo.RentPayments
+            WHERE (@userName != '' AND TenantName = @userName)
+               OR (@userPhone != '' AND TenantName = @userPhone)
+               OR TenantName = @userId
+            ORDER BY Id DESC;
+            """;
+
+        var rentRows = (await connection.QueryAsync<dynamic>(
+            new CommandDefinition(
+                rentSql,
+                new { userName, userPhone, userId = userId.Trim() },
+                cancellationToken: cancellationToken))).ToList();
+
+        var historyItems = new List<UserPaymentHistoryItem>();
+
+        foreach (var p in paymentRows)
+        {
+            string monthYear = p.MonthYear ?? "";
+            string tranId = p.TransactionId ?? "";
+            string pType = "Monthly Charge";
+            string title = $"মাসিক চার্জ ({monthYear})";
+
+            if (string.Equals(monthYear, "REG", StringComparison.OrdinalIgnoreCase) ||
+                tranId.StartsWith("REG-", StringComparison.OrdinalIgnoreCase))
+            {
+                pType = "Registration Fee";
+                title = "রেজিস্ট্রেশন ফি";
+            }
+            else if (string.Equals(monthYear, "POSTING", StringComparison.OrdinalIgnoreCase) ||
+                     tranId.StartsWith("POST-", StringComparison.OrdinalIgnoreCase))
+            {
+                pType = "Posting Credits";
+                title = "পোস্টিং ক্রেডিট পেমেন্ট";
+            }
+            else if (string.Equals(monthYear, "SUB", StringComparison.OrdinalIgnoreCase) ||
+                     tranId.StartsWith("SUB-", StringComparison.OrdinalIgnoreCase))
+            {
+                pType = "Subscription Service";
+                title = "ম্যাচমেকিং সাবস্ক্রিপশন সার্ভিস";
+            }
+
+            historyItems.Add(new UserPaymentHistoryItem
+            {
+                Id = (int)p.Id,
+                TransactionId = tranId,
+                PaymentType = pType,
+                Title = title,
+                Amount = (decimal)p.Amount,
+                Status = (string)(p.Status ?? "pending"),
+                MonthYear = monthYear,
+                Gateway = "SSLCommerz",
+                PaymentDate = p.PaymentDate as DateTime?,
+                CreatedOn = (DateTime)p.CreatedOn
+            });
+        }
+
+        foreach (var r in rentRows)
+        {
+            historyItems.Add(new UserPaymentHistoryItem
+            {
+                Id = (int)r.Id + 100000,
+                TransactionId = $"RENT-{r.Id}",
+                PaymentType = "Rent Payment",
+                Title = $"ভাড়া পরিশোধ ({r.MonthLabel ?? ""})",
+                Amount = (decimal)r.Amount,
+                Status = (string)(r.Status ?? "Paid"),
+                MonthYear = (string)(r.MonthLabel ?? ""),
+                Gateway = "Rent",
+                PaymentDate = r.PaidOn as DateTime?,
+                CreatedOn = (r.PaidOn as DateTime?) ?? DateTime.UtcNow
+            });
+        }
+
+        var sorted = historyItems.OrderByDescending(x => x.PaymentDate ?? x.CreatedOn).ToList();
+        var totalPaid = sorted.Where(x => string.Equals(x.Status, "success", StringComparison.OrdinalIgnoreCase) ||
+                                          string.Equals(x.Status, "Paid", StringComparison.OrdinalIgnoreCase))
+                              .Sum(x => x.Amount);
+
+        return new UserPaymentHistoryResponse
+        {
+            UserId = userId,
+            TotalPaid = totalPaid,
+            Payments = sorted
+        };
+    }
+
     public async Task<MonthlyPaymentCallbackResult> ProcessCallbackAsync(
         MonthlyPaymentCallbackData callbackData,
         CancellationToken cancellationToken)
@@ -226,6 +736,7 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
             new CommandDefinition(
                 """
                 SELECT TOP (1)
+                    UserId,
                     TransactionId,
                     Amount,
                     Status,
@@ -262,6 +773,15 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
             string.Equals(callbackStatus, "CANCELLED", StringComparison.OrdinalIgnoreCase))
         {
             await MarkPaymentAsync(connection, transactionId, "cancelled", null, cancellationToken);
+            if (string.Equals(payment.MonthYear, "SUB", StringComparison.OrdinalIgnoreCase) ||
+                payment.TransactionId.StartsWith("SUB-", StringComparison.OrdinalIgnoreCase))
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    "UPDATE dbo.UserSubscriptions SET PaymentStatus = 'cancelled', SubscriptionStatus = 'cancelled', UpdatedAt = SYSUTCDATETIME() WHERE TransactionId = @TransactionId;",
+                    new { TransactionId = transactionId },
+                    cancellationToken: cancellationToken));
+            }
+
             return new MonthlyPaymentCallbackResult
             {
                 Success = false,
@@ -274,6 +794,15 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
             string.Equals(callbackStatus, "FAIL", StringComparison.OrdinalIgnoreCase))
         {
             await MarkPaymentAsync(connection, transactionId, "failed", null, cancellationToken);
+            if (string.Equals(payment.MonthYear, "SUB", StringComparison.OrdinalIgnoreCase) ||
+                payment.TransactionId.StartsWith("SUB-", StringComparison.OrdinalIgnoreCase))
+            {
+                await connection.ExecuteAsync(new CommandDefinition(
+                    "UPDATE dbo.UserSubscriptions SET PaymentStatus = 'failed', SubscriptionStatus = 'cancelled', UpdatedAt = SYSUTCDATETIME() WHERE TransactionId = @TransactionId;",
+                    new { TransactionId = transactionId },
+                    cancellationToken: cancellationToken));
+            }
+
             return new MonthlyPaymentCallbackResult
             {
                 Success = false,
@@ -321,6 +850,54 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
             "success",
             DateTime.UtcNow.AddHours(6),
             cancellationToken);
+
+        if (string.Equals(payment.MonthYear, "POSTING", StringComparison.OrdinalIgnoreCase))
+        {
+            await _postingEntitlementService.GrantPostingCreditsAsync(
+                payment.UserId,
+                payment.Amount,
+                transactionId,
+                cancellationToken);
+        }
+
+        if (string.Equals(payment.MonthYear, "REG", StringComparison.OrdinalIgnoreCase) ||
+            payment.TransactionId.StartsWith("REG-", StringComparison.OrdinalIgnoreCase))
+        {
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    """
+                    UPDATE dbo.Users
+                    SET IsRegistrationFeePaid = 1,
+                        RegistrationFeeTransactionId = @TransactionId,
+                        RegistrationFeePaidAt = SYSUTCDATETIME()
+                    WHERE Id = TRY_CAST(@UserId AS uniqueidentifier)
+                       OR PhoneNumber = @UserId;
+                    """,
+                    new
+                    {
+                        TransactionId = transactionId,
+                        UserId = payment.UserId
+                    },
+                    cancellationToken: cancellationToken));
+        }
+
+        if (string.Equals(payment.MonthYear, "SUB", StringComparison.OrdinalIgnoreCase) ||
+            payment.TransactionId.StartsWith("SUB-", StringComparison.OrdinalIgnoreCase))
+        {
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    """
+                    UPDATE dbo.UserSubscriptions
+                    SET PaymentStatus = 'success',
+                        SubscriptionStatus = 'in_progress',
+                        SubscribedAt = SYSUTCDATETIME(),
+                        DeadlineAt = DATEADD(DAY, DeliveryDays, SYSUTCDATETIME()),
+                        UpdatedAt = SYSUTCDATETIME()
+                    WHERE TransactionId = @TransactionId;
+                    """,
+                    new { TransactionId = transactionId },
+                    cancellationToken: cancellationToken));
+        }
 
         return new MonthlyPaymentCallbackResult
         {
@@ -435,12 +1012,14 @@ public sealed class MonthlyPaymentService : IMonthlyPaymentService
 
     private sealed class UserLookup
     {
+        public Guid? Id { get; init; }
         public string FullName { get; init; } = string.Empty;
         public string PhoneNumber { get; init; } = string.Empty;
     }
 
     private sealed class MonthlyPaymentAttempt
     {
+        public string UserId { get; init; } = string.Empty;
         public string TransactionId { get; init; } = string.Empty;
         public decimal Amount { get; init; }
         public string Status { get; init; } = string.Empty;

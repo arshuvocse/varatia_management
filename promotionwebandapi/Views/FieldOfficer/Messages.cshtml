@@ -6,7 +6,7 @@
 
 <div class="sb-app-layout">
     <!-- Sidebar -->
-    <partial name="_Sidebar" model="Model" view-data='new ViewDataDictionary(ViewData) { { "ActivePage", "Messages" } }' />
+    <partial name="_Sidebar" model="Model" />
 
     <!-- Main Content -->
     <main class="sb-main-content">
@@ -108,7 +108,7 @@
                             <span class="sb-thread-avatar" id="activeAvatar">🏢</span>
                             <div>
                                 <h4 id="activeChatName" style="margin: 0; font-size: 15px; color: #0f172a; font-weight: 800;">Smart Bazar HQ</h4>
-                                <small id="activeChatSub" style="color: #059669; font-weight: 600;">অনলাইন · প্রধান কার্যালয় ব্রডকাস্ট</small>
+                                <small id="activeChatSub" style="color: var(--success); font-weight: 600;">অনলাইন · প্রধান কার্যালয় ব্রডকাস্ট</small>
                             </div>
                         </div>
                         <div class="sb-thread-actions">
@@ -200,14 +200,14 @@
     }
 
     .sb-chat-search-input:focus {
-        border-color: #059669;
+        border-color: var(--primary);
     }
 
     .sb-channel-header {
         font-size: 11px;
         font-weight: 800;
         text-transform: uppercase;
-        color: #64748b;
+        color: var(--text-muted);
         padding: 8px 14px 4px;
         letter-spacing: 0.5px;
     }
@@ -218,17 +218,17 @@
         gap: 10px;
         padding: 12px 14px;
         cursor: pointer;
-        border-bottom: 1px solid #f1f5f9;
+        border-bottom: 1px solid var(--border-light, #f1f5f9);
         transition: background 0.15s;
     }
 
     .sb-chat-item:hover {
-        background: #f1f5f9;
+        background: var(--bg-secondary);
     }
 
     .sb-chat-item.active {
-        background: #ecfdf5;
-        border-left: 3px solid #059669;
+        background: var(--bg-secondary);
+        border-left: 3px solid var(--primary);
     }
 
     .sb-chat-avatar {
@@ -330,8 +330,8 @@
     }
 
     .sb-btn-icon:hover {
-        background: #f8fafc;
-        color: #059669;
+        background: var(--bg-secondary);
+        color: var(--primary);
     }
 
     .sb-messages-list {
@@ -376,9 +376,10 @@
     }
 
     .sb-msg-out .sb-msg-bubble {
-        background: #059669;
+        background: var(--primary-gradient);
         color: #ffffff;
         border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
     }
 
     .sb-msg-bubble {
@@ -403,28 +404,32 @@
         display: flex;
         gap: 10px;
         padding: 14px 20px;
-        border-top: 1px solid #e2e8f0;
-        background: #ffffff;
+        border-top: 1px solid var(--border);
+        background: var(--bg-card);
     }
 
     .sb-input-msg {
         flex: 1;
         padding: 10px 14px;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 10px;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius-sm);
         font-size: 13.5px;
         outline: none;
+        background: var(--bg-app);
+        color: var(--text-primary);
     }
 
     .sb-input-msg:focus {
-        border-color: #059669;
+        border-color: var(--primary);
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
     }
 
     .sb-btn-send {
-        background: #059669;
+        background: var(--primary-gradient);
         color: #ffffff;
         border: none;
-        border-radius: 10px;
+        border-radius: var(--radius-sm);
         padding: 0 18px;
         font-weight: 700;
         font-size: 13px;
@@ -432,11 +437,15 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        box-shadow: var(--shadow-subtle);
+        transition: all 0.2s ease;
     }
 
     .sb-btn-send:hover {
-        background: #047857;
+        box-shadow: var(--shadow-elevated);
+        transform: translateY(-1px);
     }
+
 
     @@media (max-width: 768px) {
         .sb-chat-container {

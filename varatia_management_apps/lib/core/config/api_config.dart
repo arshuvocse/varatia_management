@@ -3,12 +3,13 @@ class ApiConfig {
 
   static const bool isDemoMode = bool.fromEnvironment(
     'VARATIA_DEMO_MODE',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static const String _overrideBaseUrl = String.fromEnvironment(
     'VARATIA_API_BASE_URL',
   );
+
   static const String _defaultBaseUrl = 'https://amarthikanaa.com/';
 
   static String get baseUrl {
