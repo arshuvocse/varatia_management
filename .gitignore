@@ -47,5 +47,8 @@ make_deploy_zip.ps1
 publish_for_user.ps1
 run_migration.ps1
 test_*.ps1
+publish_and_deploy_live.ps1
+inspect_content_api.ps1
+status_*.json
 
 

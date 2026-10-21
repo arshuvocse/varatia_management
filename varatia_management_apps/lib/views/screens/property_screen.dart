@@ -9,6 +9,7 @@ import '../../data/services/dhaka_police_zone_api_service.dart';
 import '../../data/services/property_management_api_service.dart';
 import '../../viewmodels/app_view_models.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/flat_rent_payment_notice_card.dart';
 
 class PropertyScreen extends StatelessWidget {
   const PropertyScreen({super.key});
@@ -594,6 +595,37 @@ class _PropertyDetailsScreenState extends State<PropertyDetailsScreen> {
             ),
           ),
           const SizedBox(height: 18),
+          if (property.tenantName != null && property.tenantName!.isNotEmpty) ...[
+            ElevatedButton.icon(
+              onPressed: () {
+                showSendRentNoticeBottomSheet(
+                  context,
+                  propertyName: property.name,
+                  tenantName: property.tenantName!,
+                  amount: property.dueAmount > 0
+                      ? property.dueAmount
+                      : property.monthlyRent,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD97706),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.campaign_rounded, size: 20),
+              label: Text(
+                context.tr(
+                  bn: 'ভাড়াটিয়াকে পেমেন্ট নোটিশ পাঠান',
+                  en: 'Send Rent Payment Notice',
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           FilledButton(
             onPressed: _editProperty,
             child: Text(context.tr(bn: 'Edit', en: 'Edit')),

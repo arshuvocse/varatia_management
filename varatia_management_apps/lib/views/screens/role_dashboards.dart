@@ -15,6 +15,7 @@ import '../../data/services/tenant_area_api_service.dart';
 import '../../viewmodels/app_view_models.dart';
 import '../../viewmodels/role_dashboard_view_models.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/flat_rent_payment_notice_card.dart';
 import 'entry/entry_routes.dart';
 import 'home/tenant_general_post_details_screen.dart';
 import 'home/tenant_home_screen.dart';
@@ -23,6 +24,8 @@ import 'property_screen.dart';
 import 'reports_screen.dart';
 import 'support_screens.dart';
 import 'tenant_reference_pages.dart';
+import '../widgets/profile_completion_meter_card.dart';
+import 'tutor_profile_form_screen.dart';
 
 const _roleHomeSurfaceShadow = <BoxShadow>[
   BoxShadow(color: Color(0x120F172A), blurRadius: 18, offset: Offset(0, 8)),
@@ -1177,6 +1180,39 @@ class _OwnerHomePaymentsPanel extends StatelessWidget {
                   )
                   .toList(growable: false),
             ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                final targetTenant = viewModel.tenants.isNotEmpty
+                    ? viewModel.tenants.first
+                    : null;
+                showSendRentNoticeBottomSheet(
+                  context,
+                  propertyName: targetTenant?.propertyName ?? 'Flat A',
+                  tenantName: targetTenant?.name ?? 'ভাড়াটিয়া',
+                  amount: 15000,
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFD97706),
+                side: const BorderSide(color: Color(0xFFD97706)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.campaign_rounded, size: 20),
+              label: Text(
+                context.tr(
+                  bn: '📢 ভাড়াটিয়াকে পেমেন্ট নোটিশ পাঠান',
+                  en: '📢 Send Rent Payment Notice',
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -6103,6 +6139,10 @@ class TenantProfilePage extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 18),
+
+          // BDJobs Style Profile Completion Meter (0-100%)
+          const ProfileCompletionMeterCard(),
           const SizedBox(height: 20),
 
           // Section 1: Rent & Payments
@@ -6197,6 +6237,27 @@ class TenantProfilePage extends StatelessWidget {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => const TenantTutorTeachLearnPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          _buildProfileOptionCard(
+            title: context.tr(
+              bn: 'টিউশন ও বায়োডাটা প্রোফাইল (বিডিজবস)',
+              en: 'Tutor Biodata Profile (BDJobs)',
+            ),
+            subtitle: context.tr(
+              bn: 'বিশ্ববিদ্যালয়, এলাকা ও পছন্দসমূহ পূরণ করুন (স্কোর: ০-১০০%)',
+              en: 'Complete university, area & preferences (Score: 0-100%)',
+            ),
+            icon: Icons.badge_rounded,
+            iconBg: const Color(0xFFFFF7ED),
+            iconColor: const Color(0xFFEA580C),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const TutorProfileFormScreen(),
                 ),
               );
             },

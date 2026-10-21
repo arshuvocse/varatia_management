@@ -92,4 +92,47 @@ public sealed class TenantTutorController : ControllerBase
             return BadRequest(new { message = exception.Message });
         }
     }
+
+    [HttpGet("profile/{userId}")]
+    public async Task<ActionResult<TutorBdjobsProfileDto>> GetProfile(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var profile = await _tenantTutorService.GetTutorProfileAsync(
+                userId,
+                cancellationToken);
+
+            if (profile == null)
+            {
+                return NotFound(new { message = "Tutor profile not found." });
+            }
+
+            return Ok(profile);
+        }
+        catch (TenantTutorValidationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
+
+    [HttpPost("profile")]
+    public async Task<ActionResult<TutorBdjobsProfileResponse>> SaveProfile(
+        [FromBody] SaveTutorBdjobsProfileRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _tenantTutorService.SaveTutorProfileAsync(
+                request,
+                cancellationToken);
+
+            return Ok(response);
+        }
+        catch (TenantTutorValidationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
 }

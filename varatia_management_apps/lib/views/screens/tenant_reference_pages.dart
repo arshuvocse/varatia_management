@@ -7,6 +7,8 @@ import '../../core/utils/app_context.dart';
 import '../../data/services/auth_session_service.dart';
 import '../../data/services/tenant_tutor_api_service.dart';
 import '../../viewmodels/role_dashboard_view_models.dart';
+import '../widgets/flat_rent_payment_notice_card.dart';
+import '../widgets/profile_completion_meter_card.dart';
 import 'home/tenant_tutor_welcome_page.dart';
 
 part 'tenant_tutor_teach_learn_page.dart';
@@ -33,6 +35,15 @@ class TenantPaymentCenterPage extends StatelessWidget {
       ),
       child: Column(
         children: [
+          FlatRentPaymentNoticeCard(
+            propertyName: viewModel.activeTenant.propertyName.isEmpty
+                ? 'Flat A'
+                : viewModel.activeTenant.propertyName,
+            tenantName: viewModel.activeTenant.name,
+            amount: 15000,
+            isDismissible: false,
+          ),
+          const SizedBox(height: 14),
           _PersonHeroCard(
             person: viewModel.tenantProfile,
             accentColor: AppColors.primary,

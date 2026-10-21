@@ -14,6 +14,7 @@ import '../../../core/utils/local_lang.dart';
 import '../../../data/models/app_models.dart';
 import '../../../viewmodels/role_dashboard_view_models.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/flat_rent_payment_notice_card.dart';
 import '../../widgets/social_post_card.dart';
 import '../../../data/services/tenant_tutor_api_service.dart';
 import 'tenant_general_post_details_screen.dart';
@@ -354,6 +355,24 @@ class _TenantReferenceHomePageState extends State<_TenantReferenceHomePage> {
             _HomeFadeSlide(
               delay: 80,
               child: _TenantBulletinTicker(message: bulletinMessage),
+            ),
+            const SizedBox(height: 10),
+            _HomeFadeSlide(
+              delay: 90,
+              child: FlatRentPaymentNoticeCard(
+                propertyName: tenantViewModel.activeTenant.propertyName.isEmpty
+                    ? 'Flat A'
+                    : tenantViewModel.activeTenant.propertyName,
+                tenantName: tenantViewModel.activeTenant.name,
+                amount: 15000,
+                onPayNow: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const TenantPaymentCenterPage(),
+                    ),
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 12),
 

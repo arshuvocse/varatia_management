@@ -1,4 +1,6 @@
+using System.Data;
 using System.Data.Common;
+using System.Text.Json;
 using Dapper;
 using Microsoft.Data.SqlClient;
 using OrderProcessAPI.Configuration;
@@ -99,8 +101,16 @@ public sealed class TenantTutorService : ITenantTutorService
                   AND
                   (
                       @Subject IS NULL
+                      OR LOWER(@Subject) = 'all'
+                      OR LOWER(@Subject) = 'all subjects'
+                      OR LOWER(@Subject) = N'সব'
+                      OR LOWER(@Subject) = N'সকল বিষয়'
                       OR LOWER(SubjectBn) = @Subject
                       OR LOWER(SubjectEn) = @Subject
+                      OR LOWER(SubjectBn) LIKE '%' + @Subject + '%'
+                      OR LOWER(SubjectEn) LIKE '%' + @Subject + '%'
+                      OR LOWER(SubjectBn) LIKE N'%সকল%'
+                      OR LOWER(SubjectEn) LIKE '%all%'
                   )
                   AND
                   (
@@ -727,6 +737,217 @@ public sealed class TenantTutorService : ITenantTutorService
         public string FulfillmentStatus { get; init; } = string.Empty;
         public string Remarks { get; init; } = string.Empty;
         public bool Verified { get; init; }
+    }
+
+    public async Task<TutorBdjobsProfileDto?> GetTutorProfileAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedUserId = TrimOrEmpty(userId);
+        if (string.IsNullOrWhiteSpace(normalizedUserId))
+        {
+            throw new TenantTutorValidationException("User id is required.");
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var row = await connection.QuerySingleOrDefaultAsync<TutorBdjobsProfileDbRow>(
+            new CommandDefinition(
+                "dbo.sp_GetTutorBdjobsProfile",
+                new { UserId = normalizedUserId },
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken));
+
+        return row == null ? null : MapToProfileDto(row);
+    }
+
+    public async Task<TutorBdjobsProfileResponse> SaveTutorProfileAsync(
+        SaveTutorBdjobsProfileRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedUserId = TrimOrEmpty(request.UserId);
+        if (string.IsNullOrWhiteSpace(normalizedUserId))
+        {
+            throw new TenantTutorValidationException("User id is required.");
+        }
+
+        var fullName = TrimOrEmpty(request.FullName);
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            throw new TenantTutorValidationException("Full name is required.");
+        }
+
+        var phone = TrimOrEmpty(request.PhoneNumber);
+        if (string.IsNullOrWhiteSpace(phone))
+        {
+            throw new TenantTutorValidationException("Phone number is required.");
+        }
+
+        var locationsJson = JsonSerializer.Serialize(request.PreferredLocations ?? Array.Empty<string>());
+        var subjectsJson = JsonSerializer.Serialize(request.PreferredSubjects ?? Array.Empty<string>());
+        var classesJson = JsonSerializer.Serialize(request.ClassesToTeach ?? Array.Empty<string>());
+
+        var score = request.CompletionScore;
+        if (score <= 0)
+        {
+            score = CalculateProfileScore(
+                fullName,
+                phone,
+                request.Gender,
+                request.City,
+                request.CurrentLocation,
+                request.UniversityType,
+                request.UniversityName,
+                request.Department,
+                request.SscMedium,
+                request.PreferredLocations,
+                request.PreferredSubjects,
+                request.ExpectedFee,
+                request.DaysPerWeek);
+        }
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var parameters = new
+        {
+            UserId = normalizedUserId,
+            FullName = fullName,
+            PhoneNumber = phone,
+            Gender = string.IsNullOrWhiteSpace(request.Gender) ? "পুরুষ" : request.Gender.Trim(),
+            City = string.IsNullOrWhiteSpace(request.City) ? "Dhaka" : request.City.Trim(),
+            CurrentLocation = TrimOrEmpty(request.CurrentLocation),
+            UniversityType = TrimOrEmpty(request.UniversityType),
+            UniversityName = TrimOrEmpty(request.UniversityName),
+            Department = TrimOrEmpty(request.Department),
+            SscMedium = TrimOrEmpty(request.SscMedium),
+            PreferredLocations = locationsJson,
+            PreferredSubjects = subjectsJson,
+            ClassesToTeach = classesJson,
+            ExpectedFee = TrimOrEmpty(request.ExpectedFee),
+            DaysPerWeek = TrimOrEmpty(request.DaysPerWeek),
+            CompletionScore = score
+        };
+
+        var row = await connection.QuerySingleAsync<TutorBdjobsProfileDbRow>(
+            new CommandDefinition(
+                "dbo.sp_UpsertTutorBdjobsProfile",
+                parameters,
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken));
+
+        return new TutorBdjobsProfileResponse
+        {
+            Message = "Tutor profile saved successfully.",
+            Profile = MapToProfileDto(row)
+        };
+    }
+
+    private static TutorBdjobsProfileDto MapToProfileDto(TutorBdjobsProfileDbRow row)
+    {
+        return new TutorBdjobsProfileDto
+        {
+            Id = row.Id,
+            UserId = row.UserId,
+            FullName = row.FullName,
+            PhoneNumber = row.PhoneNumber,
+            Gender = row.Gender,
+            City = row.City,
+            CurrentLocation = row.CurrentLocation,
+            UniversityType = row.UniversityType,
+            UniversityName = row.UniversityName,
+            Department = row.Department,
+            SscMedium = row.SscMedium,
+            PreferredLocations = DeserializeList(row.PreferredLocations),
+            PreferredSubjects = DeserializeList(row.PreferredSubjects),
+            ClassesToTeach = DeserializeList(row.ClassesToTeach),
+            ExpectedFee = row.ExpectedFee,
+            DaysPerWeek = row.DaysPerWeek,
+            CompletionScore = row.CompletionScore,
+            CreatedAt = row.CreatedAt,
+            UpdatedAt = row.UpdatedAt
+        };
+    }
+
+    private static IReadOnlyList<string> DeserializeList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return Array.Empty<string>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? (IReadOnlyList<string>)Array.Empty<string>();
+        }
+        catch
+        {
+            return json.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                       .Select(s => s.Trim())
+                       .Where(s => !string.IsNullOrEmpty(s))
+                       .ToList();
+        }
+    }
+
+    private static int CalculateProfileScore(
+        string fullName,
+        string phone,
+        string? gender,
+        string? city,
+        string? location,
+        string? uType,
+        string? uName,
+        string? dept,
+        string? medium,
+        IReadOnlyList<string>? preferredLocations,
+        IReadOnlyList<string>? preferredSubjects,
+        string? fee,
+        string? days)
+    {
+        int score = 0;
+        if (!string.IsNullOrWhiteSpace(fullName)) score += 8;
+        if (!string.IsNullOrWhiteSpace(phone)) score += 6;
+        if (!string.IsNullOrWhiteSpace(gender)) score += 6;
+
+        if (!string.IsNullOrWhiteSpace(city)) score += 5;
+        if (!string.IsNullOrWhiteSpace(location)) score += 10;
+
+        if (!string.IsNullOrWhiteSpace(uType)) score += 10;
+        if (!string.IsNullOrWhiteSpace(uName)) score += 8;
+        if (!string.IsNullOrWhiteSpace(dept)) score += 7;
+
+        if (!string.IsNullOrWhiteSpace(medium)) score += 15;
+
+        if (preferredLocations != null && preferredLocations.Count > 0)
+        {
+            score += 10;
+            if (preferredLocations.Count >= 2) score += 5;
+        }
+
+        if (preferredSubjects != null && preferredSubjects.Count > 0) score += 5;
+        if (!string.IsNullOrWhiteSpace(fee) || !string.IsNullOrWhiteSpace(days)) score += 5;
+
+        return Math.Min(100, Math.Max(0, score));
+    }
+
+    private sealed class TutorBdjobsProfileDbRow
+    {
+        public string Id { get; init; } = string.Empty;
+        public string UserId { get; init; } = string.Empty;
+        public string FullName { get; init; } = string.Empty;
+        public string PhoneNumber { get; init; } = string.Empty;
+        public string Gender { get; init; } = string.Empty;
+        public string City { get; init; } = string.Empty;
+        public string CurrentLocation { get; init; } = string.Empty;
+        public string UniversityType { get; init; } = string.Empty;
+        public string UniversityName { get; init; } = string.Empty;
+        public string Department { get; init; } = string.Empty;
+        public string SscMedium { get; init; } = string.Empty;
+        public string PreferredLocations { get; init; } = string.Empty;
+        public string PreferredSubjects { get; init; } = string.Empty;
+        public string ClassesToTeach { get; init; } = string.Empty;
+        public string ExpectedFee { get; init; } = string.Empty;
+        public string DaysPerWeek { get; init; } = string.Empty;
+        public int CompletionScore { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime UpdatedAt { get; init; }
     }
 }
 

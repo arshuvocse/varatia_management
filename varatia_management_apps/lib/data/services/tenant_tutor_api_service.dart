@@ -2,16 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:http/http.dart' as http;
 
 import '../../core/config/api_config.dart';
 import '../../core/utils/local_lang.dart';
+import '../models/tutor_bdjobs_profile.dart';
 import 'auth_session_service.dart';
 
 class TenantTutorApiService {
   static const Duration _requestTimeout = Duration(seconds: 20);
 
   static const String postsPath = '/api/tenant/tutor/posts';
+  static const String profilePath = '/api/tenant/tutor/profile';
 
   TenantTutorApiService({
     http.Client? client,
@@ -87,6 +91,48 @@ class TenantTutorApiService {
           _readString(data['message']) ?? 'Tutor post created successfully.',
       post: rawPost.isEmpty ? null : TenantTutorPost.fromJson(rawPost),
     );
+  }
+
+  Future<TutorBdjobsProfile?> getProfile(String userId) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return null;
+
+    try {
+      final payload = await _getPayload(_buildUri('$profilePath/$normalized'));
+      final data = _readDataObject(payload);
+      if (data.isEmpty) return null;
+      return TutorBdjobsProfile.fromJson(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<TutorBdjobsProfile?> saveProfile({
+    required String userId,
+    required TutorBdjobsProfile profile,
+  }) async {
+    final normalized = userId.trim();
+    if (normalized.isEmpty) return null;
+
+    try {
+      final payload = await _postJson(
+        _buildUri(profilePath),
+        <String, Object?>{
+          'userId': normalized,
+          ...profile.toJson(),
+          'completionScore': profile.completionScore,
+        },
+      );
+      final data = _readDataObject(payload);
+      final profileData = _readMap(data['profile']);
+      if (profileData.isNotEmpty) {
+        return TutorBdjobsProfile.fromJson(profileData);
+      }
+      return profile;
+    } catch (e) {
+      debugPrint('Failed to sync tutor profile to backend: $e');
+      return null;
+    }
   }
 
   Uri _buildUri(String path, [Map<String, String?> query = const {}]) {

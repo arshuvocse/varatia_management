@@ -6,6 +6,7 @@ import '../../core/utils/app_context.dart';
 import '../../data/models/app_models.dart';
 import '../../viewmodels/app_view_models.dart';
 import '../widgets/app_widgets.dart';
+import '../widgets/flat_rent_payment_notice_card.dart';
 import 'support_screens.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -46,7 +47,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
             label: Text(context.tr(bn: 'যোগ', en: 'Add')),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
+        FlatRentPaymentNoticeCard(
+          propertyName: viewModel.payments.isNotEmpty
+              ? viewModel.payments.first.propertyName
+              : 'Flat A',
+          tenantName: viewModel.payments.isNotEmpty
+              ? viewModel.payments.first.tenantName
+              : null,
+          amount: viewModel.totalDue > 0 ? viewModel.totalDue : 15000,
+          isDismissible: false,
+        ),
+        const SizedBox(height: 14),
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

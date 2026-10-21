@@ -14,4 +14,8 @@ public interface INotificationService
     Task<MarkNotificationReadResponse> MarkAsReadAsync(
         int notificationId,
         CancellationToken cancellationToken = default);
+
+    Task<SendRentNoticeResponse> SendRentNoticeAsync(
+        SendRentNoticeRequest request,
+        CancellationToken cancellationToken = default);
 }

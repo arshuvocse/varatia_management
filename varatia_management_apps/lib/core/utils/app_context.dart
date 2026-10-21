@@ -336,4 +336,8 @@ extension AppContextX on BuildContext {
   String shortDateText(DateTime value) {
     return BanglaFormatter.shortDate(value, bangla: isBangla);
   }
+
+  String fullDateText(DateTime value) {
+    return BanglaFormatter.fullDate(value, bangla: isBangla);
+  }
 }

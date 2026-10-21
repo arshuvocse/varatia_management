@@ -156,6 +156,149 @@ public sealed class FirebaseNotificationService : INotificationService
         };
     }
 
+    public async Task<SendRentNoticeResponse> SendRentNoticeAsync(
+        SendRentNoticeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var propertyName = (request.PropertyName ?? string.Empty).Trim();
+        var tenantName = (request.TenantName ?? string.Empty).Trim();
+        var amount = request.Amount;
+
+        if (string.IsNullOrWhiteSpace(propertyName))
+        {
+            throw new NotificationValidationException("Property name is required.");
+        }
+
+        var now = DateTime.Now;
+        var todayBangla = $"{ToBanglaDigits(now.Day)} {GetBanglaMonth(now.Month)}, {ToBanglaDigits(now.Year)}";
+        var title = "📢 ভাড়ার নোটিশ";
+        var body = $"আপনার আজকে {todayBangla}, আপনাকে {propertyName}-এর ভাড়া ৳{ToBanglaDigits((long)amount)} পেমেন্ট করতে হবে।";
+
+        await using var connection = _connectionFactory.CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        var notificationId = await connection.ExecuteScalarAsync<int>(
+            new CommandDefinition(
+                """
+                INSERT INTO dbo.Notifications (Title, Subtitle, CreatedAt, IsUnread)
+                OUTPUT INSERTED.Id
+                VALUES (@Title, @Subtitle, SYSUTCDATETIME(), 1);
+                """,
+                new
+                {
+                    Title = title,
+                    Subtitle = body,
+                },
+                cancellationToken: cancellationToken));
+
+        var timeLabel = now.ToString("hh:mm tt");
+        try
+        {
+            await connection.ExecuteAsync(
+                new CommandDefinition(
+                    """
+                    INSERT INTO dbo.Messages (Sender, Message, PropertyName, TimeLabel)
+                    VALUES (@Sender, @Message, @PropertyName, @TimeLabel);
+                    """,
+                    new
+                    {
+                        Sender = "বাড়িওয়ালা (Owner)",
+                        Message = body,
+                        PropertyName = propertyName,
+                        TimeLabel = timeLabel,
+                    },
+                    cancellationToken: cancellationToken));
+        }
+        catch
+        {
+            // Optional message insertion fallback
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.UserId) && Guid.TryParse(request.UserId.Trim(), out var parsedUserId))
+        {
+            try
+            {
+                var user = await connection.QuerySingleOrDefaultAsync<UserNotificationLookup>(
+                    new CommandDefinition(
+                        """
+                        SELECT TOP (1) Id, FirebaseDeviceToken
+                        FROM dbo.Users
+                        WHERE Id = @UserId;
+                        """,
+                        new { UserId = parsedUserId },
+                        cancellationToken: cancellationToken));
+
+                if (user is not null && !string.IsNullOrWhiteSpace(user.FirebaseDeviceToken) && !_environment.IsDevelopment())
+                {
+                    await SendFirebaseNotificationAsync(
+                        user.FirebaseDeviceToken,
+                        title,
+                        body,
+                        new Dictionary<string, string>
+                        {
+                            ["type"] = "rent_notice",
+                            ["propertyName"] = propertyName,
+                            ["amount"] = amount.ToString("0"),
+                        },
+                        cancellationToken);
+                }
+            }
+            catch
+            {
+                // Push delivery failure shouldn't cancel notice creation
+            }
+        }
+
+        return new SendRentNoticeResponse
+        {
+            NotificationId = notificationId,
+            Title = title,
+            Subtitle = body,
+            Message = "Rent notice sent successfully.",
+        };
+    }
+
+    private static string ToBanglaDigits(long value)
+    {
+        var str = value.ToString();
+        var sb = new System.Text.StringBuilder();
+        foreach (var c in str)
+        {
+            sb.Append(c switch
+            {
+                '0' => '০',
+                '1' => '১',
+                '2' => '২',
+                '3' => '৩',
+                '4' => '৪',
+                '5' => '৫',
+                '6' => '৬',
+                '7' => '৭',
+                '8' => '৮',
+                '9' => '৯',
+                _ => c
+            });
+        }
+        return sb.ToString();
+    }
+
+    private static string GetBanglaMonth(int month) => month switch
+    {
+        1 => "জানুয়ারি",
+        2 => "ফেব্রুয়ারি",
+        3 => "মার্চ",
+        4 => "এপ্রিল",
+        5 => "মে",
+        6 => "জুন",
+        7 => "জুলাই",
+        8 => "আগস্ট",
+        9 => "সেপ্টেম্বর",
+        10 => "অক্টোবর",
+        11 => "নভেম্বর",
+        12 => "ডিসেম্বর",
+        _ => string.Empty
+    };
+
     private FirebaseApp GetOrCreateFirebaseApp()
     {
         if (FirebaseApp.DefaultInstance is not null)

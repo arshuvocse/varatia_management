@@ -78,3 +78,53 @@ public sealed class TenantTutorLocationDto
     public string Bn { get; init; } = string.Empty;
     public string En { get; init; } = string.Empty;
 }
+
+public sealed class SaveTutorBdjobsProfileRequest
+{
+    public string UserId { get; init; } = string.Empty;
+    public string FullName { get; init; } = string.Empty;
+    public string PhoneNumber { get; init; } = string.Empty;
+    public string Gender { get; init; } = "পুরুষ";
+    public string City { get; init; } = "Dhaka";
+    public string CurrentLocation { get; init; } = string.Empty;
+    public string UniversityType { get; init; } = string.Empty;
+    public string UniversityName { get; init; } = string.Empty;
+    public string Department { get; init; } = string.Empty;
+    public string SscMedium { get; init; } = string.Empty;
+    public IReadOnlyList<string> PreferredLocations { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> PreferredSubjects { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> ClassesToTeach { get; init; } = Array.Empty<string>();
+    public string ExpectedFee { get; init; } = string.Empty;
+    public string DaysPerWeek { get; init; } = string.Empty;
+    public int CompletionScore { get; init; }
+}
+
+public sealed class TutorBdjobsProfileDto
+{
+    public string Id { get; init; } = string.Empty;
+    public string UserId { get; init; } = string.Empty;
+    public string FullName { get; init; } = string.Empty;
+    public string PhoneNumber { get; init; } = string.Empty;
+    public string Gender { get; init; } = string.Empty;
+    public string City { get; init; } = string.Empty;
+    public string CurrentLocation { get; init; } = string.Empty;
+    public string UniversityType { get; init; } = string.Empty;
+    public string UniversityName { get; init; } = string.Empty;
+    public string Department { get; init; } = string.Empty;
+    public string SscMedium { get; init; } = string.Empty;
+    public IReadOnlyList<string> PreferredLocations { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> PreferredSubjects { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> ClassesToTeach { get; init; } = Array.Empty<string>();
+    public string ExpectedFee { get; init; } = string.Empty;
+    public string DaysPerWeek { get; init; } = string.Empty;
+    public int CompletionScore { get; init; }
+    public DateTime? CreatedAt { get; init; }
+    public DateTime? UpdatedAt { get; init; }
+}
+
+public sealed class TutorBdjobsProfileResponse
+{
+    public string Message { get; init; } = string.Empty;
+    public TutorBdjobsProfileDto? Profile { get; init; }
+}
+

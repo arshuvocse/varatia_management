@@ -10,6 +10,7 @@ import '../../data/services/notification_api_service.dart';
 import '../../data/services/owner_tenant_api_service.dart';
 import '../../viewmodels/app_view_models.dart';
 import '../widgets/app_widgets.dart';
+import 'tenant_reference_pages.dart';
 
 class TenantScreen extends StatefulWidget {
   const TenantScreen({super.key});
@@ -706,42 +707,175 @@ class NotificationsScreen extends StatelessWidget {
               )
             else
               ...viewModel.notifications.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Card(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(18),
-                      onTap: () => _markAsRead(context, item),
-                      leading: Container(
-                        height: 14,
-                        width: 14,
-                        decoration: BoxDecoration(
-                          color: item.isUnread
-                              ? AppColors.accent
-                              : AppColors.border,
-                          shape: BoxShape.circle,
+                (item) {
+                  final isPaymentNotice = item.title.contains('পেমেন্ট') ||
+                      item.title.contains('Payment') ||
+                      item.title.contains('ভাড়া') ||
+                      item.subtitle.contains('পেমেন্ট') ||
+                      item.subtitle.contains('ভাড়া');
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isPaymentNotice
+                              ? const Color(0xFFF59E0B)
+                              : Colors.transparent,
+                          width: isPaymentNotice ? 1.5 : 0,
                         ),
                       ),
-                      title: Text(item.title),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          '${item.subtitle}\n${context.shortDateText(item.createdAt)}',
-                        ),
-                      ),
-                      trailing: item.isUnread
-                          ? Text(
-                              context.tr(bn: 'Unread', en: 'Unread'),
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.accent,
-                                    fontWeight: FontWeight.w600,
+                      color: isPaymentNotice
+                          ? const Color(0xFFFFFBEB)
+                          : Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: isPaymentNotice
+                                        ? const Color(0xFFFEF3C7)
+                                        : (item.isUnread
+                                            ? AppColors.accent.withValues(alpha: 0.15)
+                                            : AppColors.border.withValues(alpha: 0.2)),
+                                    shape: BoxShape.circle,
                                   ),
-                            )
-                          : null,
+                                  child: Icon(
+                                    isPaymentNotice
+                                        ? Icons.campaign_rounded
+                                        : Icons.notifications_active_rounded,
+                                    size: 18,
+                                    color: isPaymentNotice
+                                        ? const Color(0xFFD97706)
+                                        : (item.isUnread
+                                            ? AppColors.accent
+                                            : AppColors.border),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.title,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 14.5,
+                                                color: isPaymentNotice
+                                                    ? const Color(0xFF92400E)
+                                                    : const Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ),
+                                          if (item.isUnread)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 3,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.accent.withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Text(
+                                                context.tr(bn: 'নতুন', en: 'New'),
+                                                style: const TextStyle(
+                                                  color: AppColors.accent,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        item.subtitle,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          height: 1.4,
+                                          color: isPaymentNotice
+                                              ? const Color(0xFF78350F)
+                                              : const Color(0xFF475569),
+                                          fontWeight: isPaymentNotice
+                                              ? FontWeight.w600
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        context.shortDateText(item.createdAt),
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (isPaymentNotice) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      _markAsRead(context, item);
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) =>
+                                              const TenantPaymentCenterPage(),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF16A34A),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.payment_rounded,
+                                      size: 16,
+                                    ),
+                                    label: Text(
+                                      context.tr(
+                                        bn: 'এখনই পেমেন্ট করুন',
+                                        en: 'Pay Now',
+                                      ),
+                                      style: const TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
           ],
         ),

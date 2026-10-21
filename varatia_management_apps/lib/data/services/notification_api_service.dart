@@ -59,6 +59,37 @@ class NotificationApiService {
     );
   }
 
+  Future<NotificationSendResult> sendRentNotice({
+    required String propertyName,
+    required String tenantName,
+    required num amount,
+    String? userId,
+    String? monthLabel,
+  }) async {
+    final response = await _client.post(
+      Uri.parse('${ApiConfig.baseUrl}/api/notifications/rent-notice'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        if (userId != null && userId.isNotEmpty) 'userId': userId,
+        'propertyName': propertyName,
+        'tenantName': tenantName,
+        'amount': amount,
+        if (monthLabel != null) 'monthLabel': monthLabel,
+      }),
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw NotificationApiException(_readErrorMessage(response.body));
+    }
+
+    final payload = jsonDecode(response.body) as Map<String, dynamic>;
+    return NotificationSendResult(
+      userId: userId ?? '',
+      firebaseMessageId: payload['notificationId']?.toString() ?? '',
+      message: payload['message'] as String? ?? 'Rent notice sent successfully.',
+    );
+  }
+
   Future<NotificationReadResult> markAsRead({
     required int notificationId,
   }) async {

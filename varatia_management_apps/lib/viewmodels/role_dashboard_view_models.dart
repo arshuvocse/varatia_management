@@ -18,6 +18,7 @@ import '../data/services/announcement_api_service.dart';
 import '../data/services/general_post_api_service.dart';
 import '../data/services/chat_api_service.dart';
 import '../data/services/saved_posts_api_service.dart';
+import '../core/utils/bangla_formatter.dart';
 
 class RoleSelectionViewModel extends ChangeNotifier {
   EntryUserRole _selectedRole = EntryUserRole.owner;
@@ -1080,14 +1081,19 @@ class OwnerDashboardViewModel extends ChangeNotifier {
   }
 
   String _buildMonthlyBillMessage(double amount) {
-    final monthLabel = _formatBillMonth(DateTime.now());
-    return 'Bill $monthLabel: Rent Tk ${_formatAmount(_houseRent)}, '
-        'Elec Tk ${_formatAmount(_electricityBill)}, '
-        'Water Tk ${_formatAmount(_waterBill)}, '
-        'Gas Tk ${_formatAmount(_gasBill)}, '
-        'Service Tk ${_formatAmount(_serviceCharge)}. '
-        'Total Tk ${_formatAmount(amount)}. '
-        'Due ${_formatBillDate(_dueDate)}.';
+    final now = DateTime.now();
+    final todayFormatted = BanglaFormatter.fullDate(now, bangla: true);
+    final property = selectedTenant?.propertyName.trim();
+    final flatName = (property != null && property.isNotEmpty) ? property : 'ফ্ল্যাট';
+    final monthLabel = _formatBillMonth(now);
+    return '📢 ভাড়ার নোটিশ: আপনার আজকে $todayFormatted, আপনাকে $flatName-এর $monthLabel মাসের ভাড়া ৳${_formatAmount(amount)} পেমেন্ট করতে হবে।\n'
+        'বিল বিবরণ: ভাড়া ৳${_formatAmount(_houseRent)}, '
+        'বিদ্যুৎ ৳${_formatAmount(_electricityBill)}, '
+        'পানি ৳${_formatAmount(_waterBill)}, '
+        'গ্যাস ৳${_formatAmount(_gasBill)}, '
+        'সার্ভিস ৳${_formatAmount(_serviceCharge)}। '
+        'মোট ৳${_formatAmount(amount)}। '
+        'পরিশোধের শেষ তারিখ: ${_formatBillDate(_dueDate)}।';
   }
 
   String _formatAmount(double value) {

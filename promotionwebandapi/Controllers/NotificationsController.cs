@@ -72,4 +72,23 @@ public sealed class NotificationsController : ControllerBase
             return NotFound(new { message = exception.Message });
         }
     }
+
+    [HttpPost("rent-notice")]
+    public async Task<ActionResult<SendRentNoticeResponse>> SendRentNotice(
+        [FromBody] SendRentNoticeRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await _notificationService.SendRentNoticeAsync(
+                request,
+                cancellationToken);
+
+            return Ok(response);
+        }
+        catch (NotificationValidationException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+    }
 }

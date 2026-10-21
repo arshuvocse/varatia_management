@@ -78,7 +78,13 @@ class _TenantTutorTeachLearnPageState extends State<TenantTutorTeachLearnPage> {
             return false;
           }
           if (_selectedSubjectEn != null &&
+              _selectedSubjectEn != 'All Subjects' &&
+              !post.subjectEn.toLowerCase().contains('all') &&
+              !post.subjectBn.contains('সকল') &&
               !post.subjectEn.toLowerCase().contains(
+                _selectedSubjectEn!.toLowerCase(),
+              ) &&
+              !post.subjectBn.toLowerCase().contains(
                 _selectedSubjectEn!.toLowerCase(),
               )) {
             return false;
@@ -323,6 +329,8 @@ class _TenantTutorTeachLearnPageState extends State<TenantTutorTeachLearnPage> {
             onTeach: () => _openComposer(_TutorPostType.tutor),
             onLearn: () => _openComposer(_TutorPostType.request),
           ),
+          const SizedBox(height: 12),
+          const ProfileCompletionMeterCard(compact: true),
           if (_isLoadingPosts) ...[
             const SizedBox(height: 12),
             const LinearProgressIndicator(minHeight: 2),
@@ -1583,9 +1591,20 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
   final _remarksController = TextEditingController();
 
   late _TutorPostType _type = widget.initialType;
-  String _subjectEn = _tutorSubjects.first.labelEn;
+  final Set<String> _selectedSubjectEns = <String>{'All Subjects'};
+  final _customSubjectController = TextEditingController();
+  bool _isCustomSubjectEnabled = false;
   String _areaEn = _tutorAreas.first.labelEn;
   String _fulfillmentStatus = 'not_got';
+
+  static const List<String> _quickLevels = [
+    'ক্লাস ১-৫',
+    'ক্লাস ৬-৮',
+    '৯ম-১০ম (SSC)',
+    'একাদশ-দ্বাদশ (HSC)',
+    'মাদ্রাসা / হিফজ',
+    'বিশ্ববিদ্যালয় ভর্তি',
+  ];
 
   @override
   void dispose() {
@@ -1597,14 +1616,96 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
     _experienceController.dispose();
     _descriptionController.dispose();
     _remarksController.dispose();
+    _customSubjectController.dispose();
     super.dispose();
   }
 
-  _TutorSubjectData get _selectedSubject {
-    return _tutorSubjects.firstWhere(
-      (subject) => subject.labelEn == _subjectEn,
-      orElse: () => _tutorSubjects.first,
-    );
+  void _toggleSubject(_TutorSubjectData subject) {
+    setState(() {
+      final isCombo = subject.labelEn == 'All Subjects' ||
+          subject.labelEn == 'Math & English' ||
+          subject.labelEn == 'Bangla, English & Math' ||
+          subject.labelEn == 'Science & Math';
+
+      if (isCombo) {
+        _selectedSubjectEns
+          ..clear()
+          ..add(subject.labelEn);
+        return;
+      }
+
+      _selectedSubjectEns.remove('All Subjects');
+      _selectedSubjectEns.remove('Math & English');
+      _selectedSubjectEns.remove('Bangla, English & Math');
+      _selectedSubjectEns.remove('Science & Math');
+
+      if (_selectedSubjectEns.contains(subject.labelEn)) {
+        _selectedSubjectEns.remove(subject.labelEn);
+        if (_selectedSubjectEns.isEmpty && !_isCustomSubjectEnabled) {
+          _selectedSubjectEns.add('All Subjects');
+        }
+      } else {
+        _selectedSubjectEns.add(subject.labelEn);
+      }
+    });
+  }
+
+  String _formatSelectedSubjectBn() {
+    final custom = _isCustomSubjectEnabled ? _customSubjectController.text.trim() : '';
+
+    if (_selectedSubjectEns.contains('All Subjects')) {
+      return custom.isEmpty ? 'সকল বিষয়' : 'সকল বিষয়, $custom';
+    }
+    if (_selectedSubjectEns.contains('Math & English')) {
+      return custom.isEmpty ? 'গণিত ও ইংরেজি' : 'গণিত ও ইংরেজি, $custom';
+    }
+    if (_selectedSubjectEns.contains('Bangla, English & Math')) {
+      return custom.isEmpty ? 'বাংলা, ইংরেজি ও গণিত' : 'বাংলা, ইংরেজি ও গণিত, $custom';
+    }
+    if (_selectedSubjectEns.contains('Science & Math')) {
+      return custom.isEmpty ? 'বিজ্ঞান ও গণিত' : 'বিজ্ঞান ও গণিত, $custom';
+    }
+
+    final selected = _tutorSubjects
+        .where((s) => _selectedSubjectEns.contains(s.labelEn))
+        .map((s) => s.labelBn)
+        .toList();
+    if (custom.isNotEmpty) {
+      selected.add(custom);
+    }
+    if (selected.isEmpty) {
+      return 'সকল বিষয়';
+    }
+    return selected.join(', ');
+  }
+
+  String _formatSelectedSubjectEn() {
+    final custom = _isCustomSubjectEnabled ? _customSubjectController.text.trim() : '';
+
+    if (_selectedSubjectEns.contains('All Subjects')) {
+      return custom.isEmpty ? 'All Subjects' : 'All Subjects, $custom';
+    }
+    if (_selectedSubjectEns.contains('Math & English')) {
+      return custom.isEmpty ? 'Math & English' : 'Math & English, $custom';
+    }
+    if (_selectedSubjectEns.contains('Bangla, English & Math')) {
+      return custom.isEmpty ? 'Bangla, English & Math' : 'Bangla, English & Math, $custom';
+    }
+    if (_selectedSubjectEns.contains('Science & Math')) {
+      return custom.isEmpty ? 'Science & Math' : 'Science & Math, $custom';
+    }
+
+    final selected = _tutorSubjects
+        .where((s) => _selectedSubjectEns.contains(s.labelEn))
+        .map((s) => s.labelEn)
+        .toList();
+    if (custom.isNotEmpty) {
+      selected.add(custom);
+    }
+    if (selected.isEmpty) {
+      return 'All Subjects';
+    }
+    return selected.join(', ');
   }
 
   _TutorAreaOption get _selectedArea {
@@ -1648,15 +1749,16 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
       return;
     }
 
-    final subject = _selectedSubject;
+    final subjectBn = _formatSelectedSubjectBn();
+    final subjectEn = _formatSelectedSubjectEn();
     final area = _selectedArea;
     final level = _levelController.text.trim();
-    final subjectBn = level.isEmpty
-        ? subject.labelBn
-        : '${subject.labelBn}, $level';
-    final subjectEn = level.isEmpty
-        ? subject.labelEn
-        : '${subject.labelEn}, $level';
+    final fullSubjectBn = level.isEmpty
+        ? subjectBn
+        : '$subjectBn ($level)';
+    final fullSubjectEn = level.isEmpty
+        ? subjectEn
+        : '$subjectEn ($level)';
     final description = _descriptionController.text.trim();
     final experience = _experienceController.text.trim();
 
@@ -1667,8 +1769,8 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
         name: _nameController.text.trim(),
         roleBn: _type.roleBn(),
         roleEn: _type.roleEn(),
-        subjectBn: subjectBn,
-        subjectEn: subjectEn,
+        subjectBn: fullSubjectBn,
+        subjectEn: fullSubjectEn,
         areaBn: area.labelBn,
         areaEn: area.labelEn,
         priceBn: _priceBn(_priceController.text),
@@ -1778,35 +1880,44 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
               ),
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _subjectEn,
-              decoration: InputDecoration(
-                labelText: context.tr(bn: 'বিষয়', en: 'Subject'),
-                prefixIcon: const Icon(Icons.menu_book_rounded),
-              ),
-              items: _tutorSubjects
-                  .map(
-                    (subject) => DropdownMenuItem<String>(
-                      value: subject.labelEn,
-                      child: Text(
-                        context.tr(bn: subject.labelBn, en: subject.labelEn),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _subjectEn = value);
-                }
-              },
-            ),
-            const SizedBox(height: 12),
+            _buildSubjectSelectorSection(),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _levelController,
               textInputAction: TextInputAction.next,
               decoration: InputDecoration(
-                labelText: context.tr(bn: 'ক্লাস/লেভেল', en: 'Class/level'),
+                labelText: context.tr(bn: 'ক্লাস / লেভেল', en: 'Class / Level'),
+                hintText: context.tr(
+                  bn: 'যেমন: ক্লাস ১, ক্লাস ৫, এসএসসি ইত্যাদি',
+                  en: 'e.g. Class 1, Class 5, SSC etc.',
+                ),
                 prefixIcon: const Icon(Icons.layers_rounded),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: _quickLevels
+                    .map(
+                      (level) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.add_rounded, size: 14),
+                          label: Text(level),
+                          labelStyle: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          backgroundColor: Colors.white,
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          onPressed: () {
+                            setState(() => _levelController.text = level);
+                          },
+                        ),
+                      ),
+                    )
+                    .toList(growable: false),
               ),
             ),
             const SizedBox(height: 12),
@@ -1943,6 +2054,275 @@ class _TutorPostComposerPageState extends State<_TutorPostComposerPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSubjectSelectorSection() {
+    final summaryBn = _formatSelectedSubjectBn();
+    final summaryEn = _formatSelectedSubjectEn();
+    final isAllSelected = _selectedSubjectEns.contains('All Subjects');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _selectedSubjectEns.isNotEmpty
+              ? AppColors.primary.withValues(alpha: 0.3)
+              : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.menu_book_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr(
+                        bn: 'বিষয় নির্বাচন (একাধিক সিলেক্ট করুন)',
+                        en: 'Select Subjects (Multi-select)',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      context.tr(
+                        bn: 'অল সাবজেক্ট বা একাধিক বিষয় একসাথে বেছে নিন',
+                        en: 'Pick All Subjects or multiple subjects together',
+                      ),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDBEAFE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  isAllSelected
+                      ? context.tr(bn: 'অল সাবজেক্ট', en: 'All')
+                      : '${_selectedSubjectEns.length} ${context.tr(bn: "টি বিষয়", en: "selected")}',
+                  style: const TextStyle(
+                    color: Color(0xFF1D4ED8),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Quick Presets
+          Text(
+            context.tr(bn: 'জনপ্রিয় অপশন (১-ট্যাপ):', en: 'Popular Presets:'),
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _tutorSubjects.where((s) {
+              return s.labelEn == 'All Subjects' ||
+                  s.labelEn == 'Math & English' ||
+                  s.labelEn == 'Bangla, English & Math' ||
+                  s.labelEn == 'Science & Math';
+            }).map((preset) {
+              final isSelected = _selectedSubjectEns.contains(preset.labelEn);
+              return FilterChip(
+                selected: isSelected,
+                avatar: Icon(
+                  preset.icon,
+                  size: 15,
+                  color: isSelected ? Colors.white : preset.color,
+                ),
+                label: Text(
+                  context.tr(bn: preset.labelBn, en: preset.labelEn),
+                ),
+                selectedColor: preset.color,
+                checkmarkColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF1E293B),
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 12,
+                ),
+                backgroundColor: const Color(0xFFF8FAFC),
+                side: BorderSide(
+                  color: isSelected ? preset.color : const Color(0xFFE2E8F0),
+                ),
+                onSelected: (_) => _toggleSubject(preset),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          const SizedBox(height: 10),
+
+          // Specific Individual Subjects
+          Text(
+            context.tr(
+              bn: 'নির্দিষ্ট বিষয় (প্রয়োজনমতো একাধিক সিলেক্ট করুন):',
+              en: 'Specific Subjects (Select multiple as needed):',
+            ),
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF475569),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: _tutorSubjects.where((s) {
+              return s.labelEn != 'All Subjects' &&
+                  s.labelEn != 'Math & English' &&
+                  s.labelEn != 'Bangla, English & Math' &&
+                  s.labelEn != 'Science & Math';
+            }).map((subject) {
+              final isSelected = _selectedSubjectEns.contains(subject.labelEn);
+              return FilterChip(
+                selected: isSelected,
+                avatar: Icon(
+                  subject.icon,
+                  size: 14,
+                  color: isSelected ? Colors.white : subject.color,
+                ),
+                label: Text(
+                  context.tr(bn: subject.labelBn, en: subject.labelEn),
+                ),
+                selectedColor: subject.color,
+                checkmarkColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF334155),
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontSize: 11.5,
+                ),
+                backgroundColor: const Color(0xFFF8FAFC),
+                side: BorderSide(
+                  color: isSelected ? subject.color : const Color(0xFFCBD5E1),
+                ),
+                onSelected: (_) => _toggleSubject(subject),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 10),
+
+          // Custom Subject Input Toggle
+          Row(
+            children: [
+              Checkbox(
+                value: _isCustomSubjectEnabled,
+                visualDensity: VisualDensity.compact,
+                onChanged: (val) {
+                  setState(() => _isCustomSubjectEnabled = val ?? false);
+                },
+              ),
+              GestureDetector(
+                onTap: () {
+                  setState(() => _isCustomSubjectEnabled = !_isCustomSubjectEnabled);
+                },
+                child: Text(
+                  context.tr(
+                    bn: 'অন্যান্য বিষয় যোগ করুন (Custom Subject)',
+                    en: 'Add Other Custom Subject',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (_isCustomSubjectEnabled) ...[
+            const SizedBox(height: 4),
+            TextFormField(
+              controller: _customSubjectController,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: context.tr(
+                  bn: 'যেমন: ড্রয়িং, আরবি, সঙ্গীত ইত্যাদি',
+                  en: 'e.g. Drawing, Arabic, Music etc.',
+                ),
+                prefixIcon: const Icon(Icons.edit_note_rounded, size: 20),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+
+          // Selected Summary Badge
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${context.tr(bn: "নির্বাচিত বিষয়:", en: "Selected:")} ${context.tr(bn: summaryBn, en: summaryEn)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF15803D),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -2704,22 +3084,52 @@ const _tutorIntentOptions = <_TutorIntentOption>[
 
 const _tutorSubjects = <_TutorSubjectData>[
   _TutorSubjectData(
+    labelBn: 'সকল বিষয়',
+    labelEn: 'All Subjects',
+    icon: Icons.menu_book_rounded,
+    color: Color(0xFF2563EB),
+  ),
+  _TutorSubjectData(
+    labelBn: 'বাংলা',
+    labelEn: 'Bangla',
+    icon: Icons.translate_rounded,
+    color: Color(0xFFE11D48),
+  ),
+  _TutorSubjectData(
+    labelBn: 'ইংরেজি',
+    labelEn: 'English',
+    icon: Icons.language_rounded,
+    color: Color(0xFF7C3AED),
+  ),
+  _TutorSubjectData(
     labelBn: 'গণিত',
     labelEn: 'Math',
     icon: Icons.calculate_rounded,
     color: AppColors.primary,
   ),
   _TutorSubjectData(
-    labelBn: 'ইংরেজি',
-    labelEn: 'English',
-    icon: Icons.translate_rounded,
-    color: Color(0xFF7C3AED),
+    labelBn: 'গণিত ও ইংরেজি',
+    labelEn: 'Math & English',
+    icon: Icons.auto_stories_rounded,
+    color: Color(0xFF0284C7),
+  ),
+  _TutorSubjectData(
+    labelBn: 'বাংলা, ইংরেজি ও গণিত',
+    labelEn: 'Bangla, English & Math',
+    icon: Icons.school_rounded,
+    color: Color(0xFF4F46E5),
   ),
   _TutorSubjectData(
     labelBn: 'বিজ্ঞান',
     labelEn: 'Science',
     icon: Icons.science_rounded,
     color: AppColors.success,
+  ),
+  _TutorSubjectData(
+    labelBn: 'বিজ্ঞান ও গণিত',
+    labelEn: 'Science & Math',
+    icon: Icons.biotech_rounded,
+    color: Color(0xFF059669),
   ),
   _TutorSubjectData(
     labelBn: 'আইসিটি',
@@ -2732,6 +3142,42 @@ const _tutorSubjects = <_TutorSubjectData>[
     labelEn: 'Quran',
     icon: Icons.auto_stories_rounded,
     color: AppColors.accent,
+  ),
+  _TutorSubjectData(
+    labelBn: 'পদার্থবিজ্ঞান',
+    labelEn: 'Physics',
+    icon: Icons.bolt_rounded,
+    color: Color(0xFF9333EA),
+  ),
+  _TutorSubjectData(
+    labelBn: 'রসায়ন',
+    labelEn: 'Chemistry',
+    icon: Icons.bubble_chart_rounded,
+    color: Color(0xFF10B981),
+  ),
+  _TutorSubjectData(
+    labelBn: 'জীববিজ্ঞান',
+    labelEn: 'Biology',
+    icon: Icons.eco_rounded,
+    color: Color(0xFF16A34A),
+  ),
+  _TutorSubjectData(
+    labelBn: 'উচ্চতর গণিত',
+    labelEn: 'Higher Math',
+    icon: Icons.functions_rounded,
+    color: Color(0xFFD97706),
+  ),
+  _TutorSubjectData(
+    labelBn: 'হিসাববিজ্ঞান',
+    labelEn: 'Accounting',
+    icon: Icons.account_balance_wallet_rounded,
+    color: Color(0xFFEA580C),
+  ),
+  _TutorSubjectData(
+    labelBn: 'সাধারণ জ্ঞান',
+    labelEn: 'General Knowledge',
+    icon: Icons.public_rounded,
+    color: Color(0xFF0D9488),
   ),
 ];
 

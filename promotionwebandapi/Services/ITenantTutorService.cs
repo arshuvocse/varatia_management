@@ -17,4 +17,12 @@ public interface ITenantTutorService
     Task<CreateTenantTutorPostResponse> CreatePostAsync(
         CreateTenantTutorPostRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<TutorBdjobsProfileDto?> GetTutorProfileAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task<TutorBdjobsProfileResponse> SaveTutorProfileAsync(
+        SaveTutorBdjobsProfileRequest request,
+        CancellationToken cancellationToken = default);
 }

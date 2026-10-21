@@ -29,3 +29,20 @@ public sealed class MarkNotificationReadResponse
     public int NotificationId { get; init; }
     public string Message { get; init; } = string.Empty;
 }
+
+public sealed class SendRentNoticeRequest
+{
+    public string? UserId { get; init; }
+    public string PropertyName { get; init; } = string.Empty;
+    public string TenantName { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string? MonthLabel { get; init; }
+}
+
+public sealed class SendRentNoticeResponse
+{
+    public int NotificationId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Subtitle { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+}
